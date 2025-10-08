@@ -1,0 +1,457 @@
+{% extends "partials/sidebar.html" %}
+{% block title %} Menu principal {% endblock %}
+{% block content %}
+
+<style>
+  :root {
+    --bg-light: #fff;
+    --bg-dark: #121212;
+    --text-light: #000;
+    --text-dark: #eee;
+    --card-bg-light: #f3f3f3;
+    --card-bg-dark: #1e1e1e;
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    --shadow-dark: rgba(255, 255, 255, 0.1);
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .dashboard-container {
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    box-sizing: border-box;
+    background-color: var(--bg-light);
+    color: var(--text-light);
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  .dashboard-container.dark {
+    background-color: var(--bg-dark);
+    color: var(--text-dark);
+  }
+
+  .left-panel,
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .left-panel {
+    flex: 2;
+    width: 100%;
+  }
+
+  .right-panel {
+    flex: 1;
+    width: 100%;
+  }
+
+  .top-cards {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .card {
+    background-color: var(--card-bg-light);
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 2px 6px var(--shadow-light);
+    flex: 1;
+    min-width: 220px;
+    transition: background-color 0.3s, box-shadow 0.3s;
+  }
+
+  .dashboard-container.dark .card {
+    background-color: var(--card-bg-dark);
+    box-shadow: 0 2px 6px var(--shadow-dark);
+  }
+
+  .card h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+  }
+
+  .chart-card {
+    background: var(--card-bg-light);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px var(--shadow-light);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 300px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: background-color 0.3s, box-shadow 0.3s;
+  }
+
+  .dashboard-container.dark .chart-card {
+    background: var(--card-bg-dark);
+    box-shadow: 0 4px 12px var(--shadow-dark);
+  }
+
+  canvas {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Modo oscuro botón */
+  .toggle-darkmode {
+    position: fixed;
+    top: 15px;
+    right: 20px;
+    background-color: var(--card-bg-light);
+    border: none;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px var(--shadow-light);
+    font-weight: 600;
+    color: var(--text-light);
+    transition: background-color 0.3s, color 0.3s;
+    z-index: 999;
+  }
+
+  .dashboard-container.dark+.toggle-darkmode {
+    background-color: var(--card-bg-dark);
+    color: var(--text-dark);
+    box-shadow: 0 2px 8px var(--shadow-dark);
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 1024px) {
+    .dashboard-container {
+      flex-direction: column;
+    }
+
+    .left-panel, .right-panel {
+      width: 100%;
+    }
+
+    .top-cards {
+      flex-direction: column;
+    }
+
+    .card {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .chart-card {
+      padding: 15px;
+    }
+
+    .card h3 {
+      font-size: 14px;
+    }
+
+    .card p {
+      font-size: 13px;
+    }
+  }
+
+  /* Para pantallas grandes */
+@media (min-width: 1025px) {
+  html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* Quita scroll de todo el body */
+  }
+
+  .dashboard-container {
+    height: 100vh;  /* Toda la altura visible */
+    overflow: hidden; /* Evita scroll dentro del dashboard */
+  }
+
+  /* Para que los paneles llenen la altura disponible */
+  .left-panel, .right-panel {
+    height: 100%;
+    overflow-y: auto; /* Scroll interno si el contenido es mayor */
+  }
+}
+
+</style>
+
+
+<div class="dashboard-container" id="dashboard">
+  <!-- Panel Izquierdo -->
+  <div class="left-panel">
+    <!-- Radar con tipos de denuncia -->
+    <div class="chart-card">
+      <canvas id="graficoRadar"></canvas>
+    </div>
+  </div>
+
+  <!-- Panel Derecho -->
+  <div class="right-panel">
+    <!-- Tarjetas superiores -->
+    <div class="top-cards">
+      <div class="card">
+        <h3>Última Denuncia</h3>
+        <p id="ultima-denuncia">Cargando...</p>
+      </div>
+      <div class="card">
+        <h3>Última Emergencia</h3>
+        <p id="ultima-emergencia">Cargando...</p>
+      </div>
+      <div class="card">
+        <h3>Último Riesgo</h3>
+        <p id="ultimo-riesgo">Cargando...</p>
+      </div>
+    </div>
+
+    <!-- Gráfico de línea -->
+    <div class="chart-card">
+      <canvas id="graficoLinealReportes"></canvas>
+    </div>
+
+    <!-- Gráfico Doughnut -->
+    <div class="chart-card">
+      <canvas id="graficoTipoReporte"></canvas>
+    </div>
+  </div>
+</div>
+
+
+<!-- <button class="toggle-darkmode" id="btnDarkMode">Modo oscuro</button> -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  function actualizarTarjetas() {
+    fetch('{{ BASE_URL }}/obtener_ultima_denuncia')
+      .then(res => res.ok ? res.json() : Promise.reject('No hay denuncias'))
+      .then(text => {
+        document.getElementById("ultima-denuncia").textContent = text;
+      })
+      .catch(() => {
+        document.getElementById("ultima-denuncia").textContent = "Sin datos";
+      });
+
+    fetch('{{ BASE_URL }}/obtener_ultima_emergencia')
+      .then(res => res.ok ? res.json() : Promise.reject('No hay emergencias'))
+      .then(text => {
+        document.getElementById("ultima-emergencia").textContent = text;
+      })
+      .catch(() => {
+        document.getElementById("ultima-emergencia").textContent = "Sin datos";
+      });
+
+    fetch('{{ BASE_URL }}/obtener_ultima_riesgo')
+      .then(res => res.ok ? res.json() : Promise.reject('No hay riesgos'))
+      .then(text => {
+        document.getElementById("ultimo-riesgo").textContent = text;
+      })
+      .catch(() => {
+        document.getElementById("ultimo-riesgo").textContent = "Sin datos";
+      });
+  }
+
+  let graficoLineal;
+
+  function actualizarGrafico() {
+    fetch('{{ BASE_URL }}/reportes_por_fecha')
+      .then(res => res.ok ? res.json() : Promise.reject("Error al cargar datos"))
+      .then(data => {
+        const config = {
+          type: 'line',
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: 'Denuncias',
+                data: data.denuncias,
+                borderColor: '#4a90e2',
+                backgroundColor: 'rgba(74,144,226,0.1)',
+                fill: true,
+                tension: 0.4
+              },
+              {
+                label: 'Emergencias',
+                data: data.emergencias,
+                borderColor: '#f44336',
+                backgroundColor: 'rgba(244,67,54,0.1)',
+                fill: true,
+                tension: 0.4
+              }
+            ]
+          },
+          options: {
+            plugins: {
+              title: {
+                display: true,
+                text: 'Reportes por Fecha (Últimos Días)'
+              },
+              legend: {
+                labels: { color: getComputedStyle(document.body).color }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  precision: 0,
+                  color: getComputedStyle(document.body).color
+                }
+              },
+              x: {
+                ticks: {
+                  color: getComputedStyle(document.body).color
+                }
+              }
+            },
+            maintainAspectRatio: false
+          }
+        };
+
+        // Si ya existe el gráfico, destruirlo y volver a crearlo
+        if (graficoLineal) graficoLineal.destroy();
+
+        graficoLineal = new Chart(document.getElementById('graficoLinealReportes'), config);
+      })
+      .catch(err => console.error(err));
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const dashboard = document.getElementById('dashboard');
+
+    const datos = {
+      denuncias: 25,
+      emergencias: 15,
+      riesgos: 10,
+      ultima_denuncia: "Incendio forestal - 24/05/2025",
+      ultima_emergencia: "Derrumbe - 24/05/2025",
+      ultimo_riesgo: "Zona de riesgo - 23/05/2025",
+      // Datos para radar: niveles (1 a 5) por tipo de denuncia
+      radar_severidad: [3, 2, 4, 3, 4, 2, 1, 3],
+      labels_radar: [
+        'Ruidos molestos', 'Iluminación', 'Pistas y veredas',
+        'Parques y jardines', 'Limpieza pública', 'Negocios informales',
+        'Otros', 'Peleas y conflictos'
+      ]
+    };
+
+    // Actualizar textos tarjetas
+    actualizarTarjetas();
+
+    // Ejecutar cada 5 segundos (5000 milisegundos)
+    setInterval(actualizarTarjetas, 5000);
+
+    // Radar
+    fetch('{{ BASE_URL }}/obtener_severidad')
+      .then(res => res.json())
+      .then(datosRadar => {
+        new Chart(document.getElementById('graficoRadar'), {
+          type: 'radar',
+          data: {
+            labels: datosRadar.labels,
+            datasets: [{
+              label: 'Nivel de severidad',
+              data: datosRadar.severidades,
+              fill: true,
+              backgroundColor: 'rgba(54, 162, 235, 0.2)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+              pointHoverRadius: 7,
+              borderWidth: 2,
+            }]
+          },
+          options: {
+            elements: {
+              line: {
+                borderWidth: 2
+              }
+            },
+            scales: {
+              r: {
+                min: 0,
+                max: 5,
+                ticks: {
+                  stepSize: 1,
+                  color: getComputedStyle(document.body).color
+                },
+                pointLabels: {
+                  font: {
+                    size: 12,
+                    weight: '600'
+                  },
+                  color: getComputedStyle(document.body).color
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                labels: { color: getComputedStyle(document.body).color }
+              },
+              title: {
+                display: true,
+                text: 'Radar de Severidad por Tipo de Denuncia',
+                color: getComputedStyle(document.body).color,
+                font: {
+                  size: 18,
+                  weight: 'bold'
+                }
+              }
+            },
+            maintainAspectRatio: false
+          }
+        });
+      })
+      .catch(error => {
+        console.error('Error cargando datos del radar:', error);
+      });
+
+
+    // Línea
+    actualizarGrafico();
+
+    setInterval(actualizarGrafico, 5 * 60 * 1000);
+
+    // Doughnut
+    fetch('{{ BASE_URL }}/reporte_doughnut')
+      .then(res => res.ok ? res.json() : Promise.reject('Error al obtener datos'))
+      .then(datos => {
+        new Chart(document.getElementById('graficoTipoReporte'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Denuncias', 'Emergencias', 'Riesgos'],
+            datasets: [{
+              data: [datos.denuncia, datos.emergencia, datos.riesgo],
+              backgroundColor: ['#4a90e2', '#f44336', '#ffa726']
+            }]
+          },
+          options: {
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: getComputedStyle(document.body).color }
+              },
+              title: {
+                display: true,
+                text: 'Distribución por Tipo de Reporte mensual',
+                color: getComputedStyle(document.body).color,
+                font: { size: 18, weight: 'bold' }
+              }
+            },
+            maintainAspectRatio: false
+          }
+        });
+      })
+      .catch(error => {
+        console.error('Error al cargar gráfico de doughnut:', error);
+      });
+
+
+  });
+</script>
+
+{% endblock %}

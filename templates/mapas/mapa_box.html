@@ -1,0 +1,358 @@
+{% extends "partials/sidebar.html" %}
+{% block title %} Mapa incidencias {% endblock %}
+{% block content %}
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+<style>
+  body,
+  html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+
+  #map {
+    width: 100%;
+    height: 100vh;
+  }
+
+  .map-button {
+    position: absolute;
+    right: 15px;
+    z-index: 10;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border: 2px solid;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+  }
+
+  #locate-btn {
+    top: 15px;
+  }
+
+  #toggle-style-btn {
+    top: 60px;
+  }
+
+  .theme-light {
+    background-color: white;
+    color: #1E90FF;
+    border-color: #1E90FF;
+  }
+
+  .theme-light:hover {
+    background-color: #1E90FF;
+    color: white;
+  }
+
+  .theme-dark {
+    background-color: #1E1E1E;
+    color: #00BFFF;
+    border-color: #00BFFF;
+  }
+
+  .theme-dark:hover {
+    background-color: #00BFFF;
+    color: #1E1E1E;
+  }
+
+  #legend {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    font-size: 14px;
+    z-index: 10;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .legend-item img {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+
+  .legend-item:last-child {
+    margin-bottom: 0;
+  }
+</style>
+</head>
+
+<body>
+  <h1 id="titulo">Mapa Incidencias</h1>
+  <div id="map"></div>
+  <button id="locate-btn" class="map-button theme-light"><img src="" alt="" srcset=""></button>
+  <button id="toggle-style-btn" class="map-button theme-light">Vista satelital</button>
+  <div id="legend">
+    <div class="legend-item">
+      <img src="static\icons\ic_denuncia.png" alt="Denuncia">
+      <span>Denuncia</span>
+    </div>
+    <div class="legend-item">
+      <img src="static\icons\ic_emergencia.png" alt="Emergencia">
+      <span>Emergencia</span>
+    </div>
+  </div>
+
+
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoicGVkcm8xMjNhYmMiLCJhIjoiY21hcGh0YWRmMGk0ZTJscTc0Yml2djM2MSJ9.RdRrSKRsvzGdhNNCDBxPiA';
+
+    const styleStreet = 'mapbox://styles/mapbox/streets-v12';
+    const styleSatellite = 'mapbox://styles/mapbox/satellite-streets-v12';
+    let isSatellite = false;
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: styleStreet,
+      center: [-79.818433, -6.865423],
+      zoom: 16
+    });
+
+    let userMarker = null;
+    let pinsCargados = false; // para recargar pins al cambiar de estilo
+    const url = "{{ BASE_URL }}";
+
+
+
+    const locateBtn = document.getElementById('locate-btn');
+    const toggleStyleBtn = document.getElementById('toggle-style-btn');
+    const buttons = [locateBtn, toggleStyleBtn];
+
+    function applyTheme() {
+      const currentTheme = isSatellite ? 'theme-dark' : 'theme-light';
+      buttons.forEach(btn => {
+        btn.classList.remove('theme-light', 'theme-dark');
+        btn.classList.add(currentTheme);
+      });
+      toggleStyleBtn.textContent = isSatellite ? 'Vista normal' : 'Vista satelital';
+    }
+
+    locateBtn.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        alert('La geolocalización no está soportada por tu navegador.');
+        return;
+      }
+
+      locateBtn.disabled = true;
+      locateBtn.textContent = 'Obteniendo ubicación...';
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+
+          map.flyTo({ center: [lon, lat], zoom: 15, speed: 1.2 });
+
+          if (userMarker) {
+            userMarker.setLngLat([lon, lat]);
+          } else {
+            userMarker = new mapboxgl.Marker()
+              .setLngLat([lon, lat])
+              .setPopup(new mapboxgl.Popup().setText('Estás aquí'))
+              .addTo(map);
+            userMarker.togglePopup();
+          }
+
+          locateBtn.disabled = false;
+          locateBtn.textContent = 'Ir a mi ubicación';
+        },
+        (error) => {
+          alert('Error al obtener la ubicación: ' + error.message);
+          locateBtn.disabled = false;
+          locateBtn.textContent = 'Ir a mi ubicación';
+        }
+      );
+    });
+
+    toggleStyleBtn.addEventListener('click', () => {
+      isSatellite = !isSatellite;
+      map.setStyle(isSatellite ? styleSatellite : styleStreet);
+      applyTheme();
+    });
+
+
+
+
+
+    function cargarDenuncias() {
+
+      fetch(url + '/api/mapas/denuncias')
+        .then(res => res.json())
+        .then(data => {
+          if (!data.denuncias) return;
+
+          const features = data.denuncias.map(denuncia => {
+            const [lat, lon] = denuncia.ubicacion.split(',').map(parseFloat);
+            return {
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [lon, lat]
+              },
+              properties: {
+                nivel: denuncia.nivel_incidencia,
+                fecha: denuncia.fecha_hora,
+                descripcion: denuncia.descripcion
+              }
+            };
+          });
+
+          // Añadir como fuente y capa al mapa
+          if (map.getSource('denuncias')) {
+            map.getSource('denuncias').setData({
+              type: 'FeatureCollection',
+              features: features
+            });
+          } else {
+            map.addSource('denuncias', {
+              type: 'geojson',
+              data: {
+                type: 'FeatureCollection',
+                features: features
+              }
+            });
+
+            map.addLayer({
+              id: 'denuncias-layer',
+              type: 'symbol',
+              source: 'denuncias',
+              layout: {
+                'icon-image': 'custom-pin',
+                'icon-size': 0.1,
+                'icon-allow-overlap': true
+              }
+            });
+
+            map.on('click', 'denuncias-layer', (e) => {
+              const p = e.features[0].properties;
+              new mapboxgl.Popup()
+                .setLngLat(e.lngLat)
+                .setHTML(`
+                <strong>Nivel:</strong> ${p.nivel}<br/>
+                <strong>Fecha:</strong> ${p.fecha}<br/>
+                <strong>Descripción:</strong> ${p.descripcion}
+              `)
+                .addTo(map);
+            });
+
+            map.on('mouseenter', 'denuncias-layer', () => map.getCanvas().style.cursor = 'pointer');
+            map.on('mouseleave', 'denuncias-layer', () => map.getCanvas().style.cursor = '');
+          }
+        })
+        .catch(err => console.error('Error al cargar denuncias:', err));
+    }
+
+
+    function cargarEmergencias() {
+      fetch(url + '/api/mapas/emergencias')
+        .then(res => res.json())
+        .then(data => {
+          if (!data.denuncias) return;
+
+          const features = data.denuncias.map(denuncia => {
+            const [lat, lon] = denuncia.ubicacion.split(',').map(parseFloat);
+            return {
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [lon, lat]
+              },
+              properties: {
+                nivel: denuncia.nivel_incidencia,
+                fecha: denuncia.fecha_hora,
+                descripcion: denuncia.descripcion
+              }
+            };
+          });
+
+          if (map.getSource('emergencias')) {
+            map.getSource('emergencias').setData({
+              type: 'FeatureCollection',
+              features: features
+            });
+          } else {
+            map.addSource('emergencias', {
+              type: 'geojson',
+              data: {
+                type: 'FeatureCollection',
+                features: features
+              }
+            });
+
+            map.addLayer({
+              id: 'emergencias-layer',
+              type: 'symbol',
+              source: 'emergencias',
+              layout: {
+                'icon-image': 'custom-pin-emergencia',
+                'icon-size': 0.1,
+                'icon-allow-overlap': true
+              }
+            });
+
+            map.on('click', 'emergencias-layer', (e) => {
+              const p = e.features[0].properties;
+              new mapboxgl.Popup()
+                .setLngLat(e.lngLat)
+                .setHTML(`
+              <strong>Nivel:</strong> ${p.nivel}<br/>
+              <strong>Fecha:</strong> ${p.fecha}<br/>
+              <strong>Descripción:</strong> ${p.descripcion}
+            `)
+                .addTo(map);
+            });
+
+            map.on('mouseenter', 'emergencias-layer', () => map.getCanvas().style.cursor = 'pointer');
+            map.on('mouseleave', 'emergencias-layer', () => map.getCanvas().style.cursor = '');
+          }
+        })
+        .catch(err => console.error('Error al cargar emergencias:', err));
+    }
+
+
+    // Esperar que el mapa cargue para inyectar imagen y datos
+    map.on('style.load', () => {
+      // Ícono para denuncias (local)
+      fetch('/static/icons/ic_denuncia.png') // Ruta relativa al servidor
+        .then(response => response.blob())
+        .then(blob => createImageBitmap(blob))
+        .then(bitmap => {
+          if (!map.hasImage('custom-pin')) {
+            map.addImage('custom-pin', bitmap);
+          }
+          cargarDenuncias();
+        })
+        .catch(err => console.error("Error cargando ícono de denuncia:", err));
+
+      // Ícono para emergencias (local)
+      fetch('/static/icons/ic_emergencia.png') // Ruta relativa al servidor
+        .then(response => response.blob())
+        .then(blob => createImageBitmap(blob))
+        .then(bitmap => {
+          if (!map.hasImage('custom-pin-emergencia')) {
+            map.addImage('custom-pin-emergencia', bitmap);
+          }
+          cargarEmergencias();
+        })
+        .catch(err => console.error("Error cargando ícono de emergencia:", err));
+    });
+
+
+
+    applyTheme();
+  </script>
+
+  {% endblock %}

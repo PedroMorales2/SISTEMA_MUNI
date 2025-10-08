@@ -1,0 +1,161 @@
+{% extends "partials/sidebar.html" %}
+{% block content %}
+
+<div class="content">
+    <h1 id="titulo">Emergencias Pendientes</h1>
+    <table id="tablaEmergencias" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <!-- <th>Descripción</th> -->
+                <!-- <th>Estado</th> -->
+                <th>ID</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Persona</th>
+                <!-- <th>Nivel</th> -->
+                <!-- <th>Tipo</th> -->
+                <th>Emergencia</th>
+                <!-- <th>Ubicación</th> -->
+                <th>Acciones</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+<!-- DataTables + jQuery CDN -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+
+<!-- Inicializar DataTables -->
+<script>
+    $(document).ready(function () {
+        $('#tablaEmergencias').DataTable({
+            ajax: {
+                url: '{{ BASE_URL }}/api/central/emergencias/pendientes',
+                dataSrc: function (json) {
+                    if (!json || !json.emergencias) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Sin datos',
+                            text: 'Aún no se encuentran datos',
+                            confirmButtonText: 'Aceptar'
+                        });
+                        return [];
+                    }
+                    return json.emergencias;
+                },
+                error: function (xhr, error, thrown) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sin datos',
+                        text: 'Aún no se encuentran datos',
+                        confirmButtonText: 'Aceptar'
+                    });
+                    console.error('Error en DataTables:', xhr.responseText);
+                }
+            },
+            columns: [
+                // { data: "descripcion" },
+                // {
+                    //     data: "estado",
+                    //     render: function(data) {
+                        //         return data === '1' ? 'Pendiente' : 'Otro';
+                        //     }
+                        // },
+                        { data: "id_incidencia" },
+                        { data: "fecha" },
+                        { data: "hora" },
+                        { data: "persona" },
+                // {
+                //     data: "nivel_incidencia",
+                //     render: function(data) {
+                //         switch (data) {
+                //             case '1': return 'Baja';
+                //             case '2': return 'Media';
+                //             case '3': return 'Alta';
+                //             default: return data;
+                //         }
+                //     }
+                // },
+                // { data: "nombre" },
+                { data: "nombre_emergencia" },
+                // { data: "ubicacion" },
+                {
+                    data: null,
+                    render: function(row) {
+                        return `
+                            <button class="btn-ver" onclick="verEmergencia('${row.id_incidencia}')">Ver</button>
+                        `;
+                    }
+                }
+            ],
+            order: [[0, 'desc']],
+            responsive: true,
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            }
+        });
+    });
+
+    function verEmergencia(id_incidencia) {
+        //alert("Ver emergencia: " + id_incidencia);
+        // Aquí puedes redirigir a otra página o mostrar un modal con los detalles de la emergencia
+        window.location.href = "/emergencias/detalle/" + id_incidencia + "/editar";
+    }
+
+    function eliminarEmergencia(id_incidencia) {
+        if (confirm("¿Estás seguro que desea aceptar la incidencia con ID '" + id_incidencia + "'?")) {
+                fetch("{{ BASE_URL }}/emergencias/detalle/" + id_incidencia + "/editar", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        // Si usas CSRF token, añádelo aquí, por ejemplo:
+                        // "X-CSRFToken": csrftoken,
+                    },
+                    //body: JSON.stringify({ id: id_incidencia }) // si la API espera datos en JSON
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Error al aceptar la denuncia");
+                    }
+                    return response.json(); // o response.text(), depende de la respuesta de la API
+                })
+                .then(data => {
+                    alert("Denuncia aceptada");
+                    // Si tienes DataTables:
+                    $('#tablaEmergencias').DataTable().ajax.reload();
+                })
+                .catch(error => {
+                    alert(error.message);
+                    console.error("Error:", error);
+                });
+            }
+    }
+</script>
+
+<style>
+    .btn-ver {
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        margin-right: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .btn-eliminar {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+</style>
+
+{% endblock %}

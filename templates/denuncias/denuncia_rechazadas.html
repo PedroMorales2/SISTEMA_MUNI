@@ -1,0 +1,226 @@
+{% extends "partials/sidebar.html" %}
+{% block title %} Denuncias Rechazadas {% endblock %}
+{% block content %}
+
+<div class="content">
+    <h1 id="titulo">Denuncias Rechazadas</h1>
+    <table id="tablaDenuncias" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Denuncia</th>
+                <th>Descripción</th>
+                <!-- <th>Estado</th> -->
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Nivel</th>
+                <th>Persona</th>
+                <!-- <th>Tipo</th> -->
+                <!-- <th>Ubicación</th> -->
+                <th>Acciones</th> <!-- Nueva columna -->
+            </tr>
+        </thead>
+    </table>
+</div>
+
+<!-- Modal Fullscreen para motivo -->
+<div id="modal-motivo"
+    style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:1500; justify-content:center; align-items:center;">
+    <div
+        style="background:#fff; width:90vw; height:90vh; border-radius:12px; display:flex; overflow:hidden; box-shadow:0 0 15px rgba(0,0,0,0.5);">
+
+        <div id="modal-motivo-archivo"
+            style="flex: 3; background:#eee; overflow:auto; display:flex; justify-content:center; align-items:center; padding:1rem;">
+            <!-- Aquí se incrustará el archivo adjunto (iframe o img) -->
+        </div>
+
+        <div style="flex: 1; padding: 1rem; border-left: 1px solid #ccc; overflow-y: auto;">
+            <h2>Descripción</h2>
+            <p id="modal-motivo-descripcion" style="white-space: pre-wrap;"></p>
+        </div>
+
+        <button id="modal-motivo-cerrar"
+            style="position:absolute; top:1rem; right:1rem; background:#f44336; border:none; color:#fff; font-size:1.2rem; padding:0.3rem 0.6rem; border-radius:6px; cursor:pointer;">✕</button>
+    </div>
+</div>
+
+
+<!-- DataTables + jQuery CDN -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<!-- Inicializar DataTables -->
+<script>
+    $(document).ready(function () {
+        $('#tablaDenuncias').DataTable({
+            ajax: {
+                url: '{{ BASE_URL }}/api/central/denuncias/rechazadas/{{ session["id_usuario"] }}',
+                dataSrc: function (json) {
+                    if (!json || !json.denuncias) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Sin datos',
+                            text: 'Aún no se encuentran datos',
+                            confirmButtonText: 'Aceptar'
+                        });
+                        return [];
+                    }
+                    return json.denuncias;
+                },
+                error: function (xhr, error, thrown) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sin datos',
+                        text: 'Aún no se encuentran datos',
+                        confirmButtonText: 'Aceptar'
+                    });
+                    console.error('Error en DataTables:', xhr.responseText);
+                }
+            },
+            columns: [
+                { data: 'id_incidencia' },
+                { data: 'denuncia' },
+                { data: 'descripcion' },
+                // {
+                //     data: 'estado',
+                //     render: function(data) {
+                //         return data === '1' ? 'Pendiente' : 'Otro';
+                //     }
+                // },
+                { data: 'fecha' },
+                { data: 'hora' },
+                {
+                    data: 'nivel_incidencia',
+                    render: function (data) {
+                        switch (data) {
+                            case 'C': return 'Baja';
+                            case 'B': return 'Medio';
+                            case 'A': return 'Alta';
+                            default: return data;
+                        }
+                    }
+                },
+                { data: 'persona' },
+                // { data: 'tipo_incidencia' },
+                // { data: 'ubicacion' },
+                {
+                    data: null,
+                    render: function (data, type, row) {
+                        return `
+                            <button class="btn-ver" onclick="verDetalle('${row.id_incidencia}')">Ver</button>
+                            <button class="btn-ver" onclick="verMotivo('${row.id_incidencia}')">Motivo</button>
+                            
+                        `;
+                    }
+                }
+            ],
+            order: [[0, 'desc']],
+            responsive: true,
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            }
+        });
+    });
+
+    // Funciones de acción
+    function verMotivo(id_incidencia) {
+        const modal = document.getElementById('modal-motivo');
+        const archivoCont = document.getElementById('modal-motivo-archivo');
+        const descripcionCont = document.getElementById('modal-motivo-descripcion');
+        const btnCerrar = document.getElementById('modal-motivo-cerrar');
+
+        // Limpiar contenido previo
+        archivoCont.innerHTML = '';
+        descripcionCont.textContent = '';
+
+        fetch(`{{ BASE_URL }}/api/central/motivo/${id_incidencia}`)
+            .then(res => {
+                if (!res.ok) throw new Error('Error al obtener el motivo');
+                return res.json();
+            })
+            .then(data => {
+                const { descripcion, archivo_adjunto } = data.motivo;
+
+                descripcionCont.textContent = descripcion || 'Sin descripción';
+
+                if (archivo_adjunto) {
+                    // Detectar si es PDF o imagen u otro archivo
+                    const ext = archivo_adjunto.split('.').pop().toLowerCase();
+
+                    if (ext === 'pdf') {
+                        // Mostrar pdf en iframe
+                        const iframe = document.createElement('iframe');
+                        iframe.src = archivo_adjunto;
+                        iframe.style.width = '100%';
+                        iframe.style.height = '100%';
+                        iframe.style.border = 'none';
+                        archivoCont.appendChild(iframe);
+                    } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
+                        // Mostrar imagen
+                        const img = document.createElement('img');
+                        img.src = archivo_adjunto;
+                        img.style.maxWidth = '100%';
+                        img.style.maxHeight = '100%';
+                        archivoCont.appendChild(img);
+                    } else {
+                        // Mostrar link para descargar u otro archivo
+                        const a = document.createElement('a');
+                        a.href = archivo_adjunto;
+                        a.textContent = 'Descargar archivo adjunto';
+                        a.target = '_blank';
+                        a.style.fontSize = '1.2rem';
+                        archivoCont.appendChild(a);
+                    }
+                } else {
+                    archivoCont.textContent = 'No hay archivo adjunto';
+                }
+
+                modal.style.display = 'flex';
+            })
+            .catch(err => {
+                alert(err.message);
+            });
+
+        btnCerrar.onclick = () => {
+            modal.style.display = 'none';
+        };
+
+        // También cerrar si clickean fuera del contenido
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        };
+    }
+
+
+    function verDetalle(id_incidencia) {
+        window.location.href = `/denuncias/detalle/${id_incidencia}`;
+    }
+
+</script>
+
+<style>
+    .btn-ver {
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        margin-right: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .btn-eliminar {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+</style>
+
+{% endblock %}

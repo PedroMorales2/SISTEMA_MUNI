@@ -1,0 +1,247 @@
+{% extends "partials/sidebar.html" %}
+{% block title %} Denuncias Pendientes {% endblock %}
+{% block content %}
+
+<div class="content">
+    <h1 id="titulo">Denuncias Pendientes</h1>
+
+    <!-- FILTROS -->
+    <div class="filtros-container">
+        <div>
+            <label for="filtroNivel">Nivel:</label>
+            <select id="filtroNivel">
+                <option value="">Todos</option>
+                <option value="A">Alta</option>
+                <option value="B">Media</option>
+                <option value="C">Baja</option>
+            </select>
+        </div>
+        <div>
+            <label for="filtroPersona">Persona:</label>
+            <input type="text" id="filtroPersona" placeholder="Buscar persona...">
+        </div>
+        <div>
+            <label for="filtroFecha">Fecha:</label>
+            <input type="date" id="filtroFecha">
+        </div>
+        <div>
+            <button id="btnFiltrar">Aplicar filtros</button>
+            <button id="btnLimpiar">Limpiar</button>
+        </div>
+    </div>
+
+    <!-- TABLA -->
+    <table id="tablaDenuncias" class="display nowrap" style="width:100%">
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="checkAll"></th>
+                <th>ID</th>
+                <th>Denuncia</th>
+                <th>Descripción</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Nivel</th>
+                <th>Persona</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+    </table>
+
+    <!-- BOTONES MASIVOS -->
+    <div class="acciones-masivas">
+        <button id="btnAceptarSeleccion" class="btn-aceptar">Aceptar seleccionados</button>
+        <button id="btnRechazarSeleccion" class="btn-rechazar">Rechazar seleccionados</button>
+    </div>
+</div>
+
+<!-- DataTables + jQuery -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+$(document).ready(function () {
+    const tabla = $('#tablaDenuncias').DataTable({
+        ajax: {
+            url: '{{ BASE_URL }}/api/central/denuncias/pendientes/{{ session["id_usuario"] }}',
+            dataSrc: json => json.denuncias || []
+        },
+        columns: [
+            {
+                data: null,
+                render: function (data, type, row) {
+                    return `<input type="checkbox" class="check-item" value="${row.id_incidencia}">`;
+                },
+                orderable: false,
+                searchable: false
+            },
+            { data: 'id_incidencia' },
+            { data: 'denuncia' },
+            { data: 'descripcion' },
+            { data: 'fecha' },
+            { data: 'hora' },
+            {
+                data: 'nivel_incidencia',
+                render: function (data) {
+                    const niveles = { A: 'Alta', B: 'Media', C: 'Baja' };
+                    return niveles[data] || data;
+                }
+            },
+            { data: 'persona' },
+            {
+                data: null,
+                render: function (data, type, row) {
+                    return `
+                        <button class="btn-ver" onclick="verDetalle('${row.id_incidencia}')">Ver</button>
+                    `;
+                }
+            }
+        ],
+        responsive: true,
+        order: [[1, 'desc']],
+        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' }
+    });
+
+    // Filtros personalizados
+    $('#btnFiltrar').on('click', function () {
+        const nivel = $('#filtroNivel').val().toLowerCase();
+        const persona = $('#filtroPersona').val().toLowerCase();
+        const fecha = $('#filtroFecha').val();
+
+        tabla.rows().every(function () {
+            const data = this.data();
+            const matchNivel = !nivel || data.nivel_incidencia.toLowerCase() === nivel;
+            const matchPersona = !persona || data.persona.toLowerCase().includes(persona);
+            const matchFecha = !fecha || data.fecha === fecha;
+            if (matchNivel && matchPersona && matchFecha) $(this.node()).show();
+            else $(this.node()).hide();
+        });
+    });
+
+    $('#btnLimpiar').on('click', function () {
+        $('#filtroNivel, #filtroPersona, #filtroFecha').val('');
+        tabla.rows().every(function () { $(this.node()).show(); });
+    });
+
+    // Checkbox general
+    $('#checkAll').on('change', function () {
+        $('.check-item').prop('checked', this.checked);
+    });
+
+    // Aceptar/Rechazar en bloque
+    function procesarSeleccion(accion) {
+        const seleccionados = $('.check-item:checked').map(function () {
+            return $(this).val();
+        }).get();
+
+        if (seleccionados.length === 0) {
+            Swal.fire('Atención', 'No has seleccionado ninguna denuncia.', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: `¿Deseas ${accion} las denuncias seleccionadas?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, confirmar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`{{ BASE_URL }}/${accion}_incidencias`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: seleccionados })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    Swal.fire('Éxito', `Denuncias ${accion}das correctamente.`, 'success');
+                    tabla.ajax.reload();
+                })
+                .catch(err => {
+                    console.error(err);
+                    Swal.fire('Error', 'Hubo un problema al procesar la solicitud.', 'error');
+                });
+            }
+        });
+    }
+
+    $('#btnAceptarSeleccion').on('click', () => procesarSeleccion('aceptar'));
+    $('#btnRechazarSeleccion').on('click', () => procesarSeleccion('rechazar'));
+});
+
+// Ver detalle
+function verDetalle(id_incidencia) {
+    window.location.href = "/denuncias/detalle/" + id_incidencia + "/editar";
+}
+</script>
+
+<style>
+    .filtros-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        background: #f8f9fa;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        align-items: center;
+    }
+    .filtros-container label {
+        margin-right: 5px;
+        font-weight: 600;
+    }
+    .filtros-container input, .filtros-container select {
+        padding: 5px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+    }
+    #btnFiltrar, #btnLimpiar {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        color: white;
+    }
+    #btnFiltrar { background-color: #007bff; }
+    #btnLimpiar { background-color: #6c757d; }
+
+    .btn-ver {
+        background-color: #17a2b8;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .acciones-masivas {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-aceptar {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .btn-rechazar {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+</style>
+
+{% endblock %}

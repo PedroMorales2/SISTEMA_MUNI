@@ -1,0 +1,356 @@
+{% extends "partials/sidebar.html" %}
+{% block title %} Agregar Usuario {% endblock %}
+{% block content %}
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f0f2f5;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .form-wrapper {
+        background-color: #ffffff;
+        padding: 2.5rem 3rem;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        width: 90%;
+        max-width: 900px;
+    }
+
+    .form-wrapper h2 {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: #333;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.4rem;
+        font-weight: 600;
+        color: #444;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    select {
+        width: 100%;
+        padding: 0.65rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-columns {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .form-columns .form-group {
+        flex: 1;
+        position: relative;
+        min-width: 250px;
+    }
+
+    .combo-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .combo-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .combo-actions input[type="checkbox"] {
+        transform: scale(1.1);
+        cursor: pointer;
+    }
+
+    .icon-button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        font-size: 1rem;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .icon-button:hover {
+        background-color: #0056b3;
+    }
+
+    .remove-button {
+        background-color: #dc3545;
+    }
+
+    .remove-button:hover {
+        background-color: #b52a3a;
+    }
+
+    .select-wrapper {
+        position: relative;
+        margin-top: 0.5rem;
+    }
+
+    .select-wrapper select {
+        width: calc(100% - 34px);
+        display: inline-block;
+    }
+
+    .select-wrapper .remove-button {
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 100%;
+    }
+
+    button[type="submit"] {
+        width: 100%;
+        padding: 0.75rem;
+        background-color: #007BFF;
+        border: none;
+        border-radius: 6px;
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    button[type="submit"]:hover {
+        background-color: #0056b3;
+    }
+</style>
+
+<div class="form-wrapper">
+    <h2>Agregar Usuario</h2>
+    <form>
+
+        <div class="form-group">
+            <label for="nombre_area">Nombre del Área</label>
+            <input type="text" id="nombre_area" name="nombre_area" required>
+        </div>
+
+        <div class="form-group">
+            <label for="correo">Correo</label>
+            <input type="email" id="correo" name="correo" required>
+        </div>
+
+        <div class="form-group">
+            <label for="contra">Contraseña</label>
+            <input type="password" id="contra" name="contra" required>
+        </div>
+
+        <div class="form-columns">
+            <!-- Denuncia -->
+            <div class="form-group">
+                <div class="combo-header">
+                    <label>Tipo de Denuncia</label>
+                    <div class="combo-actions">
+                        <input type="checkbox" checked onchange="toggleCombos('denunciaContainer', this)">
+                        <button type="button" class="icon-button" title="Agregar combo" onclick="agregarCombo('denunciaContainer', 'denuncia', denuncias)">+</button>
+                    </div>
+                </div>
+                <div id="denunciaContainer">
+                    <!-- Primer combo estático -->
+                    <div class="select-wrapper">
+                        <select name="denuncia[]" required>
+                            {% for denuncia in denuncias %}
+                                <option value="{{ denuncia.id_denuncia }}">{{ denuncia.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Riesgo -->
+            <div class="form-group">
+                <div class="combo-header">
+                    <label>Nivel de Riesgo</label>
+                    <div class="combo-actions">
+                        <input type="checkbox" checked onchange="toggleCombos('riesgoContainer', this)">
+                        <button type="button" class="icon-button" title="Agregar combo" onclick="agregarCombo('riesgoContainer', 'riesgo', riesgos)">+</button>
+                    </div>
+                </div>
+                <div id="riesgoContainer">
+                    <!-- Primer combo estático -->
+                    <div class="select-wrapper">
+                        <select name="riesgo[]" required>
+                            {% for riesgo in riesgos %}
+                                <option value="{{ riesgo.id_riesgo }}">{{ riesgo.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <button type="submit">Registrar Usuario</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const denuncias = {{ denuncias | tojson }};
+    const riesgos = {{ riesgos | tojson }};
+
+    function toggleCombos(containerId, checkbox) {
+        const container = document.getElementById(containerId);
+        container.querySelectorAll('select').forEach(select => {
+            select.disabled = !checkbox.checked;
+        });
+    }
+
+    function agregarCombo(containerId, tipo, datos) {
+    const container = document.getElementById(containerId);
+
+    // 1. Obtener valores ya seleccionados
+    const valoresSeleccionados = Array.from(container.querySelectorAll('select'))
+        .map(sel => sel.value);
+
+    // 2. Crear el nuevo wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'select-wrapper';
+
+    const select = document.createElement('select');
+    select.name = tipo + '[]';
+    select.required = true;
+
+    // 3. Agregar opciones que no estén seleccionadas
+    datos.forEach(dato => {
+        const valor = dato.id_denuncia || dato.id_riesgo;
+        const nombre = dato.nombre;
+        if (!valoresSeleccionados.includes(String(valor))) {
+            const option = document.createElement('option');
+            option.value = valor;
+            option.textContent = nombre;
+            select.appendChild(option);
+        }
+    });
+
+    if (select.options.length === 0) {
+        alert("⚠️ Ya has seleccionado todas las opciones disponibles.");
+        return; // No agregar si no quedan opciones disponibles
+    }
+
+    // 4. Botón para eliminar
+    const btnEliminar = document.createElement('button');
+    btnEliminar.type = 'button';
+    btnEliminar.className = 'icon-button remove-button';
+    btnEliminar.title = 'Eliminar combo';
+    btnEliminar.textContent = '🗑️';
+    btnEliminar.onclick = () => wrapper.remove();
+
+    // 5. Insertar al DOM
+    wrapper.appendChild(select);
+    wrapper.appendChild(btnEliminar);
+    container.appendChild(wrapper);
+}
+
+</script>
+
+
+<script>
+    document.querySelector('form').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const nombre = document.getElementById('nombre_area').value.trim();
+        const correo = document.getElementById('correo').value.trim();
+        const contra = document.getElementById('contra').value.trim();
+
+        const denuncias = [];
+
+        const recolectarSeleccionados = (containerId) => {
+            const contenedor = document.getElementById(containerId);
+            const selects = contenedor.querySelectorAll('select');
+            selects.forEach(select => {
+                if (!select.disabled) {
+                    const valor = parseInt(select.value);
+                    if (!isNaN(valor)) {
+                        denuncias.push(valor);
+                    }
+                }
+            });
+        };
+
+        const denunciaCheckbox = document.querySelector('input[type="checkbox"][onchange*="denunciaContainer"]');
+        const riesgoCheckbox = document.querySelector('input[type="checkbox"][onchange*="riesgoContainer"]');
+
+        if (denunciaCheckbox && denunciaCheckbox.checked) {
+            recolectarSeleccionados('denunciaContainer');
+        }
+        if (riesgoCheckbox && riesgoCheckbox.checked) {
+            recolectarSeleccionados('riesgoContainer');
+        }
+
+        const data = {
+            nombre: nombre,
+            correo: correo,
+            contra: contra,
+            denuncias: denuncias
+        };
+
+        console.log("Datos a enviar:", data);
+
+        if (denuncias.length === 0) {
+            alert("Debes seleccionar al menos una denuncia o riesgo habilitado.");
+            return;
+        }
+
+        fetch('{{ BASE_URL }}/api/central/usuarios/crear', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(async res => {
+            const texto = await res.text();
+            console.log("Respuesta del servidor:", texto);
+            try {
+                const json = JSON.parse(texto);
+                if (json.id_correo) {
+                    alert("✅ Usuario registrado con éxito. ID correo: " + json.id_correo);
+                    window.location.href = "/ver_usuario";
+                } else {
+                    alert("❌ Error del servidor: " + json.error);
+                }
+            } catch (e) {
+                alert("❌ Error: la respuesta del servidor no es JSON válido.");
+                console.error("Error al parsear JSON:", e);
+            }
+        })
+        .catch(error => {
+            alert("❌ Ocurrió un error al registrar: " + error);
+            console.error(error);
+        });
+    });
+</script>
+
+
+
+
+
+
+{% endblock %}

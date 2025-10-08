@@ -1,0 +1,251 @@
+{% extends "partials/sidebar.html" %}
+{% block content %}
+
+<div class="content">
+    <h1 id="titulo">Emergencias aceptadas</h1>
+    <table id="tablaEmergencias" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <!-- <th>Descripción</th> -->
+                <!-- <th>Estado</th> -->
+                <th>ID</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Persona</th>
+                <!-- <th>Nivel</th> -->
+                <!-- <th>Tipo</th> -->
+                <th>Emergencia</th>
+                <!-- <th>Ubicación</th> -->
+                <th>Acciones</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+
+<!-- Modal Fullscreen para motivo -->
+<div id="modal-motivo"
+    style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:1500; justify-content:center; align-items:center;">
+    <div
+        style="background:#fff; width:90vw; height:90vh; border-radius:12px; display:flex; overflow:hidden; box-shadow:0 0 15px rgba(0,0,0,0.5);">
+
+        <div id="modal-motivo-archivo"
+            style="flex: 3; background:#eee; overflow:auto; display:flex; justify-content:center; align-items:center; padding:1rem;">
+            <!-- Aquí se incrustará el archivo adjunto (iframe o img) -->
+        </div>
+
+        <div style="flex: 1; padding: 1rem; border-left: 1px solid #ccc; overflow-y: auto;">
+            <h2>Descripción</h2>
+            <p id="modal-motivo-descripcion" style="white-space: pre-wrap;"></p>
+        </div>
+
+        <button id="modal-motivo-cerrar"
+            style="position:absolute; top:1rem; right:1rem; background:#f44336; border:none; color:#fff; font-size:1.2rem; padding:0.3rem 0.6rem; border-radius:6px; cursor:pointer;">✕</button>
+    </div>
+</div>
+
+<!-- DataTables + jQuery CDN -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+
+<!-- Inicializar DataTables -->
+<script>
+    $(document).ready(function () {
+        $('#tablaEmergencias').DataTable({
+            ajax: {
+                url: '{{ BASE_URL }}/api/central/emergencias/aceptadas',
+                dataSrc: function (json) {
+                    if (!json || !json.emergencias) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Sin datos',
+                            text: 'Aún no se encuentran datos',
+                            confirmButtonText: 'Aceptar'
+                        });
+                        return [];
+                    }
+                    return json.emergencias;
+                },
+                error: function (xhr, error, thrown) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sin datos',
+                        text: 'Aún no se encuentran datos',
+                        confirmButtonText: 'Aceptar'
+                    });
+                    console.error('Error en DataTables:', xhr.responseText);
+                }
+            },
+            columns: [
+                // { data: "descripcion" },
+                // {
+                //     data: "estado",
+                //     render: function(data) {
+                //         return data === '1' ? 'Pendiente' : 'Otro';
+                //     }
+                // },
+                { data: "id_incidencia" },
+                { data: "fecha" },
+                { data: "hora" },
+                { data: "persona" },
+                // {
+                //     data: "nivel_incidencia",
+                //     render: function(data) {
+                //         switch (data) {
+                //             case '1': return 'Baja';
+                //             case '2': return 'Media';
+                //             case '3': return 'Alta';
+                //             default: return data;
+                //         }
+                //     }
+                // },
+                // { data: "nombre" },
+                { data: "nombre_emergencia" },
+                // { data: "ubicacion" },
+                {
+                    data: null,
+                    render: function (row) {
+                        return `
+                            <button class="btn-ver" onclick="verEmergencia('${row.id_incidencia}')">Ver</button>
+                            <button class="btn-eliminar" onclick="verMotivo('${row.id_incidencia}')">Motivo</button>
+                        `;
+                    }
+                }
+            ],
+            order: [[0, 'desc']],
+            responsive: true,
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            }
+        });
+    });
+
+    function verMotivo(id_incidencia) {
+        const modal = document.getElementById('modal-motivo');
+        const archivoCont = document.getElementById('modal-motivo-archivo');
+        const descripcionCont = document.getElementById('modal-motivo-descripcion');
+        const btnCerrar = document.getElementById('modal-motivo-cerrar');
+
+        // Limpiar contenido previo
+        archivoCont.innerHTML = '';
+        descripcionCont.textContent = '';
+
+        fetch(`{{ BASE_URL }}/api/central/motivo/${id_incidencia}`)
+            .then(res => {
+                if (!res.ok) throw new Error('Error al obtener el motivo');
+                return res.json();
+            })
+            .then(data => {
+                const { descripcion, archivo_adjunto } = data.motivo;
+
+                descripcionCont.textContent = descripcion || 'Sin descripción';
+
+                if (archivo_adjunto) {
+                    const ext = archivo_adjunto.split('.').pop().toLowerCase();
+
+                    if (ext === 'pdf') {
+                        const iframe = document.createElement('iframe');
+                        iframe.src = archivo_adjunto;
+                        iframe.style.width = '100%';
+                        iframe.style.height = '100%';
+                        iframe.style.border = 'none';
+                        archivoCont.appendChild(iframe);
+                    } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
+                        const img = document.createElement('img');
+                        img.src = archivo_adjunto;
+                        img.style.maxWidth = '100%';
+                        img.style.maxHeight = '100%';
+                        archivoCont.appendChild(img);
+                    } else {
+                        const a = document.createElement('a');
+                        a.href = archivo_adjunto;
+                        a.textContent = 'Descargar archivo adjunto';
+                        a.target = '_blank';
+                        a.style.fontSize = '1.2rem';
+                        archivoCont.appendChild(a);
+                    }
+
+                    // Estilos para que el contenedor sea posición relativa (necesario para el overlay)
+                    archivoCont.style.position = 'relative';
+
+                    // Botón de descarga overlay
+                    const btnDescargar = document.createElement('button');
+                    btnDescargar.textContent = '⬇ Descargar';
+                    btnDescargar.style.position = 'absolute';
+                    btnDescargar.style.bottom = '10px';
+                    btnDescargar.style.right = '10px';
+                    btnDescargar.style.padding = '0.5rem 1rem';
+                    btnDescargar.style.cursor = 'pointer';
+                    btnDescargar.style.backgroundColor = 'rgba(76, 175, 80, 0.85)';  // verde semitransparente
+                    btnDescargar.style.color = 'white';
+                    btnDescargar.style.border = 'none';
+                    btnDescargar.style.borderRadius = '6px';
+                    btnDescargar.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+                    btnDescargar.style.zIndex = '10';
+                    btnDescargar.style.fontWeight = '600';
+                    btnDescargar.style.fontSize = '0.9rem';
+
+                    btnDescargar.onclick = () => {
+                        const link = document.createElement('a');
+                        link.href = archivo_adjunto;
+                        link.download = archivo_adjunto.split('/').pop();
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    };
+
+                    archivoCont.appendChild(btnDescargar);
+
+                } else {
+                    archivoCont.textContent = 'No hay archivo adjunto';
+                }
+
+
+                modal.style.display = 'flex';
+            })
+            .catch(err => {
+                alert(err.message);
+            });
+
+        btnCerrar.onclick = () => {
+            modal.style.display = 'none';
+        };
+
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        };
+    }
+
+
+    function verEmergencia(id_incidencia) {
+        window.location.href = "/emergencias/detalle/" + id_incidencia;
+    }
+</script>
+
+<style>
+    .btn-ver {
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        margin-right: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .btn-eliminar {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+</style>
+
+{% endblock %}
