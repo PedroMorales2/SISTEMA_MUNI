@@ -1,0 +1,61 @@
+<div id="tab-metricas" class="tab-content">
+  <div class="alert alert-warning" style="margin-bottom: 20px;">
+    <span>ℹ️</span>
+    <div>
+      <strong>Sobre las Métricas:</strong> Estas estadísticas muestran qué tan preciso es el modelo al predecir. 
+      Un error menor significa predicciones más exactas. Un score mayor a 85% indica alta confiabilidad.
+    </div>
+  </div>
+
+  <div class="cards-grid">
+    <div class="metric-card">
+      <h3>📊 Precisión - Denuncias</h3>
+      <div class="metric-value" id="scoreDenuncias">-</div>
+      <div class="metric-subtitle" id="nivelDenuncias">-</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressDenuncias" style="width: 0%"></div>
+      </div>
+      <small style="opacity: 0.7; display: block; margin-top: 8px;">
+        Qué tan acertado es el modelo prediciendo denuncias ciudadanas
+      </small>
+    </div>
+    <div class="metric-card">
+      <h3>📊 Precisión - Emergencias</h3>
+      <div class="metric-value" id="scoreEmergencias">-</div>
+      <div class="metric-subtitle" id="nivelEmergencias">-</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressEmergencias" style="width: 0%"></div>
+      </div>
+      <small style="opacity: 0.7; display: block; margin-top: 8px;">
+        Qué tan acertado es el modelo prediciendo llamadas de emergencia
+      </small>
+    </div>
+    <div class="metric-card">
+      <h3>📏 Error Promedio (Denuncias)</h3>
+      <div class="metric-value" id="maeDenuncias">-</div>
+      <div class="metric-subtitle">casos de diferencia<br><small style="opacity: 0.6;">Cuánto se equivoca en promedio</small></div>
+    </div>
+    <div class="metric-card">
+      <h3>📏 Error Promedio (Emergencias)</h3>
+      <div class="metric-value" id="maeEmergencias">-</div>
+      <div class="metric-subtitle">llamadas de diferencia<br><small style="opacity: 0.6;">Cuánto se equivoca en promedio</small></div>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <h3>📉 Precisión por Tipo de Denuncia</h3>
+    <p style="font-size: 14px; opacity: 0.7; margin-bottom: 15px;">
+      Este gráfico muestra qué tipos de denuncia son más fáciles de predecir. 
+      Una barra verde alta significa alta precisión (predicción confiable).
+    </p>
+    <canvas id="chartMetricas"></canvas>
+  </div>
+
+  <div class="control-panel" id="recomendaciones">
+    <h3>💡 Recomendaciones para Mejorar el Sistema</h3>
+    <p style="font-size: 14px; opacity: 0.7; margin-bottom: 15px;">
+      Sugerencias automáticas basadas en el desempeño actual del modelo
+    </p>
+    <div id="listaRecomendaciones"></div>
+  </div>
+</div>

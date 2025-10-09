@@ -1,0 +1,53 @@
+<div id="tab-recursos" class="tab-content">
+  <div class="control-panel">
+    <h3 style="margin-top: 0;">🎯 Planificador de Recursos</h3>
+    <p style="font-size: 14px; opacity: 0.7; margin-bottom: 20px;">
+      Calcule recursos necesarios basados en predicciones futuras
+    </p>
+
+    <div class="control-row">
+      <div class="control-group">
+        <label>Mes a Planificar</label>
+        <input type="month" id="mesPlanificacion" />
+      </div>
+      <button class="btn btn-success" onclick="calcularRecursos()">
+        🎯 Calcular Recursos Necesarios
+      </button>
+    </div>
+  </div>
+
+  <div id="resultadoRecursos" style="display: none;">
+    <div class="cards-grid">
+      <div class="metric-card">
+        <h3>👥 Personal Requerido</h3>
+        <div class="metric-value" id="personalRequerido">-</div>
+        <div class="metric-subtitle">Empleados municipales<br><small style="opacity: 0.6;">Basado en 10 casos por persona/mes</small></div>
+      </div>
+      <div class="metric-card">
+        <h3>🚗 Vehículos Necesarios</h3>
+        <div class="metric-value" id="vehiculosNecesarios">-</div>
+        <div class="metric-subtitle">Unidades móviles<br><small style="opacity: 0.6;">Para respuesta rápida</small></div>
+      </div>
+      <div class="metric-card">
+        <h3>💰 Presupuesto Estimado</h3>
+        <div class="metric-value" id="presupuestoEstimado">-</div>
+        <div class="metric-subtitle">Soles peruanos<br><small style="opacity: 0.6;">S/ 50 por caso en promedio</small></div>
+      </div>
+      <div class="metric-card">
+        <h3>⏰ Horas de Trabajo</h3>
+        <div class="metric-value" id="horasTrabajo">-</div>
+        <div class="metric-subtitle">Horas-hombre<br><small style="opacity: 0.6;">2 horas por caso en promedio</small></div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h3>📊 Distribución de Recursos por Tipo de Incidencia</h3>
+      <canvas id="chartRecursos"></canvas>
+    </div>
+
+    <div class="control-panel">
+      <h3>📋 Plan de Acción Sugerido</h3>
+      <div id="planAccion"></div>
+    </div>
+  </div>
+</div>

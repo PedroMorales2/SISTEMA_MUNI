@@ -1,0 +1,70 @@
+<div id="tab-exportar" class="tab-content">
+  <div class="control-panel">
+    <h3 style="margin-top: 0;">Exportar Reportes</h3>
+    
+    <div class="cards-grid">
+      <div class="metric-card" style="cursor: pointer;" onclick="exportarPrediccion('excel')">
+        <h3 style="color: #217346;">Exportar a Excel</h3>
+        <p style="font-size: 14px; opacity: 0.7;">Incluye predicciones y métricas completas</p>
+        <button class="btn btn-success" style="width: 100%;">Descargar .XLSX</button>
+      </div>
+
+      <div class="metric-card" style="cursor: pointer;" onclick="exportarPrediccion('pdf')">
+        <h3 style="color: #d32f2f;">Exportar a PDF</h3>
+        <p style="font-size: 14px; opacity: 0.7;">Reporte ejecutivo con gráficos</p>
+        <button class="btn btn-danger" style="width: 100%;">Descargar .PDF</button>
+      </div>
+
+      <div class="metric-card" style="cursor: pointer;" onclick="exportarPrediccion('csv')">
+        <h3 style="color: #1976d2;">Exportar a CSV</h3>
+        <p style="font-size: 14px; opacity: 0.7;">Datos tabulares para análisis</p>
+        <button class="btn btn-primary" style="width: 100%;">Descargar .CSV</button>
+      </div>
+
+      <div class="metric-card" style="cursor: pointer;" onclick="exportarPrediccion('json')">
+        <h3 style="color: #ff9800;">Exportar a JSON</h3>
+        <p style="font-size: 14px; opacity: 0.7;">Formato para integración</p>
+        <button class="btn" style="width: 100%; background: #ff9800; color: white;">Descargar .JSON</button>
+      </div>
+    </div>
+
+    <div class="control-panel">
+      <h3>Opciones de Exportación</h3>
+      <div style="margin: 15px 0;">
+        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <input type="checkbox" id="incluirMetricas" checked>
+          <span>Incluir métricas de calidad del modelo</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <input type="checkbox" id="incluirGraficos" checked>
+          <span>Incluir gráficos generados (como imágenes)</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <input type="checkbox" id="incluirPredicciones" checked>
+          <span>Incluir tabla de predicciones detallada</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <input type="checkbox" id="incluirRecomendaciones" checked>
+          <span>Incluir recomendaciones del sistema</span>
+        </label>
+      </div>
+
+      <div style="margin-top: 20px; padding: 15px; background: rgba(74, 144, 226, 0.1); border-radius: 8px;">
+        <h4 style="margin-top: 0;">Exportación Avanzada con Gráficos</h4>
+        <p style="font-size: 13px; opacity: 0.8; margin-bottom: 15px;">
+          Genera un reporte ejecutivo completo con todos los gráficos como imágenes de alta calidad
+        </p>
+        <button class="btn btn-primary" onclick="exportarReporteCompleto()" style="width: 100%;">
+          Exportar Reporte Ejecutivo Completo
+        </button>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <h4>Historial de Exportaciones</h4>
+        <div id="historialExportaciones" style="font-size: 13px; opacity: 0.7;">
+          No hay exportaciones recientes
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
