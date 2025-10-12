@@ -1,5 +1,6 @@
 from utils.database import obtenerconexion as obtener_conexion
 import datetime
+from flask import session
 
 def obtener_denuncias_pendientes_central(id_correo):
     conexion = obtener_conexion()
@@ -101,7 +102,7 @@ def obtener_denuncias_rechazadas_central(id):
     return denuncias
 
 
-def obtener_emergencias_pendientes_central():
+def obtener_emergencias_pendientes_central(id):
     conexion = obtener_conexion()
     cursor = conexion.cursor()
     sql = """
@@ -114,9 +115,11 @@ def obtener_emergencias_pendientes_central():
         INNER JOIN usuario us ON us.id_usuario = inci.id_usuario
         INNER JOIN persona pes ON us.id_persona = pes.id_persona
         INNER JOIN emergencia em ON em.id_numero_emergencia = inci.id_numero_emergencia
-        WHERE tip.id_tipo_incidencia = 4 and inci.estado = '1';
+        INNER JOIN emergencia_correo emer ON emer.id_numero_emergencia = em.id_numero_emergencia
+        INNER JOIN correo_institucional cor ON cor.id_correo = emer.id_correo
+        WHERE tip.id_tipo_incidencia = 4 and inci.estado = '1' AND cor.id_correo = %s;
     """
-    cursor.execute(sql)
+    cursor.execute(sql,(id,))
     denuncias = cursor.fetchall()  # ✅ esto será una lista de tuplas
     for denuncia in denuncias:
         for key in ['fecha', 'hora']:
@@ -126,7 +129,7 @@ def obtener_emergencias_pendientes_central():
     conexion.close()
     return denuncias
 
-def obtener_emergencias_aceptadas_central():
+def obtener_emergencias_aceptadas_central(id):
     conexion = obtener_conexion()
     cursor = conexion.cursor()
     sql = """
@@ -139,9 +142,11 @@ def obtener_emergencias_aceptadas_central():
         INNER JOIN usuario us ON us.id_usuario = inci.id_usuario
         INNER JOIN persona pes ON us.id_persona = pes.id_persona
         INNER JOIN emergencia em ON em.id_numero_emergencia = inci.id_numero_emergencia
-        WHERE tip.id_tipo_incidencia = 4 and inci.estado = '2';
+        INNER JOIN emergencia_correo emer ON emer.id_numero_emergencia = em.id_numero_emergencia
+        INNER JOIN correo_institucional cor ON cor.id_correo = emer.id_correo
+        WHERE tip.id_tipo_incidencia = 4 and inci.estado = '2' AND cor.id_correo = %s;
     """
-    cursor.execute(sql)
+    cursor.execute(sql,(id,))
     denuncias = cursor.fetchall()  # ✅ esto será una lista de tuplas
     for denuncia in denuncias:
         for key in ['fecha', 'hora']:
@@ -152,7 +157,7 @@ def obtener_emergencias_aceptadas_central():
     return denuncias
 
 
-def obtener_emergencias_rechazadas_central():
+def obtener_emergencias_rechazadas_central(id):
     conexion = obtener_conexion()
     cursor = conexion.cursor()
     sql = """
@@ -165,9 +170,11 @@ def obtener_emergencias_rechazadas_central():
         INNER JOIN usuario us ON us.id_usuario = inci.id_usuario
         INNER JOIN persona pes ON us.id_persona = pes.id_persona
         INNER JOIN emergencia em ON em.id_numero_emergencia = inci.id_numero_emergencia
-        WHERE tip.id_tipo_incidencia = 4 and inci.estado = '3';
+        INNER JOIN emergencia_correo emer ON emer.id_numero_emergencia = em.id_numero_emergencia
+        INNER JOIN correo_institucional cor ON cor.id_correo = emer.id_correo
+        WHERE tip.id_tipo_incidencia = 4 and inci.estado = '3' AND cor.id_correo = %s;
     """
-    cursor.execute(sql)
+    cursor.execute(sql,(id,))
     denuncias = cursor.fetchall()  # ✅ esto será una lista de tuplas
     for denuncia in denuncias:
         for key in ['fecha', 'hora']:
@@ -362,14 +369,14 @@ def insertar_descripcion(id_incidencia, descripcion, archivo_adjunto):
     conexion = obtener_conexion()
     cursor = conexion.cursor()
     sql = """
-        INSERT INTO motivo_incidencia(descripcion, archivo_adjunto, id_incidencia)
-        VALUES (%s, %s, %s);
+        INSERT INTO motivo_incidencia(descripcion, archivo_adjunto, id_incidencia, fecha_aceptacion, id_correo)
+        VALUES (%s, %s, %s, %s, %s);
     """
     # Convertir cadena vacía a None si es necesario
     if archivo_adjunto == '':
         archivo_adjunto = None
 
-    cursor.execute(sql, (descripcion, archivo_adjunto, id_incidencia))
+    cursor.execute(sql, (descripcion, archivo_adjunto, id_incidencia, datetime.date.today(), session['id_usuario'])) 
     conexion.commit()
     cursor.close()
     conexion.close()
@@ -489,19 +496,22 @@ def cambiar_contrasena(id_correo, nueva_contra):
 
 
 def obtener_emergencia_por_id(id):
+    """Obtiene el detalle completo de una emergencia incluyendo audio"""
     conexion = obtener_conexion()
     cursor = conexion.cursor()
     sql = """
     SELECT ini.id_incidencia, ini.ubicacion, ini.estado, ini.fecha,
            ini.nivel_incidencia, ini.hora,
-			  eme.nombre_emergencia, eme.numero,
+           eme.nombre_emergencia, eme.numero,
            CONCAT(pe.nombre,' ',pe.apellidos) AS nombres,
-           pe.numero_celular, pe.dni
+           pe.numero_celular, pe.dni,
+           aud.id_audio, aud.ubicacion_audio
     FROM incidencia ini
     INNER JOIN emergencia eme ON eme.id_numero_emergencia = ini.id_numero_emergencia
     INNER JOIN usuario us ON us.id_usuario = ini.id_usuario
-	 INNER JOIN persona pe ON pe.id_persona = us.id_persona
-    WHERE ini.id_incidencia =  %s
+    INNER JOIN persona pe ON pe.id_persona = us.id_persona
+    LEFT JOIN audio aud ON aud.id_incidencia = ini.id_incidencia
+    WHERE ini.id_incidencia = %s
     """
     cursor.execute(sql, (id,))
     fila = cursor.fetchone()
@@ -520,12 +530,13 @@ def obtener_emergencia_por_id(id):
             "numero": fila['numero'],
             "nombre": fila['nombres'],
             "cel_us": fila['numero_celular'],
-            "dni": fila['dni']
+            "dni": fila['dni'],
+            "id_audio": fila['id_audio'],  # Agregar id_audio
+            "ubicacion_audio": fila['ubicacion_audio']  # Agregar ruta del audio
         }
         return resultado
     else:
         return {"error": "No se encontró la emergencia con ese ID"}
-
 
 
 
@@ -792,5 +803,18 @@ def obtener_motivo(id_incidencia):
         return None
 
 
-
+def obtener_id_persona(id_incidencia):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT us.id_usuario
+        FROM incidencia ini
+        INNER JOIN usuario us ON us.id_usuario = ini.id_usuario
+        WHERE ini.id_incidencia = %s;
+    """
+    cursor.execute(sql, (id_incidencia,))
+    resultado = cursor.fetchone()
+    cursor.close()
+    conexion.close()
+    return resultado['id_usuario'] if resultado else None
 

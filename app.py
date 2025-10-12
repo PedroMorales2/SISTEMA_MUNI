@@ -19,6 +19,7 @@ from routes.api.mapas import mapas_bp
 from routes.api.modelo_dbscan import dbscan_bp
 from routes.api.modelo_prediccion import prediccion_bp
 from routes.api.exportacion import exportacion_bp
+from routes.api.recursos import recursos_bp
 
 # Importar blueprints Views (Frontend)
 from routes.views.auth_views import auth_views_bp
@@ -117,6 +118,9 @@ def create_app(config_name='default'):
     
     app.register_blueprint(exportacion_bp, url_prefix='/api/exportar')
     print("  ✓ /api/exportar")
+    
+    app.register_blueprint(recursos_bp, url_prefix='/api/recursos')
+    print("  ✓ /api/recursos")
     
     # ============================================
     # REGISTRAR BLUEPRINTS VIEWS (Frontend HTML)

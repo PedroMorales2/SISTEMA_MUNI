@@ -106,11 +106,11 @@ def obtener_denuncia_detalle(id_denuncia):
 
 
 # ============ EMERGENCIAS ============
-@central_bp.route('/emergencias/pendientes', methods=['GET'])
-def obtener_emergencias_pendientes():
+@central_bp.route('/emergencias/pendientes/<id>', methods=['GET'])
+def obtener_emergencias_pendientes(id):
     """Obtiene emergencias pendientes"""
     try:
-        emergencias = controlador_central.obtener_emergencias_pendientes_central()
+        emergencias = controlador_central.obtener_emergencias_pendientes_central(id)
 
         if emergencias:
             return jsonify({"emergencias": emergencias}), HTTP_OK
@@ -121,11 +121,11 @@ def obtener_emergencias_pendientes():
         return jsonify({"error": f"An error occurred: {str(e)}"}), HTTP_INTERNAL_ERROR
 
 
-@central_bp.route('/emergencias/aceptadas', methods=['GET'])
-def obtener_emergencias_aceptadas():
+@central_bp.route('/emergencias/aceptadas/<id>', methods=['GET'])
+def obtener_emergencias_aceptadas(id):
     """Obtiene emergencias aceptadas"""
     try:
-        emergencias = controlador_central.obtener_emergencias_aceptadas_central()
+        emergencias = controlador_central.obtener_emergencias_aceptadas_central(id)
 
         if emergencias:
             return jsonify({"emergencias": emergencias}), HTTP_OK
@@ -136,11 +136,11 @@ def obtener_emergencias_aceptadas():
         return jsonify({"error": f"An error occurred: {str(e)}"}), HTTP_INTERNAL_ERROR
 
 
-@central_bp.route('/emergencias/rechazadas', methods=['GET'])
-def obtener_emergencias_rechazadas():
+@central_bp.route('/emergencias/rechazadas/<id>', methods=['GET'])
+def obtener_emergencias_rechazadas(id):
     """Obtiene emergencias rechazadas"""
     try:
-        emergencias = controlador_central.obtener_emergencias_rechazadas_central()
+        emergencias = controlador_central.obtener_emergencias_rechazadas_central(id)
 
         if emergencias:
             return jsonify({"emergencias": emergencias}), HTTP_OK
@@ -207,6 +207,8 @@ def procesar_denuncia(id_denuncia):
         accion = request.form.get('accion')
         archivo = request.files.get('archivo')
 
+        id_usuario = controlador_central.obtener_id_persona(id_denuncia)
+        
         if accion not in ('aceptar', 'rechazar'):
             return jsonify({"error": "Acción inválida"}), HTTP_BAD_REQUEST
 
@@ -219,8 +221,8 @@ def procesar_denuncia(id_denuncia):
                 filename = secure_filename(archivo.filename)
                 timestamp = int(time.time())
                 filename_final = f"{timestamp}_{filename}"
-                
-                upload_folder = f'mysite/static/motivo/{id_denuncia}'
+
+                upload_folder = f'static/uploads/{id_usuario}/{id_denuncia}/motivos'
                 os.makedirs(upload_folder, exist_ok=True)
                 
                 filepath = os.path.join(upload_folder, filename_final)
