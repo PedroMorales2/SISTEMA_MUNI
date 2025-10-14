@@ -1,0 +1,68 @@
+{% extends "partials/sidebar.html" %}
+{% block title %} Gestión de Recursos Municipales {% endblock %}
+
+{% block content %}
+<!-- ESTILOS PERSONALIZADOS -->
+{% include 'admin/recursos/styles.html' %}
+
+
+<div class="container-fluid" style="padding: 20px;">
+    <!-- HEADER PRINCIPAL -->
+    <div class="page-header">
+        <h2>
+            🏛️ Sistema de Gestión de Recursos Municipales
+        </h2>
+        <p>
+            Administre el inventario de recursos y configure los parámetros operativos del sistema
+        </p>
+    </div>
+
+    <!-- TABS DE NAVEGACIÓN -->
+    <div class="tabs-container">
+        <div class="tabs-header">
+            <button class="tab-button active" data-tab="inventario">
+                <i class="fas fa-box"></i> Inventario de Recursos
+            </button>
+            <button class="tab-button" data-tab="configuracion">
+                <i class="fas fa-cog"></i> Configuración de Ratios
+            </button>
+            <button class="tab-button" data-tab="historial">
+                <i class="fas fa-history"></i> Historial de Cambios
+            </button>
+            <button class="tab-button" data-tab="estadisticas">
+                <i class="fas fa-chart-bar"></i> Estadísticas
+            </button>
+        </div>
+
+        <!-- CONTENIDO DE TABS -->
+        <div class="tabs-content">
+            <!-- Tab 1: Inventario -->
+            <div class="tab-panel active" id="tab-inventario" data-tab="inventario">
+                {% include 'admin/recursos/tab_inventario.html' %}
+            </div>
+
+            <!-- Tab 2: Configuración -->
+            <div class="tab-panel" id="tab-configuracion" data-tab="configuracion">
+                {% include 'admin/recursos/tab_configuracion.html' %}
+            </div>
+
+            <!-- Tab 3: Historial -->
+            <div class="tab-panel" id="tab-historial" data-tab="historial">
+                {% include 'admin/recursos/tab_historial.html' %}
+            </div>
+
+            <!-- Tab 4: Estadísticas -->
+            <div class="tab-panel" id="tab-estadisticas" data-tab="estadisticas">
+                {% include 'admin/recursos/tab_estadisticas.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALES -->
+{% include 'admin/recursos/modales.html' %}
+
+<!-- SCRIPTS ORQUESTADOS -->
+{% include 'admin/recursos/scripts.html' %}
+
+{% endblock %}

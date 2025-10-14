@@ -1,3 +1,8 @@
+// Variables globales para filtros
+let filtrosDenunciasActivos = Object.keys(DENUNCIAS_MAP);
+let filtrosEmergenciasActivos = Object.keys(EMERGENCIAS_MAP);
+let datosPrediccionCompletos = null;
+
 // Cargar información del modelo
 async function cargarInfoModelo() {
   try {
@@ -30,12 +35,204 @@ async function cargarInfoModelo() {
       document.getElementById('infoTiposEme').textContent = modeloInfo.datos.emergencias.tipos_unicos;
       document.getElementById('infoUltimoMes').textContent = modeloInfo.datos.denuncias.ultimo_mes;
       document.getElementById('infoLookback').textContent = modeloInfo.modelo.lookback_meses;
+      
+      // Generar checkboxes de filtros
+      generarFiltrosDenuncias();
+      generarFiltrosEmergencias();
     }
   } catch (error) {
     console.error('Error cargando info del modelo:', error);
     document.getElementById('statusBadge').className = 'status-badge warning';
     document.getElementById('statusBadge').innerHTML = '<span>●</span> Error de Conexión';
   }
+}
+
+// Generar checkboxes para filtros de denuncias
+function generarFiltrosDenuncias() {
+  const container = document.getElementById('filtrosDenuncias');
+  if (!container) return;
+  
+  container.innerHTML = '<h4 style="margin: 0 0 10px 0; color: #1565c0;">📋 Filtrar Denuncias</h4>';
+  
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;';
+  
+  Object.entries(DENUNCIAS_MAP).forEach(([id, nombre]) => {
+    const label = document.createElement('label');
+    label.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; background: #f5f5f5; border-radius: 6px; transition: background 0.2s;';
+    label.onmouseover = () => label.style.background = '#e3f2fd';
+    label.onmouseout = () => label.style.background = '#f5f5f5';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = true;
+    checkbox.value = id;
+    checkbox.onchange = () => toggleFiltroDenuncia(id);
+    checkbox.style.cursor = 'pointer';
+    
+    const span = document.createElement('span');
+    span.textContent = nombre;
+    span.style.fontSize = '13px';
+    
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    grid.appendChild(label);
+  });
+  
+  container.appendChild(grid);
+  
+  // Botones de control
+  const btnContainer = document.createElement('div');
+  btnContainer.style.cssText = 'display: flex; gap: 10px; margin-top: 12px;';
+  
+  const btnTodos = document.createElement('button');
+  btnTodos.textContent = '✓ Seleccionar Todos';
+  btnTodos.className = 'btn';
+  btnTodos.style.cssText = 'flex: 1; background: #4caf50; color: white; padding: 8px; font-size: 12px;';
+  btnTodos.onclick = () => seleccionarTodosFiltros('denuncias', true);
+  
+  const btnNinguno = document.createElement('button');
+  btnNinguno.textContent = '✗ Deseleccionar Todos';
+  btnNinguno.className = 'btn';
+  btnNinguno.style.cssText = 'flex: 1; background: #f44336; color: white; padding: 8px; font-size: 12px;';
+  btnNinguno.onclick = () => seleccionarTodosFiltros('denuncias', false);
+  
+  btnContainer.appendChild(btnTodos);
+  btnContainer.appendChild(btnNinguno);
+  container.appendChild(btnContainer);
+}
+
+// Generar checkboxes para filtros de emergencias
+function generarFiltrosEmergencias() {
+  const container = document.getElementById('filtrosEmergencias');
+  if (!container) return;
+  
+  container.innerHTML = '<h4 style="margin: 0 0 10px 0; color: #c62828;">🚨 Filtrar Emergencias</h4>';
+  
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;';
+  
+  Object.entries(EMERGENCIAS_MAP).forEach(([id, nombre]) => {
+    const label = document.createElement('label');
+    label.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; background: #f5f5f5; border-radius: 6px; transition: background 0.2s;';
+    label.onmouseover = () => label.style.background = '#ffebee';
+    label.onmouseout = () => label.style.background = '#f5f5f5';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = true;
+    checkbox.value = id;
+    checkbox.onchange = () => toggleFiltroEmergencia(id);
+    checkbox.style.cursor = 'pointer';
+    
+    const span = document.createElement('span');
+    span.textContent = nombre;
+    span.style.fontSize = '13px';
+    
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    grid.appendChild(label);
+  });
+  
+  container.appendChild(grid);
+  
+  // Botones de control
+  const btnContainer = document.createElement('div');
+  btnContainer.style.cssText = 'display: flex; gap: 10px; margin-top: 12px;';
+  
+  const btnTodos = document.createElement('button');
+  btnTodos.textContent = '✓ Seleccionar Todos';
+  btnTodos.className = 'btn';
+  btnTodos.style.cssText = 'flex: 1; background: #4caf50; color: white; padding: 8px; font-size: 12px;';
+  btnTodos.onclick = () => seleccionarTodosFiltros('emergencias', true);
+  
+  const btnNinguno = document.createElement('button');
+  btnNinguno.textContent = '✗ Deseleccionar Todos';
+  btnNinguno.className = 'btn';
+  btnNinguno.style.cssText = 'flex: 1; background: #f44336; color: white; padding: 8px; font-size: 12px;';
+  btnNinguno.onclick = () => seleccionarTodosFiltros('emergencias', false);
+  
+  btnContainer.appendChild(btnTodos);
+  btnContainer.appendChild(btnNinguno);
+  container.appendChild(btnContainer);
+}
+
+// Toggle filtro individual de denuncia
+function toggleFiltroDenuncia(id) {
+  const index = filtrosDenunciasActivos.indexOf(id);
+  if (index > -1) {
+    filtrosDenunciasActivos.splice(index, 1);
+  } else {
+    filtrosDenunciasActivos.push(id);
+  }
+  aplicarFiltros();
+}
+
+// Toggle filtro individual de emergencia
+function toggleFiltroEmergencia(id) {
+  const index = filtrosEmergenciasActivos.indexOf(id);
+  if (index > -1) {
+    filtrosEmergenciasActivos.splice(index, 1);
+  } else {
+    filtrosEmergenciasActivos.push(id);
+  }
+  aplicarFiltros();
+}
+
+// Seleccionar/deseleccionar todos los filtros
+function seleccionarTodosFiltros(tipo, seleccionar) {
+  const container = document.getElementById(tipo === 'denuncias' ? 'filtrosDenuncias' : 'filtrosEmergencias');
+  const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+  
+  checkboxes.forEach(cb => {
+    cb.checked = seleccionar;
+    const id = cb.value;
+    
+    if (tipo === 'denuncias') {
+      if (seleccionar && !filtrosDenunciasActivos.includes(id)) {
+        filtrosDenunciasActivos.push(id);
+      } else if (!seleccionar) {
+        filtrosDenunciasActivos = filtrosDenunciasActivos.filter(f => f !== id);
+      }
+    } else {
+      if (seleccionar && !filtrosEmergenciasActivos.includes(id)) {
+        filtrosEmergenciasActivos.push(id);
+      } else if (!seleccionar) {
+        filtrosEmergenciasActivos = filtrosEmergenciasActivos.filter(f => f !== id);
+      }
+    }
+  });
+  
+  aplicarFiltros();
+}
+
+// Aplicar filtros a los datos actuales
+function aplicarFiltros() {
+  if (!datosPrediccionCompletos) return;
+  
+  // Filtrar denuncias
+  const denunciasFiltradas = {};
+  Object.entries(datosPrediccionCompletos.denuncias).forEach(([id, valor]) => {
+    if (filtrosDenunciasActivos.includes(id)) {
+      denunciasFiltradas[id] = valor;
+    }
+  });
+  
+  // Filtrar emergencias
+  const emergenciasFiltradas = {};
+  Object.entries(datosPrediccionCompletos.emergencias).forEach(([id, valor]) => {
+    if (filtrosEmergenciasActivos.includes(id)) {
+      emergenciasFiltradas[id] = valor;
+    }
+  });
+  
+  const datosFiltrados = {
+    ...datosPrediccionCompletos,
+    denuncias: denunciasFiltradas,
+    emergencias: emergenciasFiltradas
+  };
+  
+  mostrarPrediccion(datosFiltrados, false); // false = no guardar como última predicción
 }
 
 // Guardar última predicción
@@ -79,8 +276,18 @@ async function predecirMes() {
     const data = await response.json();
 
     if (data.success) {
+      datosPrediccionCompletos = data.data; // Guardar datos completos
       guardarUltimaPrediccion(year, month, data.data);
-      mostrarPrediccion(data.data);
+      
+      // Resetear filtros
+      filtrosDenunciasActivos = Object.keys(DENUNCIAS_MAP);
+      filtrosEmergenciasActivos = Object.keys(EMERGENCIAS_MAP);
+      
+      // Actualizar checkboxes
+      document.querySelectorAll('#filtrosDenuncias input[type="checkbox"]').forEach(cb => cb.checked = true);
+      document.querySelectorAll('#filtrosEmergencias input[type="checkbox"]').forEach(cb => cb.checked = true);
+      
+      mostrarPrediccion(data.data, true);
     } else {
       alert('Error: ' + data.error);
     }
@@ -116,6 +323,8 @@ async function predecirRango() {
     const data = await response.json();
 
     if (data.success) {
+      // Para rangos, no aplicamos filtros individuales
+      datosPrediccionCompletos = null;
       mostrarPrediccionRango(data.data);
     } else {
       alert('Error: ' + data.error);
@@ -129,7 +338,7 @@ async function predecirRango() {
 }
 
 // Mostrar resultados de predicción de un mes
-function mostrarPrediccion(data) {
+function mostrarPrediccion(data, guardarComoUltima = true) {
   document.getElementById('resultadoPrediccion').style.display = 'block';
   
   const totalDen = Object.values(data.denuncias).reduce((a, b) => a + b, 0);
@@ -152,6 +361,9 @@ function mostrarPrediccion(data) {
   // Crear gráficos
   crearGraficoDenuncias(data, totalDen);
   crearGraficoEmergencias(data, totalEme);
+
+  // Mostrar panel de filtros
+  document.getElementById('panelFiltros').style.display = 'block';
 
   document.getElementById('resultadoPrediccion').scrollIntoView({ 
     behavior: 'smooth', 
@@ -204,7 +416,7 @@ function crearGraficoDenuncias(data, totalDen) {
         tooltip: {
           callbacks: {
             label: function(context) {
-              const porcentaje = ((context.parsed.y / totalDen) * 100).toFixed(1);
+              const porcentaje = totalDen > 0 ? ((context.parsed.y / totalDen) * 100).toFixed(1) : 0;
               return `${context.parsed.y} casos (${porcentaje}% del total)`;
             }
           }
@@ -285,7 +497,7 @@ function crearGraficoEmergencias(data, totalEme) {
         tooltip: {
           callbacks: {
             label: function(context) {
-              const porcentaje = ((context.parsed.y / totalEme) * 100).toFixed(1);
+              const porcentaje = totalEme > 0 ? ((context.parsed.y / totalEme) * 100).toFixed(1) : 0;
               return `${context.parsed.y} llamadas (${porcentaje}% del total)`;
             }
           }
@@ -318,6 +530,7 @@ function crearGraficoEmergencias(data, totalEme) {
 // Mostrar predicción de rango de meses
 function mostrarPrediccionRango(data) {
   document.getElementById('resultadoPrediccion').style.display = 'block';
+  document.getElementById('panelFiltros').style.display = 'none'; // Ocultar filtros en modo rango
   
   const labels = data.map(d => d.fecha_prediccion);
   const totalDenPorMes = data.map(d => Object.values(d.denuncias).reduce((a, b) => a + b, 0));

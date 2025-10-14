@@ -1,6 +1,13 @@
-// Cargar métricas del modelo
+// ==========================================
+// MÉTRICAS DEL MODELO
+// ==========================================
+
+/**
+ * Cargar métricas del modelo
+ */
 async function cargarMetricas() {
   try {
+    console.log('📊 Cargando métricas del modelo...');
     const response = await fetch(`${API_URL}/api/modelo/prediccion/info`);
     const data = await response.json();
 
@@ -8,7 +15,7 @@ async function cargarMetricas() {
       const info = data.data;
       
       if (!info.calidad_global || !info.metricas_agregadas) {
-        console.warn('Estructura de datos incompleta:', info);
+        console.warn('⚠️ Estructura de datos incompleta:', info);
         return;
       }
       
@@ -16,22 +23,33 @@ async function cargarMetricas() {
       const precisionDen = Math.max(0, 100 - info.metricas_agregadas.denuncias.mae_promedio * 2);
       const precisionEme = Math.max(0, 100 - info.metricas_agregadas.emergencias.mae_promedio * 2);
       
-      document.getElementById('scoreDenuncias').textContent = `${Math.round(precisionDen)}%`;
-      document.getElementById('scoreEmergencias').textContent = `${Math.round(precisionEme)}%`;
+      const scoreDenElement = document.getElementById('scoreDenuncias');
+      const scoreEmeElement = document.getElementById('scoreEmergencias');
+      
+      if (scoreDenElement) scoreDenElement.textContent = `${Math.round(precisionDen)}%`;
+      if (scoreEmeElement) scoreEmeElement.textContent = `${Math.round(precisionEme)}%`;
       
       let nivelDen = precisionDen >= 90 ? 'Excelente' : precisionDen >= 80 ? 'Muy Bueno' : precisionDen >= 70 ? 'Bueno' : 'Aceptable';
       let nivelEme = precisionEme >= 90 ? 'Excelente' : precisionEme >= 80 ? 'Muy Bueno' : precisionEme >= 70 ? 'Bueno' : 'Aceptable';
       
-      document.getElementById('nivelDenuncias').textContent = nivelDen;
-      document.getElementById('nivelEmergencias').textContent = nivelEme;
-      document.getElementById('progressDenuncias').style.width = `${precisionDen}%`;
-      document.getElementById('progressEmergencias').style.width = `${precisionEme}%`;
+      const nivelDenElement = document.getElementById('nivelDenuncias');
+      const nivelEmeElement = document.getElementById('nivelEmergencias');
+      const progressDenElement = document.getElementById('progressDenuncias');
+      const progressEmeElement = document.getElementById('progressEmergencias');
       
-      document.getElementById('maeDenuncias').textContent = `±${info.metricas_agregadas.denuncias.mae_promedio.toFixed(1)}`;
-      document.getElementById('maeEmergencias').textContent = `±${info.metricas_agregadas.emergencias.mae_promedio.toFixed(1)}`;
+      if (nivelDenElement) nivelDenElement.textContent = nivelDen;
+      if (nivelEmeElement) nivelEmeElement.textContent = nivelEme;
+      if (progressDenElement) progressDenElement.style.width = `${precisionDen}%`;
+      if (progressEmeElement) progressEmeElement.style.width = `${precisionEme}%`;
+      
+      const maeDenElement = document.getElementById('maeDenuncias');
+      const maeEmeElement = document.getElementById('maeEmergencias');
+      
+      if (maeDenElement) maeDenElement.textContent = `±${info.metricas_agregadas.denuncias.mae_promedio.toFixed(1)}`;
+      if (maeEmeElement) maeEmeElement.textContent = `±${info.metricas_agregadas.emergencias.mae_promedio.toFixed(1)}`;
       
       if (!info.precision_por_tipo || !info.precision_por_tipo.denuncias) {
-        console.warn('precision_por_tipo no disponible');
+        console.warn('⚠️ precision_por_tipo no disponible');
         return;
       }
       
@@ -39,15 +57,26 @@ async function cargarMetricas() {
       mostrarRecomendaciones(info);
       
       if (info.datos) {
-        document.getElementById('infoPeriodoDatos').textContent = info.datos.denuncias.periodo_datos;
+        const infoPeriodo = document.getElementById('infoPeriodoDatos');
+        if (infoPeriodo) {
+          infoPeriodo.textContent = info.datos.denuncias.periodo_datos;
+        }
       }
+      
+      console.log('✅ Métricas cargadas correctamente');
+    } else {
+      console.error('❌ Error en respuesta:', data.error);
+      showToast('Error al cargar métricas: ' + data.error, 'error');
     }
   } catch (error) {
-    console.error('Error cargando métricas:', error);
+    console.error('❌ Error cargando métricas:', error);
+    showToast('Error de conexión al cargar métricas', 'error');
   }
 }
 
-// Crear gráfico de métricas por tipo
+/**
+ * Crear gráfico de métricas por tipo
+ */
 function crearGraficoMetricas(info) {
   const precisionPorTipoDen = Object.entries(info.precision_por_tipo.denuncias).map(([id, data]) => ({
     nombre: DENUNCIAS_MAP[id] || `Tipo ${id}`,
@@ -65,9 +94,15 @@ function crearGraficoMetricas(info) {
     return 'rgba(255, 152, 0, 0.8)';
   });
   
+  const chartElement = document.getElementById('chartMetricas');
+  if (!chartElement) {
+    console.warn('⚠️ Elemento chartMetricas no encontrado');
+    return;
+  }
+  
   if (chartMetricas) chartMetricas.destroy();
   
-  chartMetricas = new Chart(document.getElementById('chartMetricas'), {
+  chartMetricas = new Chart(chartElement, {
     type: 'bar',
     data: {
       labels: labels,
@@ -82,12 +117,24 @@ function crearGraficoMetricas(info) {
     options: {
       indexAxis: 'y',
       responsive: true,
+      maintainAspectRatio: true,
       plugins: {
         legend: { display: false },
         title: {
           display: true,
           text: 'Precisión por Tipo de Denuncia (mayor es mejor)',
           font: { size: 14, weight: 'bold' }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const item = precisionPorTipoDen[context.dataIndex];
+              return [
+                `Precisión: ${context.parsed.x.toFixed(1)}%`,
+                `Error promedio: ±${item.mae.toFixed(1)} casos`
+              ];
+            }
+          }
         }
       },
       scales: {
@@ -98,29 +145,55 @@ function crearGraficoMetricas(info) {
             callback: function(value) {
               return value + '%';
             }
+          },
+          title: {
+            display: true,
+            text: 'Precisión del Modelo (%)'
+          }
+        },
+        y: {
+          ticks: {
+            font: { size: 11 }
           }
         }
       }
     }
   });
+  
+  console.log('✅ Gráfico de métricas creado');
 }
 
-// Mostrar recomendaciones
+/**
+ * Mostrar recomendaciones
+ */
 function mostrarRecomendaciones(info) {
+  const listaElement = document.getElementById('listaRecomendaciones');
+  if (!listaElement) {
+    console.warn('⚠️ Elemento listaRecomendaciones no encontrado');
+    return;
+  }
+  
+  if (!info.recomendaciones || info.recomendaciones.length === 0) {
+    listaElement.innerHTML = '<p style="color: #999;">No hay recomendaciones disponibles</p>';
+    return;
+  }
+  
+  const iconos = {
+    'success': '✅',
+    'warning': '⚠️',
+    'info': 'ℹ️',
+    'tip': '💡'
+  };
+  
   const recHtml = info.recomendaciones.map(rec => {
-    const iconos = {
-      'success': '✅',
-      'warning': '⚠️',
-      'info': 'ℹ️',
-      'tip': '💡'
-    };
     const clase = rec.tipo === 'warning' ? 'alert-warning' : 
-                  rec.tipo === 'success' ? 'alert-success' : 'alert-warning';
+                  rec.tipo === 'success' ? 'alert-success' : 
+                  rec.tipo === 'info' ? 'alert-warning' : 'alert-warning';
     
     return `
       <div class="alert ${clase}" style="margin-bottom: 10px;">
-        <span>${iconos[rec.tipo]}</span>
-        <div>
+        <span style="font-size: 20px;">${iconos[rec.tipo] || 'ℹ️'}</span>
+        <div style="flex: 1;">
           <strong>${rec.mensaje}</strong><br>
           <small style="opacity: 0.8;">${rec.accion}</small>
         </div>
@@ -128,5 +201,39 @@ function mostrarRecomendaciones(info) {
     `;
   }).join('');
   
-  document.getElementById('listaRecomendaciones').innerHTML = recHtml;
+  listaElement.innerHTML = recHtml;
+  console.log('✅ Recomendaciones mostradas');
+}
+
+/**
+ * Exportar métricas a CSV
+ */
+function exportarMetricasCSV() {
+  if (!chartMetricas || !chartMetricas.data) {
+    showToast('No hay métricas para exportar', 'warning');
+    return;
+  }
+  
+  let csv = 'Tipo_Denuncia,Precision_Porcentaje,Error_MAE\n';
+  
+  const labels = chartMetricas.data.labels;
+  const precisionValues = chartMetricas.data.datasets[0].data;
+  
+  labels.forEach((label, index) => {
+    csv += `"${label}",${precisionValues[index].toFixed(2)}\n`;
+  });
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `metricas_modelo_${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast('Métricas exportadas exitosamente', 'success');
 }

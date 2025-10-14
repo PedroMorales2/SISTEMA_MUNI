@@ -1,57 +1,55 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Leaflet para mapas -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<!-- Leaflet Heatmap -->
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
 <script>
-// ==========================================
-// CONFIGURACIÓN Y VARIABLES GLOBALES
-// ==========================================
+// 1. CONFIGURACIÓN Y VARIABLES GLOBALES
 {% include 'admin/prediccion/js/config.js' %}
 
-// ==========================================
-// INICIALIZACIÓN
-// ==========================================
-{% include 'admin/prediccion/js/init.js' %}
+// 2. UTILIDADES (PRIMERO - incluye showToast)
+{% include 'admin/prediccion/js/utils.js' %}
 
-// ==========================================
-// FUNCIONES DE NAVEGACIÓN
-// ==========================================
+// 3. NAVEGACIÓN (ANTES de init para que switchTab exista)
 {% include 'admin/prediccion/js/navigation.js' %}
 
-// ==========================================
-// PREDICCIONES
-// ==========================================
-{% include 'admin/prediccion/js/prediccion.js' %}
-
-// ==========================================
-// ANÁLISIS HISTÓRICO
-// ==========================================
-{% include 'admin/prediccion/js/analisis.js' %}
-
-// ==========================================
-// MÉTRICAS
-// ==========================================
+// 4. MÉTRICAS (antes de init)
 {% include 'admin/prediccion/js/metricas.js' %}
 
-// ==========================================
-// COMPARACIÓN TEMPORAL
-// ==========================================
+// 5. INICIALIZACIÓN (después de navigation y metricas)
+{% include 'admin/prediccion/js/init.js' %}
+
+// 6. PREDICCIONES
+{% include 'admin/prediccion/js/prediccion.js' %}
+
+// 7. PREDICCIÓN ESPACIAL
+{% include 'admin/prediccion/js/espacial.js' %}
+
+// 8. ANÁLISIS HISTÓRICO
+{% include 'admin/prediccion/js/analisis.js' %}
+
+// 9. COMPARACIÓN TEMPORAL
 {% include 'admin/prediccion/js/comparacion.js' %}
 
-// ==========================================
-// RECURSOS
-// ==========================================
+// 10. RECURSOS
 {% include 'admin/prediccion/js/recursos.js' %}
 
-// ==========================================
-// EXPORTACIÓN
-// ==========================================
+// 11. EXPORTACIÓN
 {% include 'admin/prediccion/js/exportacion.js' %}
 
-// ==========================================
-// CONFIGURACIÓN Y REENTRENAMIENTO
-// ==========================================
+// 12. CONFIGURACIÓN Y REENTRENAMIENTO
 {% include 'admin/prediccion/js/configuracion.js' %}
-
 // ==========================================
-// UTILIDADES
+// INICIALIZACIÓN AL CARGAR PÁGINA
 // ==========================================
-{% include 'admin/prediccion/js/utils.js' %}
+window.addEventListener('DOMContentLoaded', function() {
+  // Inicializar cuadrantes espaciales
+  setTimeout(() => {
+    inicializarMapaCuadrantes();
+  }, 1000);
+});
 </script>

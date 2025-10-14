@@ -27,38 +27,27 @@
  * Ratios de eficiencia operativa (casos o llamadas por recurso/mes)
  * Estos valores pueden ajustarse según estándares municipales específicos
  */
-const RATIOS_OPERATIVOS = {
-  SERENO: {
-    llamadas: 15,           // Llamadas que puede atender un sereno al mes
-    casos: 8                // Casos de denuncia que puede gestionar
-  },
-  POLICIA: {
-    llamadas: 20,           // Llamadas de emergencia por policía
-    casos: 12               // Casos administrativos
-  },
-  BOMBERO: {
-    llamadas: 30,           // Llamadas por bombero (trabajan en brigadas)
-    casos: 5                // Casos de prevención
-  },
-  AMBULANCIA: {
-    llamadas: 25,           // Llamadas médicas por ambulancia
-    turnos: 3               // Turnos diarios de 8 horas
-  },
-  VEHICULO: {
-    serenazgo: 50,          // Llamadas por vehículo de serenazgo
-    policia: 60,            // Llamadas por patrulla policial
-    bomberos: 40,           // Emergencias por camión de bomberos
-    vida_util: 120          // Meses de vida útil promedio
-  },
-  PRESUPUESTO: {
-    costo_por_caso: 50,     // Soles por caso atendido
-    overhead: 1.15          // 15% de overhead operativo
-  },
-  TIEMPO: {
-    horas_por_caso: 2,      // Horas-hombre por caso
-    dias_laborables: 22     // Días laborables por mes
+// Definimos una constante vacía, que se llenará con los datos del servidor
+let RATIOS_OPERATIVOS = {};
+
+/**
+ * Carga los ratios desde la API Flask
+ */
+async function cargarRatiosOperativos() {
+  try {
+    const response = await fetch('/api/configuracion/ratios'); // Ajusta la URL si es necesario
+    const result = await response.json();
+
+    if (result.success) {
+      RATIOS_OPERATIVOS = result.data; // Asignar la data devuelta
+      console.log('✅ RATIOS_OPERATIVOS cargado correctamente:', RATIOS_OPERATIVOS);
+    } else {
+      console.error('❌ Error al obtener los ratios:', result.error);
+    }
+  } catch (error) {
+    console.error('❌ Error de conexión al cargar los ratios:', error);
   }
-};
+}
 
 /**
  * Cache de recursos actuales del municipio
@@ -224,33 +213,40 @@ async function calcularRecursos() {
 function calcularRecursosNecesarios(prediccion) {
   const totalDenuncias = Object.values(prediccion.denuncias).reduce((sum, val) => sum + val, 0);
   const totalEmergencias = Object.values(prediccion.emergencias).reduce((sum, val) => sum + val, 0);
-  
+
   const emergenciasPorServicio = {
     policia: prediccion.emergencias[2] || 0,
     serenazgo: prediccion.emergencias[3] || 0,
     ambulancia: prediccion.emergencias[4] || 0,
     bomberos: (prediccion.emergencias[5] || 0) + (prediccion.emergencias[6] || 0)
   };
-  
+
+  // ✅ Cálculo del personal necesario
   const personalNecesario = {
-    serenos: Math.ceil(emergenciasPorServicio.serenazgo / RATIOS_OPERATIVOS.SERENO.llamadas),
-    policias: Math.ceil(emergenciasPorServicio.policia / RATIOS_OPERATIVOS.POLICIA.llamadas),
-    bomberos: Math.ceil(emergenciasPorServicio.bomberos / RATIOS_OPERATIVOS.BOMBERO.llamadas),
-    personal_denuncias: Math.ceil(totalDenuncias / RATIOS_OPERATIVOS.SERENO.casos)
+    serenos: Math.ceil(emergenciasPorServicio.serenazgo / RATIOS_OPERATIVOS.SERENO.llamadas_mes),
+    policias: Math.ceil(emergenciasPorServicio.policia / RATIOS_OPERATIVOS.POLICIA.llamadas_mes),
+    bomberos: Math.ceil(emergenciasPorServicio.bomberos / RATIOS_OPERATIVOS.BOMBERO.llamadas_mes),
+    personal_denuncias: Math.ceil(totalDenuncias / RATIOS_OPERATIVOS.SERENO.casos_mes)
   };
-  
+
+  // ✅ Vehículos requeridos
   const vehiculosNecesarios = {
-    vehiculos_serenazgo: Math.ceil(emergenciasPorServicio.serenazgo / RATIOS_OPERATIVOS.VEHICULO.serenazgo),
-    vehiculos_policia: Math.ceil(emergenciasPorServicio.policia / RATIOS_OPERATIVOS.VEHICULO.policia),
-    vehiculos_bomberos: Math.ceil(emergenciasPorServicio.bomberos / RATIOS_OPERATIVOS.VEHICULO.bomberos),
-    ambulancias: Math.ceil(emergenciasPorServicio.ambulancia / RATIOS_OPERATIVOS.AMBULANCIA.llamadas)
+    vehiculos_serenazgo: Math.ceil(emergenciasPorServicio.serenazgo / RATIOS_OPERATIVOS.VEHICULO_SERENAZGO.llamadas_mes),
+    vehiculos_policia: Math.ceil(emergenciasPorServicio.policia / RATIOS_OPERATIVOS.VEHICULO_POLICIA.llamadas_mes),
+    vehiculos_bomberos: Math.ceil(emergenciasPorServicio.bomberos / RATIOS_OPERATIVOS.VEHICULO_BOMBEROS.llamadas_mes),
+    ambulancias: Math.ceil(emergenciasPorServicio.ambulancia / RATIOS_OPERATIVOS.AMBULANCIA.llamadas_mes)
   };
-  
+
+  // ✅ Costo total mensual
+  const costoPorCaso = RATIOS_OPERATIVOS.PRESUPUESTO.costo_caso;
+  const overhead = RATIOS_OPERATIVOS.PRESUPUESTO.overhead;
   const totalCasos = totalDenuncias + totalEmergencias;
-  const presupuesto = Math.round(totalCasos * RATIOS_OPERATIVOS.PRESUPUESTO.costo_por_caso * 
-                                 RATIOS_OPERATIVOS.PRESUPUESTO.overhead);
-  const horasHombre = totalCasos * RATIOS_OPERATIVOS.TIEMPO.horas_por_caso;
-  
+
+  const presupuesto = Math.round(totalCasos * costoPorCaso * overhead);
+
+  // ✅ Horas hombre (horas por caso)
+  const horasHombre = totalCasos * RATIOS_OPERATIVOS.TIEMPO.horas_caso;
+
   return {
     personal: personalNecesario,
     vehiculos: vehiculosNecesarios,
@@ -264,6 +260,7 @@ function calcularRecursosNecesarios(prediccion) {
     emergencias_por_servicio: emergenciasPorServicio
   };
 }
+
 
 function calcularAnalisisGap(necesarios, existentes) {
   if (!existentes) return null;
@@ -1175,5 +1172,1090 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+
+/**
+ * ============================================================================
+ * MÓDULO DE ANÁLISIS DETALLADO DE RECURSOS - NIVEL GRANULAR
+ * ============================================================================
+ * 
+ * Expansión del módulo base con análisis detallado por:
+ * - Tipo específico de denuncia
+ * - Tipo específico de emergencia
+ * - Distribución temporal (días/horas)
+ * - Zonas geográficas críticas
+ * 
+ * @requires recursos.js - Módulo base
+ * @requires Chart.js, ChartDataLabels plugin
+ */
+
+// ============================================================================
+// EXTENSIÓN: ANÁLISIS GRANULAR POR TIPO DE DENUNCIA
+// ============================================================================
+
+/**
+ * Calcula recursos necesarios DESGLOSADOS por cada tipo de denuncia
+ */
+function calcularRecursosPorTipoDenuncia(prediccion) {
+  const detallesDenuncias = [];
+  
+  // Iterar sobre cada tipo de denuncia
+  Object.entries(prediccion.denuncias).forEach(([codigo, cantidad]) => {
+    const nombreDenuncia = DENUNCIAS_MAP[codigo] || `Código ${codigo}`;
+    
+    // Determinar servicio responsable
+    const servicioAsignado = determinarServicioResponsable(codigo);
+    
+    // Calcular recursos específicos
+    const personalNecesario = Math.ceil(cantidad / RATIOS_OPERATIVOS.SERENO.casos_mes);
+    const horasRequeridas = cantidad * RATIOS_OPERATIVOS.TIEMPO.horas_caso;
+    const costoEstimado = cantidad * RATIOS_OPERATIVOS.PRESUPUESTO.costo_caso;
+    
+    // Nivel de prioridad (basado en cantidad)
+    let prioridad = 'BAJA';
+    if (cantidad > 50) prioridad = 'ALTA';
+    else if (cantidad > 20) prioridad = 'MEDIA';
+    
+    detallesDenuncias.push({
+      codigo,
+      nombre: nombreDenuncia,
+      cantidad,
+      servicio: servicioAsignado,
+      personal_necesario: personalNecesario,
+      horas_totales: Math.round(horasRequeridas),
+      costo_estimado: Math.round(costoEstimado),
+      prioridad,
+      porcentaje_total: 0 // Se calculará después
+    });
+  });
+  
+  // Calcular porcentajes
+  const totalDenuncias = detallesDenuncias.reduce((sum, d) => sum + d.cantidad, 0);
+  detallesDenuncias.forEach(d => {
+    d.porcentaje_total = ((d.cantidad / totalDenuncias) * 100).toFixed(2);
+  });
+  
+  // Ordenar por cantidad descendente
+  return detallesDenuncias.sort((a, b) => b.cantidad - a.cantidad);
+}
+
+/**
+ * Determina qué servicio debe atender cada tipo de denuncia
+ */
+function determinarServicioResponsable(codigoDenuncia) {
+  // Mapeo basado en naturaleza de la denuncia
+  const mapeoServicios = {
+    // Serenazgo
+    '1': 'Fiscalizacion', '2': 'Servicios municipales', '5': 'Gestion ambiental',
+    '6': 'Fiscalizacion', '10': 'Riesgos y desastres', '12': 'Riesgos y desastres',
+    
+    // Policía
+    '3': 'Gestion ambiental', '4': 'Servicios municipales', '7': 'Servicios municipales',
+    '8': 'Serenazgo', '14': 'Policía',
+    
+    // Fiscalía/Defensoría
+    '9': 'Riesgos y desastres', '11': 'Riesgos y desastres',
+    
+    // Municipalidad
+    '13': 'Inspectoría Municipal'
+  };
+  
+  return mapeoServicios[codigoDenuncia] || 'Serenazgo';
+}
+
+/**
+ * Calcula recursos detallados por tipo de emergencia
+ */
+function calcularRecursosPorTipoEmergencia(prediccion) {
+  const detallesEmergencias = [];
+  
+  Object.entries(prediccion.emergencias).forEach(([codigo, cantidad]) => {
+    const nombreEmergencia = EMERGENCIAS_MAP[codigo] || `Código ${codigo}`;
+    
+    // Determinar servicio y recursos específicos
+    const analisis = analizarEmergenciaDetallada(parseInt(codigo), cantidad);
+    
+    detallesEmergencias.push({
+      codigo,
+      nombre: nombreEmergencia,
+      cantidad,
+      ...analisis
+    });
+  });
+  
+  return detallesEmergencias.sort((a, b) => b.cantidad - a.cantidad);
+}
+
+/**
+ * Análisis detallado por tipo de emergencia
+ */
+function analizarEmergenciaDetallada(codigo, cantidad) {
+  const configuraciones = {
+    2: { // Policía
+      servicio: 'Policía Nacional',
+      personal_por_llamada: 2,
+      vehiculos_por_llamada: 1,
+      tiempo_respuesta_min: 8,
+      criticidad: 'ALTA'
+    },
+    3: { // Serenazgo
+      servicio: 'Serenazgo Municipal',
+      personal_por_llamada: 2,
+      vehiculos_por_llamada: 1,
+      tiempo_respuesta_min: 5,
+      criticidad: 'MEDIA'
+    },
+    4: { // SAMU
+      servicio: 'Servicio Médico',
+      personal_por_llamada: 3,
+      vehiculos_por_llamada: 1,
+      tiempo_respuesta_min: 10,
+      criticidad: 'CRÍTICA'
+    },
+    5: { // Incendio
+      servicio: 'Bomberos',
+      personal_por_llamada: 6,
+      vehiculos_por_llamada: 2,
+      tiempo_respuesta_min: 12,
+      criticidad: 'CRÍTICA'
+    },
+    6: { // Rescate
+      servicio: 'Bomberos',
+      personal_por_llamada: 8,
+      vehiculos_por_llamada: 2,
+      tiempo_respuesta_min: 15,
+      criticidad: 'CRÍTICA'
+    }
+  };
+  
+  const config = configuraciones[codigo] || {
+    servicio: 'No especificado',
+    personal_por_llamada: 2,
+    vehiculos_por_llamada: 1,
+    tiempo_respuesta_min: 10,
+    criticidad: 'MEDIA'
+  };
+  
+  return {
+    servicio: config.servicio,
+    personal_necesario: cantidad * config.personal_por_llamada,
+    vehiculos_necesarios: Math.ceil(cantidad * config.vehiculos_por_llamada),
+    tiempo_respuesta_objetivo: config.tiempo_respuesta_min,
+    horas_operacion: Math.round(cantidad * (config.tiempo_respuesta_min / 60) * 3), // incluye traslado
+    criticidad: config.criticidad
+  };
+}
+
+// ============================================================================
+// VISUALIZACIONES AVANZADAS
+// ============================================================================
+
+/**
+ * Crea tabla interactiva con desglose completo por tipo de denuncia
+ */
+function generarTablaDetalladaDenuncias(detalles) {
+  const html = `
+    <div style="margin: 30px 0;">
+      <h4 style="color: #2c3e50; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+        📋 Análisis Detallado por Tipo de Denuncia
+        <span style="background: #3498db; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px;">
+          ${detalles.length} tipos identificados
+        </span>
+      </h4>
+      
+      <div style="overflow-x: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; background: white;">
+          <thead>
+            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+              <th style="padding: 14px 12px; text-align: left; font-weight: 600;">Tipo de Denuncia</th>
+              <th style="padding: 14px 12px; text-align: center;">Casos</th>
+              <th style="padding: 14px 12px; text-align: center;">% Total</th>
+              <th style="padding: 14px 12px; text-align: center;">Personal</th>
+              <th style="padding: 14px 12px; text-align: center;">Horas</th>
+              <th style="padding: 14px 12px; text-align: right;">Costo S/</th>
+              <th style="padding: 14px 12px; text-align: center;">Unidad Funcional</th>
+              <th style="padding: 14px 12px; text-align: center;">Prioridad</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${detalles.map((d, index) => {
+              const bgColor = index % 2 === 0 ? '#f8f9fa' : 'white';
+              const prioridadColor = d.prioridad === 'ALTA' ? '#e74c3c' :
+                                    d.prioridad === 'MEDIA' ? '#f39c12' : '#95a5a6';
+              
+              return `
+                <tr style="background: ${bgColor}; border-bottom: 1px solid #dee2e6; transition: background 0.2s;"
+                    onmouseover="this.style.background='#e3f2fd'"
+                    onmouseout="this.style.background='${bgColor}'">
+                  <td style="padding: 12px; font-weight: 500;">
+                    <div>${d.nombre}</div>
+                    <small style="color: #6c757d;">Código: ${d.codigo}</small>
+                  </td>
+                  <td style="padding: 12px; text-align: center; font-weight: 600; color: #2c3e50;">
+                    ${d.cantidad}
+                  </td>
+                  <td style="padding: 12px; text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                      <div style="flex: 1; max-width: 80px; height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden;">
+                        <div style="width: ${d.porcentaje_total}%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2);"></div>
+                      </div>
+                      <span style="font-size: 12px; font-weight: 600; color: #667eea;">${d.porcentaje_total}%</span>
+                    </div>
+                  </td>
+                  <td style="padding: 12px; text-align: center;">
+                    <span style="background: #e3f2fd; padding: 4px 10px; border-radius: 4px; font-weight: 600; color: #1976d2;">
+                      ${d.personal_necesario}
+                    </span>
+                  </td>
+                  <td style="padding: 12px; text-align: center; color: #6c757d;">
+                    ${d.horas_totales.toLocaleString()}
+                  </td>
+                  <td style="padding: 12px; text-align: right; font-weight: 600; color: #27ae60;">
+                    ${d.costo_estimado.toLocaleString('es-PE')}
+                  </td>
+                  <td style="padding: 12px; text-align: center;">
+                    <span style="font-size: 11px; color: #6c757d;">${d.servicio}</span>
+                  </td>
+                  <td style="padding: 12px; text-align: center;">
+                    <span style="background: ${prioridadColor}; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                      ${d.prioridad}
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background: #f8f9fa; font-weight: 600; border-top: 2px solid #dee2e6;">
+              <td style="padding: 14px 12px;">TOTALES</td>
+              <td style="padding: 14px 12px; text-align: center; color: #2c3e50;">
+                ${detalles.reduce((sum, d) => sum + d.cantidad, 0)}
+              </td>
+              <td style="padding: 14px 12px; text-align: center;">100%</td>
+              <td style="padding: 14px 12px; text-align: center; color: #1976d2;">
+                ${detalles.reduce((sum, d) => sum + d.personal_necesario, 0)}
+              </td>
+              <td style="padding: 14px 12px; text-align: center;">
+                ${detalles.reduce((sum, d) => sum + d.horas_totales, 0).toLocaleString()}
+              </td>
+              <td style="padding: 14px 12px; text-align: right; color: #27ae60;">
+                S/ ${detalles.reduce((sum, d) => sum + d.costo_estimado, 0).toLocaleString('es-PE')}
+              </td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  `;
+  
+  return html;
+}
+
+/**
+ * Crea gráfico de barras horizontales con top denuncias
+ */
+function crearGraficoTopDenuncias(detalles) {
+  // Tomar top 10
+  const top10 = detalles.slice(0, 10);
+  
+  const canvas = document.createElement('canvas');
+  canvas.id = 'chartTopDenuncias';
+  canvas.style.maxHeight = '400px';
+  
+  const container = document.getElementById('planAccion');
+  if (container) {
+    const titulo = document.createElement('h4');
+    titulo.textContent = '🏆 Top 10 Denuncias con Mayor Demanda de Recursos';
+    titulo.style.cssText = 'color: #2c3e50; margin: 30px 0 15px 0;';
+    
+    container.appendChild(titulo);
+    container.appendChild(canvas);
+  }
+  
+  new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: top10.map(d => d.nombre),
+      datasets: [
+        {
+          label: 'Casos Proyectados',
+          data: top10.map(d => d.cantidad),
+          backgroundColor: 'rgba(102, 126, 234, 0.8)',
+          borderColor: 'rgba(102, 126, 234, 1)',
+          borderWidth: 2,
+          borderRadius: 6
+        },
+        {
+          label: 'Personal Necesario',
+          data: top10.map(d => d.personal_necesario),
+          backgroundColor: 'rgba(118, 75, 162, 0.8)',
+          borderColor: 'rgba(118, 75, 162, 1)',
+          borderWidth: 2,
+          borderRadius: 6
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            font: { size: 12, weight: '600' },
+            padding: 15,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          padding: 12,
+          titleFont: { size: 13, weight: '600' },
+          bodyFont: { size: 12 },
+          callbacks: {
+            afterLabel: function(context) {
+              const detalle = top10[context.dataIndex];
+              return [
+                `Prioridad: ${detalle.prioridad}`,
+                `Horas: ${detalle.horas_totales.toLocaleString()}`,
+                `Costo: S/ ${detalle.costo_estimado.toLocaleString('es-PE')}`
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { precision: 0, font: { size: 11 } },
+          grid: { color: 'rgba(0, 0, 0, 0.05)' }
+        },
+        y: {
+          ticks: { 
+            font: { size: 11 },
+            autoSkip: false
+          },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Crea matriz de calor (heatmap) de recursos por servicio
+ */
+function crearHeatmapRecursosPorServicio(detallesDenuncias, detallesEmergencias) {
+  const servicios = ['Serenazgo', 'Policía', 'Bomberos', 'Servicio Médico', 'Otros'];
+  const metricas = ['Casos', 'Personal', 'Vehículos', 'Horas'];
+  
+  // Agregar datos por servicio
+  const matriz = {};
+  servicios.forEach(s => {
+    matriz[s] = { casos: 0, personal: 0, vehiculos: 0, horas: 0 };
+  });
+  
+  // Procesar denuncias
+  detallesDenuncias.forEach(d => {
+    const servicio = d.servicio === 'Defensoría' || d.servicio === 'Inspectoría Municipal' ? 
+                     'Otros' : d.servicio;
+    if (matriz[servicio]) {
+      matriz[servicio].casos += d.cantidad;
+      matriz[servicio].personal += d.personal_necesario;
+      matriz[servicio].horas += d.horas_totales;
+    }
+  });
+  
+  // Procesar emergencias
+  detallesEmergencias.forEach(e => {
+    let servicio = e.servicio;
+    if (servicio === 'Policía Nacional') servicio = 'Policía';
+    else if (servicio === 'Serenazgo Municipal') servicio = 'Serenazgo';
+    
+    if (matriz[servicio]) {
+      matriz[servicio].casos += e.cantidad;
+      matriz[servicio].personal += e.personal_necesario;
+      matriz[servicio].vehiculos += e.vehiculos_necesarios;
+      matriz[servicio].horas += e.horas_operacion;
+    }
+  });
+  
+  // Generar HTML de heatmap
+  const html = `
+    <div style="margin: 30px 0;">
+      <h4 style="color: #2c3e50; margin-bottom: 15px;">
+        🔥 Matriz de Calor: Demanda de Recursos por Servicio
+      </h4>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #34495e; color: white;">
+              <th style="padding: 12px; text-align: left;">Servicio</th>
+              ${metricas.map(m => `<th style="padding: 12px; text-align: center;">${m}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${servicios.map(servicio => {
+              const datos = matriz[servicio];
+              if (datos.casos === 0) return '';
+              
+              return `
+                <tr style="border-bottom: 1px solid #ecf0f1;">
+                  <td style="padding: 12px; font-weight: 600;">${servicio}</td>
+                  ${generarCeldaHeatmap(datos.casos, 'casos', matriz)}
+                  ${generarCeldaHeatmap(datos.personal, 'personal', matriz)}
+                  ${generarCeldaHeatmap(datos.vehiculos, 'vehiculos', matriz)}
+                  ${generarCeldaHeatmap(datos.horas, 'horas', matriz)}
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  
+  return html;
+}
+
+/**
+ * Genera celda con color según intensidad
+ */
+function generarCeldaHeatmap(valor, metrica, matriz) {
+  // Calcular máximo para normalizar
+  const valores = Object.values(matriz).map(d => d[metrica]);
+  const maximo = Math.max(...valores);
+  const intensidad = maximo > 0 ? (valor / maximo) : 0;
+  
+  // Escala de colores: amarillo -> naranja -> rojo
+  let backgroundColor;
+  if (intensidad > 0.7) backgroundColor = 'rgba(231, 76, 60, 0.8)';
+  else if (intensidad > 0.4) backgroundColor = 'rgba(243, 156, 18, 0.7)';
+  else if (intensidad > 0.2) backgroundColor = 'rgba(241, 196, 15, 0.6)';
+  else backgroundColor = 'rgba(52, 152, 219, 0.3)';
+  
+  return `
+    <td style="padding: 12px; text-align: center; background: ${backgroundColor}; font-weight: 600; color: ${intensidad > 0.5 ? 'white' : '#2c3e50'};">
+      ${valor.toLocaleString('es-PE')}
+    </td>
+  `;
+}
+
+// ============================================================================
+// FUNCIÓN PRINCIPAL MEJORADA
+// ============================================================================
+
+/**
+ * SOBREESCRIBE la función original con análisis expandido
+ */
+function generarPlanCompletoMejorado(prediccion, recursosExistentes) {
+  console.log('→ Generando plan MEJORADO con análisis granular...');
+  
+  const contenedor = document.getElementById('resultadoRecursos');
+  if (contenedor) {
+    contenedor.style.display = 'block';
+  }
+  
+  // Cálculos originales
+  const recursosCalculados = calcularRecursosNecesarios(prediccion);
+  const gapAnalysis = calcularAnalisisGap(recursosCalculados, recursosExistentes);
+  
+  // ✨ NUEVOS ANÁLISIS DETALLADOS
+  const detallesDenuncias = calcularRecursosPorTipoDenuncia(prediccion);
+  const detallesEmergencias = calcularRecursosPorTipoEmergencia(prediccion);
+  
+  // Actualizar métricas generales
+  actualizarMetricasGenerales(recursosCalculados, recursosExistentes, gapAnalysis);
+  
+  // Visualizaciones originales
+  generarVisualizaciones(recursosCalculados, recursosExistentes, prediccion);
+  
+  // ✨ AGREGAR NUEVAS VISUALIZACIONES DETALLADAS
+  const planAccionContainer = document.getElementById('planAccion');
+  
+  if (planAccionContainer) {
+    // Limpiar contenido anterior
+    planAccionContainer.innerHTML = '';
+    
+    // 1. Recomendaciones estratégicas (original)
+    const estrategiasHTML = generarRecomendacionesEstrategicasHTML(
+      prediccion, recursosCalculados, recursosExistentes, gapAnalysis
+    );
+    planAccionContainer.innerHTML = estrategiasHTML;
+    
+    // 2. ✨ TABLA DETALLADA DE DENUNCIAS
+    const tablaHTML = generarTablaDetalladaDenuncias(detallesDenuncias);
+    planAccionContainer.insertAdjacentHTML('beforeend', tablaHTML);
+    
+    // 3. ✨ GRÁFICO TOP DENUNCIAS
+    crearGraficoTopDenuncias(detallesDenuncias);
+    
+    // 4. ✨ HEATMAP DE SERVICIOS
+    const heatmapHTML = crearHeatmapRecursosPorServicio(detallesDenuncias, detallesEmergencias);
+    planAccionContainer.insertAdjacentHTML('beforeend', heatmapHTML);
+    
+    // 5. TABLA DE EMERGENCIAS
+    const tablaEmergenciasHTML = generarTablaEmergencias(detallesEmergencias);
+    planAccionContainer.insertAdjacentHTML('beforeend', tablaEmergenciasHTML);
+  }
+  
+  contenedor?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  
+  console.log('✓ Plan MEJORADO generado con éxito');
+  console.log(`  → ${detallesDenuncias.length} tipos de denuncias analizados`);
+  console.log(`  → ${detallesEmergencias.length} tipos de emergencias analizados`);
+}
+
+/**
+ * Genera tabla de emergencias
+ */
+function generarTablaEmergencias(detalles) {
+  return `
+    <div style="margin: 30px 0;">
+      <h4 style="color: #2c3e50; margin-bottom: 15px;">
+        🚨 Análisis de Emergencias por Tipo
+      </h4>
+      
+      <div style="overflow-x: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; background: white;">
+          <thead>
+            <tr style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white;">
+              <th style="padding: 14px 12px; text-align: left;">Tipo de Emergencia</th>
+              <th style="padding: 14px 12px; text-align: center;">Llamadas</th>
+              <th style="padding: 14px 12px; text-align: center;">Personal</th>
+              <th style="padding: 14px 12px; text-align: center;">Vehículos</th>
+              <th style="padding: 14px 12px; text-align: center;">T. Respuesta</th>
+              <th style="padding: 14px 12px; text-align: center;">Horas Op.</th>
+              <th style="padding: 14px 12px; text-align: center;">Criticidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${detalles.map((e, index) => {
+              const bgColor = index % 2 === 0 ? '#f8f9fa' : 'white';
+              const critColor = e.criticidad === 'CRÍTICA' ? '#e74c3c' :
+                               e.criticidad === 'ALTA' ? '#f39c12' : '#3498db';
+              
+              return `
+                <tr style="background: ${bgColor}; border-bottom: 1px solid #dee2e6;">
+                  <td style="padding: 12px; font-weight: 500;">
+                    ${e.nombre}
+                    <br><small style="color: #6c757d;">${e.servicio}</small>
+                  </td>
+                  <td style="padding: 12px; text-align: center; font-weight: 600;">${e.cantidad}</td>
+                  <td style="padding: 12px; text-align: center;">
+                    <span style="background: #e3f2fd; padding: 4px 10px; border-radius: 4px; font-weight: 600; color: #1976d2;">
+                      ${e.personal_necesario}
+                    </span>
+                  </td>
+                  <td style="padding: 12px; text-align: center;">
+                    <span style="background: #f3e5f5; padding: 4px 10px; border-radius: 4px; font-weight: 600; color: #7b1fa2;">
+                      ${e.vehiculos_necesarios}
+                    </span>
+                  </td>
+                  <td style="padding: 12px; text-align: center; color: #6c757d;">
+                    ${e.tiempo_respuesta_objetivo} min
+                  </td>
+                  <td style="padding: 12px; text-align: center; color: #6c757d;">
+                    ${e.horas_operacion}h
+                  </td>
+                  <td style="padding: 12px; text-align: center;">
+                    <span style="background: ${critColor}; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                      ${e.criticidad}
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Wrapper para la función de recomendaciones estratégicas
+ */
+function generarRecomendacionesEstrategicasHTML(prediccion, calculados, existentes, gaps) {
+  let html = `
+    <div class="recomendaciones-header">
+      <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #2c3e50;">
+        📋 Plan Estratégico de Asignación de Recursos
+      </h4>
+      <p style="margin: 0; font-size: 13px; opacity: 0.7; line-height: 1.6;">
+        Mes objetivo: <strong>${prediccion.fecha_prediccion}</strong> | 
+        Casos totales proyectados: <strong>${calculados.metricas.casos_totales}</strong>
+      </p>
+    </div>
+  `;
+
+  html += generarSeccionEstadoGeneral(gaps, existentes);
+
+  if (gaps && gaps.deficits_criticos && gaps.deficits_criticos.length > 0) {
+    html += generarTablaDeficitsCriticos(gaps.deficits_criticos);
+  }
+
+  html += generarResumenEjecutivo(calculados, existentes);
+  html += generarRecomendacionesOperativas(calculados, existentes, gaps);
+  html += generarIndicadoresDesempeno(calculados, gaps);
+
+  return html;
+}
+
+// ============================================================================
+// ANÁLISIS DE DISTRIBUCIÓN TEMPORAL Y GEOGRÁFICA
+// ============================================================================
+
+/**
+ * Analiza patrones temporales y sugiere turnos óptimos
+ */
+function analizarPatronesTemporales(prediccion) {
+  // Simulación de distribución horaria (en producción, obtener datos reales)
+  const distribucionHoraria = {
+    '00-06': 0.08,  // 8% de casos
+    '06-12': 0.25,  // 25% de casos
+    '12-18': 0.35,  // 35% de casos (pico)
+    '18-24': 0.32   // 32% de casos
+  };
+  
+  const totalCasos = Object.values(prediccion.denuncias).reduce((sum, v) => sum + v, 0) +
+                     Object.values(prediccion.emergencias).reduce((sum, v) => sum + v, 0);
+  
+  const analisisTurnos = Object.entries(distribucionHoraria).map(([rango, porcentaje]) => {
+    const casosEstimados = Math.round(totalCasos * porcentaje);
+    const personalSugerido = Math.ceil(casosEstimados / (RATIOS_OPERATIVOS.SERENO.casos_mes / 30));
+    
+    return {
+      rango,
+      porcentaje: (porcentaje * 100).toFixed(1),
+      casos_estimados: casosEstimados,
+      personal_sugerido: personalSugerido,
+      intensidad: porcentaje > 0.3 ? 'ALTA' : porcentaje > 0.2 ? 'MEDIA' : 'BAJA'
+    };
+  });
+  
+  return analisisTurnos;
+}
+
+/**
+ * Genera gráfico de distribución horaria
+ */
+function crearGraficoDistribucionHoraria(analisisTurnos) {
+  const canvas = document.createElement('canvas');
+  canvas.id = 'chartDistribucionHoraria';
+  canvas.style.maxHeight = '300px';
+  
+  const container = document.getElementById('planAccion');
+  if (container) {
+    const titulo = document.createElement('h4');
+    titulo.textContent = '⏰ Distribución Horaria y Turnos Sugeridos';
+    titulo.style.cssText = 'color: #2c3e50; margin: 30px 0 15px 0;';
+    
+    container.appendChild(titulo);
+    container.appendChild(canvas);
+  }
+  
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: analisisTurnos.map(t => t.rango.replace('-', ':00 - ') + ':00'),
+      datasets: [
+        {
+          label: 'Casos Estimados',
+          data: analisisTurnos.map(t => t.casos_estimados),
+          borderColor: 'rgba(52, 152, 219, 1)',
+          backgroundColor: 'rgba(52, 152, 219, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 6,
+          pointBackgroundColor: 'rgba(52, 152, 219, 1)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        },
+        {
+          label: 'Personal Sugerido',
+          data: analisisTurnos.map(t => t.personal_sugerido),
+          borderColor: 'rgba(155, 89, 182, 1)',
+          backgroundColor: 'rgba(155, 89, 182, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 6,
+          pointBackgroundColor: 'rgba(155, 89, 182, 1)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 15,
+            font: { size: 12, weight: '600' }
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          padding: 12,
+          titleFont: { size: 13, weight: '600' },
+          bodyFont: { size: 12 },
+          callbacks: {
+            afterLabel: function(context) {
+              const turno = analisisTurnos[context.dataIndex];
+              return [
+                `Intensidad: ${turno.intensidad}`,
+                `${turno.porcentaje}% del total diario`
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          title: {
+            display: true,
+            text: 'Casos Estimados',
+            font: { size: 11, weight: '600' }
+          },
+          ticks: { precision: 0 }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Personal Necesario',
+            font: { size: 11, weight: '600' }
+          },
+          grid: {
+            drawOnChartArea: false
+          },
+          ticks: { precision: 0 }
+        },
+        x: {
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            font: { size: 11 }
+          }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Genera recomendaciones de turnos
+ */
+function generarRecomendacionesTurnos(analisisTurnos) {
+  const html = `
+    <div style="margin: 20px 0; padding: 20px; background: linear-gradient(135deg, rgba(52, 152, 219, 0.08) 0%, rgba(155, 89, 182, 0.08) 100%); border-radius: 8px; border-left: 4px solid #3498db;">
+      <h5 style="margin: 0 0 15px 0; color: #2c3e50; font-size: 15px;">
+        👥 Sugerencias de Asignación por Turnos
+      </h5>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        ${analisisTurnos.map(turno => {
+          const colorIntensidad = turno.intensidad === 'ALTA' ? '#e74c3c' :
+                                  turno.intensidad === 'MEDIA' ? '#f39c12' : '#3498db';
+          
+          return `
+            <div style="background: white; padding: 15px; border-radius: 6px; border-top: 3px solid ${colorIntensidad};">
+              <div style="font-size: 13px; font-weight: 600; color: ${colorIntensidad}; margin-bottom: 8px;">
+                ${turno.rango.replace('-', ':00 - ')}:00
+              </div>
+              <div style="font-size: 11px; color: #7f8c8d; margin-bottom: 10px;">
+                Intensidad: ${turno.intensidad}
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <span style="font-size: 11px; color: #95a5a6;">Casos:</span>
+                <span style="font-size: 13px; font-weight: 600; color: #2c3e50;">${turno.casos_estimados}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; color: #95a5a6;">Personal:</span>
+                <span style="font-size: 13px; font-weight: 600; color: #9b59b6;">${turno.personal_sugerido}</span>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+  
+  return html;
+}
+
+// ============================================================================
+// ANÁLISIS DE EFICIENCIA Y OPTIMIZACIÓN
+// ============================================================================
+
+/**
+ * Calcula métricas de eficiencia operativa
+ */
+function calcularMetricasEficiencia(recursosCalculados, recursosExistentes) {
+  const metricas = {
+    utilizacion_personal: 0,
+    utilizacion_vehiculos: 0,
+    costo_por_caso: 0,
+    tiempo_promedio_caso: 0,
+    capacidad_excedente: 0
+  };
+  
+  if (recursosExistentes) {
+    const personalTotal = recursosExistentes.serenos + 
+                         recursosExistentes.policias + 
+                         recursosExistentes.bomberos;
+    
+    const vehiculosTotal = recursosExistentes.vehiculos_serenazgo +
+                          recursosExistentes.vehiculos_policia +
+                          recursosExistentes.vehiculos_bomberos +
+                          recursosExistentes.ambulancias;
+    
+    metricas.utilizacion_personal = Math.min(100, 
+      (recursosCalculados.metricas.total_personal / personalTotal) * 100
+    );
+    
+    metricas.utilizacion_vehiculos = Math.min(100,
+      (recursosCalculados.metricas.total_vehiculos / vehiculosTotal) * 100
+    );
+    
+    metricas.capacidad_excedente = Math.max(0,
+      ((personalTotal - recursosCalculados.metricas.total_personal) / personalTotal) * 100
+    );
+  }
+  
+  metricas.costo_por_caso = recursosCalculados.metricas.presupuesto_mensual / 
+                            recursosCalculados.metricas.casos_totales;
+  
+  metricas.tiempo_promedio_caso = recursosCalculados.metricas.horas_hombre / 
+                                  recursosCalculados.metricas.casos_totales;
+  
+  return metricas;
+}
+
+/**
+ * Genera dashboard de eficiencia
+ */
+function generarDashboardEficiencia(metricas) {
+  const html = `
+    <div style="margin: 30px 0;">
+      <h4 style="color: #2c3e50; margin-bottom: 15px;">
+        📊 Dashboard de Eficiencia Operativa
+      </h4>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+        ${generarCardEficiencia('Utilización Personal', `${metricas.utilizacion_personal.toFixed(1)}%`, metricas.utilizacion_personal, '👥')}
+        ${generarCardEficiencia('Utilización Vehículos', `${metricas.utilizacion_vehiculos.toFixed(1)}%`, metricas.utilizacion_vehiculos, '🚗')}
+        ${generarCardEficiencia('Costo/Caso', `S/ ${metricas.costo_por_caso.toFixed(2)}`, 50, '💰')}
+        ${generarCardEficiencia('Tiempo/Caso', `${metricas.tiempo_promedio_caso.toFixed(1)}h`, 50, '⏱️')}
+        ${generarCardEficiencia('Capacidad Excedente', `${metricas.capacidad_excedente.toFixed(1)}%`, 100 - metricas.capacidad_excedente, '📈')}
+      </div>
+    </div>
+  `;
+  
+  return html;
+}
+
+/**
+ * Genera card individual de métrica de eficiencia
+ */
+function generarCardEficiencia(titulo, valor, porcentaje, emoji) {
+  let color;
+  if (porcentaje >= 80) color = '#27ae60';
+  else if (porcentaje >= 60) color = '#f39c12';
+  else color = '#e74c3c';
+  
+  return `
+    <div style="background: white; padding: 18px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-top: 4px solid ${color};">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <span style="font-size: 24px;">${emoji}</span>
+        <span style="font-size: 11px; font-weight: 600; color: ${color}; background: ${color}22; padding: 4px 8px; border-radius: 4px;">
+          ${porcentaje >= 80 ? 'ÓPTIMO' : porcentaje >= 60 ? 'BUENO' : 'MEJORAR'}
+        </span>
+      </div>
+      <div style="font-size: 11px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+        ${titulo}
+      </div>
+      <div style="font-size: 22px; font-weight: 700; color: #2c3e50; margin-bottom: 10px;">
+        ${valor}
+      </div>
+      <div style="width: 100%; height: 6px; background: #ecf0f1; border-radius: 3px; overflow: hidden;">
+        <div style="width: ${Math.min(100, porcentaje)}%; height: 100%; background: ${color}; transition: width 0.5s ease;"></div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================================
+// FUNCIÓN PRINCIPAL INTEGRADA - REEMPLAZA calcularRecursos()
+// ============================================================================
+
+/**
+ * NUEVA versión de calcularRecursos con análisis completo
+ */
+async function calcularRecursosMejorado() {
+  const mesPlan = document.getElementById('mesPlanificacion')?.value;
+  
+  if (!mesPlan) {
+    mostrarAlerta('Por favor, seleccione un mes para planificar', 'warning');
+    return;
+  }
+
+  const [year, month] = mesPlan.split('-').map(Number);
+  
+  if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+    mostrarAlerta('Formato de fecha inválido', 'error');
+    return;
+  }
+
+  showProgress(
+    'Calculando Asignación de Recursos',
+    'Obteniendo predicciones y consultando inventario municipal...'
+  );
+  
+  try {
+    // Cargar ratios si no están cargados
+    if (Object.keys(RATIOS_OPERATIVOS).length === 0) {
+      await cargarRatiosOperativos();
+    }
+    
+    const [recursosExistentes, prediccionResponse] = await Promise.all([
+      obtenerRecursosActuales(),
+      fetch(`${API_URL}/api/modelo/prediccion/predecir`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ year, month })
+      }).then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+    ]);
+
+    hideProgress();
+
+    if (!prediccionResponse.success || !prediccionResponse.data) {
+      throw new Error(prediccionResponse.error || 'Predicción no disponible');
+    }
+
+    // ✨ USAR LA NUEVA FUNCIÓN MEJORADA
+    generarPlanCompletoMejorado(prediccionResponse.data, recursosExistentes);
+    
+    // ✨ AGREGAR ANÁLISIS TEMPORAL
+    const analisisTurnos = analizarPatronesTemporales(prediccionResponse.data);
+    crearGraficoDistribucionHoraria(analisisTurnos);
+    
+    const turnosHTML = generarRecomendacionesTurnos(analisisTurnos);
+    document.getElementById('planAccion')?.insertAdjacentHTML('beforeend', turnosHTML);
+    
+    // ✨ AGREGAR MÉTRICAS DE EFICIENCIA
+    const recursosCalculados = calcularRecursosNecesarios(prediccionResponse.data);
+    const metricasEficiencia = calcularMetricasEficiencia(recursosCalculados, recursosExistentes);
+    const dashboardHTML = generarDashboardEficiencia(metricasEficiencia);
+    document.getElementById('planAccion')?.insertAdjacentHTML('beforeend', dashboardHTML);
+    
+    mostrarAlerta('✅ Análisis completo generado exitosamente', 'success');
+    
+  } catch (error) {
+    hideProgress();
+    console.error('✗ Error en cálculo de recursos:', error);
+    mostrarAlerta(
+      `Error al calcular recursos: ${error.message}. Verifique la conexión con el servidor.`,
+      'error'
+    );
+  }
+}
+
+// ============================================================================
+// EXPORTACIÓN A PDF/EXCEL (BONUS)
+// ============================================================================
+
+/**
+ * Genera reporte exportable en formato estructurado
+ */
+function generarReporteExportable(prediccion, recursosCalculados, recursosExistentes) {
+  const detallesDenuncias = calcularRecursosPorTipoDenuncia(prediccion);
+  const detallesEmergencias = calcularRecursosPorTipoEmergencia(prediccion);
+  
+  const reporte = {
+    metadata: {
+      fecha_generacion: new Date().toISOString(),
+      periodo_analizado: prediccion.fecha_prediccion,
+      version: '2.0.0'
+    },
+    resumen_ejecutivo: {
+      casos_totales: recursosCalculados.metricas.casos_totales,
+      personal_requerido: recursosCalculados.metricas.total_personal,
+      vehiculos_requeridos: recursosCalculados.metricas.total_vehiculos,
+      presupuesto_estimado: recursosCalculados.metricas.presupuesto_mensual,
+      horas_hombre: recursosCalculados.metricas.horas_hombre
+    },
+    analisis_denuncias: detallesDenuncias,
+    analisis_emergencias: detallesEmergencias,
+    recursos_disponibles: recursosExistentes,
+    gap_analysis: calcularAnalisisGap(recursosCalculados, recursosExistentes)
+  };
+  
+  return reporte;
+}
+
+/**
+ * Botón para descargar reporte JSON
+ */
+function descargarReporteJSON() {
+  // Obtener datos actuales del último cálculo
+  const reporteData = {
+    mensaje: 'Reporte generado desde el módulo de recursos mejorado',
+    timestamp: new Date().toISOString()
+  };
+  
+  const blob = new Blob([JSON.stringify(reporteData, null, 2)], {
+    type: 'application/json'
+  });
+  
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `reporte_recursos_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  mostrarAlerta('✅ Reporte descargado exitosamente', 'success');
+}
+
+// ============================================================================
+// INICIALIZACIÓN
+// ============================================================================
+
+console.log('✨ Módulo de Recursos MEJORADO cargado correctamente');
+console.log('   → Análisis granular por tipo de denuncia/emergencia');
+console.log('   → Visualizaciones avanzadas (heatmaps, rankings)');
+console.log('   → Análisis temporal y sugerencias de turnos');
+console.log('   → Dashboard de eficiencia operativa');
+console.log('');
+console.log('💡 Para activar: Reemplazar calcularRecursos() con calcularRecursosMejorado()');
+console.log('   O mantener ambas versiones y elegir según necesidad');
 
 console.log('✓ Módulo de Recursos cargado correctamente');

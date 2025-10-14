@@ -68,6 +68,7 @@ class Config:
     }
     
     EMERGENCIAS_MAP = {
+        1: "Otros",
         2: "Policía (911)",
         3: "Serenazgo (955)",
         4: "Ambulancia (666)",

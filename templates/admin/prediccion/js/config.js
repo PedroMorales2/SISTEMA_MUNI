@@ -6,9 +6,7 @@ let chartDenuncias, chartEmergencias, chartMetricas, chartComparacion, chartAnal
 let modeloInfo = null;
 let ultimaPrediccion = null;
 let datosHistoricos = null;
-let progressModal = null;
-let progressBar = null;
-let progressMessage = null;
+
 
 // Mapeo de tipos de denuncia
 const DENUNCIAS_MAP = {

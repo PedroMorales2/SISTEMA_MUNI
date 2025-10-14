@@ -1,0 +1,94 @@
+<div class="card shadow-sm">
+    <div class="card-header" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h4 style="margin: 0; font-weight: 600;">⚙️ Configuración de Ratios Operativos</h4>
+                <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">
+                    Parámetros y costos utilizados para calcular recursos necesarios
+                </p>
+            </div>
+            <span id="badgeTotalConfiguraciones" class="badge" style="background: rgba(255,255,255,0.3); font-size: 14px; padding: 8px 16px;">
+                0 parámetros
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body" style="padding: 25px;">
+        <!-- BARRA DE ACCIONES -->
+        <div style="display: flex; gap: 12px; margin-bottom: 25px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="cargarConfiguraciones()" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-sync-alt"></i> Actualizar Lista
+            </button>
+            <button class="btn btn-success" onclick="mostrarModalNuevaConfiguracion()" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-plus"></i> Agregar Parámetro
+            </button>
+            <button class="btn btn-info" onclick="exportarConfiguraciones()" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-file-download"></i> Exportar CSV
+            </button>
+            <button class="btn btn-warning" onclick="confirmarResetConfiguraciones()" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-redo"></i> Restablecer Defaults
+            </button>
+        </div>
+
+        <!-- FILTROS -->
+        <div style="margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap;">
+            <div>
+                <label style="font-size: 13px; font-weight: 600; margin-bottom: 5px; display: block;">Categoría:</label>
+                <select id="filtroCategoria" class="form-select" onchange="filtrarConfiguraciones()" style="width: 200px;">
+                    <option value="">Todas las categorías</option>
+                    <option value="SERENO">SERENO</option>
+                    <option value="POLICIA">POLICIA</option>
+                    <option value="BOMBERO">BOMBERO</option>
+                    <option value="AMBULANCIA">AMBULANCIA</option>
+                    <option value="VEHICULO_SERENAZGO">VEHICULO_SERENAZGO</option>
+                    <option value="VEHICULO_POLICIA">VEHICULO_POLICIA</option>
+                    <option value="VEHICULO_BOMBEROS">VEHICULO_BOMBEROS</option>
+                    <option value="PRESUPUESTO">PRESUPUESTO</option>
+                    <option value="TIEMPO">TIEMPO</option>
+                    <option value="INFRAESTRUCTURA">INFRAESTRUCTURA</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size: 13px; font-weight: 600; margin-bottom: 5px; display: block;">Subcategoría:</label>
+                <select id="filtroSubcategoria" class="form-select" onchange="filtrarConfiguraciones()" style="width: 200px;">
+                    <option value="">Todas las subcategorías</option>
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 250px;">
+                <label style="font-size: 13px; font-weight: 600; margin-bottom: 5px; display: block;">Buscar:</label>
+                <input type="text" id="buscarConfiguracion" class="form-control" 
+                       placeholder="🔍 Buscar por nombre o descripción..." 
+                       onkeyup="filtrarConfiguraciones()">
+            </div>
+        </div>
+
+        <!-- TABLA DE CONFIGURACIONES -->
+        <div style="overflow-x: auto;">
+            <table class="table table-hover" id="tablaConfiguraciones" style="margin-bottom: 0;">
+                <thead style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                    <tr>
+                        <th style="padding: 15px; font-weight: 600; width: 60px;">ID</th>
+                        <th style="padding: 15px; font-weight: 600; width: 180px;">Categoría</th>
+                        <th style="padding: 15px; font-weight: 600; width: 180px;">Subcategoría</th>
+                        <th style="padding: 15px; font-weight: 600;">Parámetro</th>
+                        <th style="padding: 15px; font-weight: 600; text-align: center; width: 120px;">Valor</th>
+                        <th style="padding: 15px; font-weight: 600; width: 100px;">Unidad</th>
+                        <th style="padding: 15px; font-weight: 600; width: 300px;">Descripción</th>
+                        <th style="padding: 15px; font-weight: 600; text-align: center; width: 80px;">Editable</th>
+                        <th style="padding: 15px; font-weight: 600; text-align: center; width: 220px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="bodyTablaConfiguraciones">
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 50px; color: #999;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p style="margin-top: 15px;">Cargando configuraciones...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

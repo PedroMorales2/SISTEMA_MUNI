@@ -50,3 +50,15 @@ def agregar_usuario():
 def prediccion():
     """Página de predicciones LSTM"""
     return render_template('admin/prediccion.html')
+
+@admin_views_bp.route('/prueba')
+@require_login
+def prueba():
+    """Página de prueba"""
+    return render_template('admin/tab_prediccion_espacial.html')
+
+@admin_views_bp.route('/recursos')
+@require_login
+def gestion_recursos():
+    """Página de gestión de recursos"""
+    return render_template('admin/gestion_recursos.html')

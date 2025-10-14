@@ -1,0 +1,200 @@
+<div id="tab-espacial" class="tab-content">
+  
+  <!-- Info Panel -->
+  <div class="alert alert-info" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; margin-bottom: 30px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <div style="font-size: 48px;">🗺️</div>
+      <div style="flex: 1;">
+        <h4 style="margin: 0 0 5px 0; font-size: 18px;">Predicción Espacial por Cuadrantes</h4>
+        <p style="margin: 0; opacity: 0.9; font-size: 14px;">
+          Visualiza la distribución geográfica predicha de incidencias en diferentes zonas del distrito.
+          El modelo LSTM combina patrones temporales con análisis espacial histórico.
+        </p>
+      </div>
+      <div style="text-align: center; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px;">
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Cuadrantes Activos</div>
+        <div style="font-size: 24px; font-weight: bold;" id="infoCuadrantes">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Control Panel -->
+  <div class="control-panel">
+    <h3 style="margin-top: 0; color: #333;">🎯 Configurar Predicción Espacial</h3>
+    
+    <div class="control-row">
+      <div class="control-group">
+        <label>Año</label>
+        <input type="number" id="yearInputEspacial" min="2027" max="2035" value="2027">
+      </div>
+      <div class="control-group">
+        <label>Mes</label>
+        <select id="monthInputEspacial">
+          <option value="1">Enero</option>
+          <option value="2">Febrero</option>
+          <option value="3">Marzo</option>
+          <option value="4">Abril</option>
+          <option value="5">Mayo</option>
+          <option value="6">Junio</option>
+          <option value="7">Julio</option>
+          <option value="8">Agosto</option>
+          <option value="9">Septiembre</option>
+          <option value="10">Octubre</option>
+          <option value="11">Noviembre</option>
+          <option value="12">Diciembre</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="predecirEspacial()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+        🗺️ Ver Predicción en Mapa
+      </button>
+    </div>
+
+    <!-- Filtros de Visualización (Arriba) -->
+    <div style="margin-top: 20px; padding: 20px; border-radius: 10px;">
+      <h4 style="margin: 0 0 15px 0; color: #1565c0;">🎛️ Filtros de Visualización</h4>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button onclick="filtrarMapa('todos')" id="btnFiltroTodos" class="btn-filtro active" 
+                style="flex: 1; min-width: 150px; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s;">📊 Mostrar Todos</button>
+        <button onclick="filtrarMapa('denuncias')" id="btnFiltroDenuncias" class="btn-filtro"
+                style="flex: 1; min-width: 150px; padding: 12px; background: #4facfe; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s;">📋 Solo Denuncias</button>
+        <button onclick="filtrarMapa('emergencias')" id="btnFiltroEmergencias" class="btn-filtro"
+                style="flex: 1; min-width: 150px; padding: 12px; background: #f093fb; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s;">🚨 Solo Emergencias</button>
+      </div>
+    </div>
+
+    <div class="control-row" style="margin-top: 15px; margin-bottom: 0;">
+      <button class="btn" onclick="predecirEspacial()" style="flex: 1; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none;">
+        📍 Analizar por Zonas
+      </button>
+      <button class="btn" onclick="limpiarCuadrantes()" style="flex: 1; background: #757575; color: white;">
+        🧹 Limpiar Mapa
+      </button>
+    </div>
+  </div>
+
+  <!-- Leyenda de Colores -->
+  <div class="control-panel" style="padding: 20px;">
+    <h4 style="margin: 0 0 15px 0; color: #333;">📊 Leyenda de Niveles de Criticidad</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 40px; height: 40px; background-color: #d32f2f; border-radius: 8px; box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);"></div>
+        <div>
+          <div style="font-weight: bold; color: #d32f2f;">Alto</div>
+          <div style="font-size: 12px; color: #666;">≥50 casos</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 40px; height: 40px; background-color: #f57c00; border-radius: 8px; box-shadow: 0 2px 8px rgba(245, 124, 0, 0.3);"></div>
+        <div>
+          <div style="font-weight: bold; color: #f57c00;">Medio</div>
+          <div style="font-size: 12px; color: #666;">20-49 casos</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 40px; height: 40px; background-color: #fbc02d; border-radius: 8px; box-shadow: 0 2px 8px rgba(251, 192, 45, 0.3);"></div>
+        <div>
+          <div style="font-weight: bold; color: #fbc02d;">Bajo</div>
+          <div style="font-size: 12px; color: #666;">5-19 casos</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 40px; height: 40px; background-color: #388e3c; border-radius: 8px; box-shadow: 0 2px 8px rgba(56, 142, 60, 0.3);"></div>
+        <div>
+          <div style="font-weight: bold; color: #388e3c;">Muy Bajo</div>
+          <div style="font-size: 12px; color: #666;">&lt;5 casos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen de Predicción Espacial -->
+  <div id="resumenEspacial" style="display: none;"></div>
+
+  <!-- Instrucciones de Uso -->
+  <div class="control-panel" style="border-left: 4px solid #ff9800;">
+    <h4 style="margin: 0 0 15px 0; color: #e65100;">💡 Cómo usar la Predicción Espacial</h4>
+    <ol style="margin: 0; padding-left: 20px; color: #555; font-size: 14px; line-height: 1.8;">
+      <li>Selecciona el <strong>año y mes</strong> que deseas predecir</li>
+      <li>Haz clic en <strong>"🗺️ Ver Predicción en Mapa"</strong> para generar la predicción espacial</li>
+      <li>Los <strong>cuadrantes</strong> se colorearán según el nivel de criticidad esperado</li>
+      <li><strong>Haz clic</strong> en cualquier cuadrante para ver detalles específicos y estadísticas</li>
+      <li>Usa los <strong>filtros de visualización</strong> para enfocarte en denuncias o emergencias específicamente</li>
+      <li>Exporta los resultados a <strong>CSV</strong> para análisis adicional</li>
+    </ol>
+  </div>
+
+  <!-- Características del Modelo -->
+  <div class="cards-grid">
+    <div class="metric-card" style="border: none;">
+      <h3 style="color: #2e7d32; margin: 0 0 10px 0;">✨ Distribución Histórica</h3>
+      <p style="margin: 0; font-size: 13px; color: #555;">
+        Basada en patrones reales de años anteriores para cada zona específica
+      </p>
+    </div>
+    <div class="metric-card" style="border: none;">
+      <h3 style="color: #1565c0; margin: 0 0 10px 0;">🔮 Predicción LSTM</h3>
+      <p style="margin: 0; font-size: 13px; color: #555;">
+        Combina modelo temporal avanzado con análisis geográfico preciso
+      </p>
+    </div>
+    <div class="metric-card" style="border: none;">
+      <h3 style="color: #e65100; margin: 0 0 10px 0;">🎯 Tipo Dominante</h3>
+      <p style="margin: 0; font-size: 13px; color: #555;">
+        Identifica automáticamente el tipo de incidencia más frecuente por zona
+      </p>
+    </div>
+    <div class="metric-card" style="border: none;">
+      <h3 style="color: #c2185b; margin: 0 0 10px 0;">📊 Criticidad</h3>
+      <p style="margin: 0; font-size: 13px; color: #555;">
+        Clasificación automática según volumen predicho de incidencias
+      </p>
+    </div>
+  </div>
+
+  <!-- Ventajas Competitivas del Análisis Espacial -->
+  <div class="control-panel" style="border-left: 4px solid #9c27b0;">
+    <h4 style="margin: 0 0 15px 0; color: #6a1b9a;">🎯 Ventajas del Análisis Espacial Predictivo</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+      <div style=" padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <div style="font-size: 32px; margin-bottom: 10px;">⚡</div>
+        <strong style="color: #6a1b9a; display: block; margin-bottom: 5px;">Respuesta Proactiva</strong>
+        <p style="margin: 0; font-size: 13px; color: #555;">
+          Anticipa problemas antes de que ocurran, permitiendo preparación y prevención efectiva
+        </p>
+      </div>
+      <div style=" padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <div style="font-size: 32px; margin-bottom: 10px;">🎓</div>
+        <strong style="color: #6a1b9a; display: block; margin-bottom: 5px;">Identificación de Patrones</strong>
+        <p style="margin: 0; font-size: 13px; color: #555;">
+          Descubre correlaciones geográficas y temporales ocultas en los datos históricos
+        </p>
+      </div>
+      <div style=" padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <div style="font-size: 32px; margin-bottom: 10px;">📈</div>
+        <strong style="color: #6a1b9a; display: block; margin-bottom: 5px;">Evaluación de Impacto</strong>
+        <p style="margin: 0; font-size: 13px; color: #555;">
+          Mide la efectividad de intervenciones comparando predicciones con resultados reales
+        </p>
+      </div>
+      <div style=" padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
+        <strong style="color: #6a1b9a; display: block; margin-bottom: 5px;">Análisis de Zonas Críticas</strong>
+        <p style="margin: 0; font-size: 13px; color: #555;">
+          Identifica puntos calientes emergentes y áreas que requieren atención prioritaria
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+.btn-filtro:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.btn-filtro.active {
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.5), 0 4px 12px rgba(0,0,0,0.3);
+  transform: scale(1.05);
+}
+</style>

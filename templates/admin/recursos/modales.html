@@ -1,0 +1,250 @@
+<!-- MODAL: NUEVO/EDITAR RECURSO -->
+<div class="modal" id="modalRecurso">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tituloModalRecurso">Agregar Recurso</h5>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formRecurso">
+                    <input type="hidden" id="idRecursoEdit" value="">
+                    
+                    <div class="form-group">
+                        <label for="nombreRecurso" class="form-label">Nombre del Recurso *</label>
+                        <input type="text" class="form-control" id="nombreRecurso" 
+                               placeholder="Ej: serenos, ambulancias, vehiculos_policia" required>
+                        <small class="form-text">
+                            Use nombres en minúsculas, sin espacios. Use guión bajo (_) si es necesario.
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cantidadRecurso" class="form-label">Cantidad *</label>
+                        <input type="number" class="form-control" id="cantidadRecurso" 
+                               placeholder="0" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descripcionRecurso" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="descripcionRecurso" rows="3" 
+                                  placeholder="Descripción del recurso (opcional)"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarRecurso()">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: NUEVA/EDITAR CONFIGURACIÓN -->
+<div class="modal" id="modalConfiguracion">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header modal-header-configuracion">
+                <h5 class="modal-title" id="tituloModalConfiguracion">Agregar Configuración</h5>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formConfiguracion">
+                    <input type="hidden" id="idConfiguracionEdit" value="">
+                    
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="categoriaConfiguracion" class="form-label">Categoría *</label>
+                            <select class="form-control" id="categoriaConfiguracion" required>
+                                <option value="">Seleccione una categoría</option>
+                                <option value="SERENO">SERENO</option>
+                                <option value="POLICIA">POLICIA</option>
+                                <option value="BOMBERO">BOMBERO</option>
+                                <option value="AMBULANCIA">AMBULANCIA</option>
+                                <option value="VEHICULO_SERENAZGO">VEHICULO_SERENAZGO</option>
+                                <option value="VEHICULO_POLICIA">VEHICULO_POLICIA</option>
+                                <option value="VEHICULO_BOMBEROS">VEHICULO_BOMBEROS</option>
+                                <option value="PRESUPUESTO">PRESUPUESTO</option>
+                                <option value="TIEMPO">TIEMPO</option>
+                                <option value="INFRAESTRUCTURA">INFRAESTRUCTURA</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group col-md-6">
+                            <label for="subcategoriaConfiguracion" class="form-label">Subcategoría *</label>
+                            <input type="text" class="form-control" id="subcategoriaConfiguracion" 
+                                   placeholder="Ej: CAPACIDAD, OPERATIVO, SALARIOS" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nombreParametro" class="form-label">Nombre del Parámetro *</label>
+                        <input type="text" class="form-control" id="nombreParametro" 
+                               placeholder="Ej: llamadas_mes, costo_caso" required>
+                        <small class="form-text">
+                            Use nombres descriptivos en minúsculas con guión bajo (_).
+                        </small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="valorConfiguracion" class="form-label">Valor *</label>
+                            <input type="number" class="form-control" id="valorConfiguracion" 
+                                   placeholder="0" step="0.01" required>
+                        </div>
+
+                        <div class="form-group col-md-6">
+                            <label for="unidadConfiguracion" class="form-label">Unidad</label>
+                            <input type="text" class="form-control" id="unidadConfiguracion" 
+                                   placeholder="Ej: llamadas/mes, soles, multiplicador">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descripcionConfiguracion" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="descripcionConfiguracion" rows="2" 
+                                  placeholder="Descripción del parámetro"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="editableConfiguracion" checked>
+                            <label class="form-check-label" for="editableConfiguracion">
+                                Este parámetro es editable por los usuarios
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarConfiguracion()">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ACTUALIZACIÓN MASIVA DE RECURSOS -->
+<div class="modal" id="modalActualizacionMasiva">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header modal-header-masiva">
+                <h5 class="modal-title">📝 Actualización Masiva de Recursos</h5>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Actualice las cantidades de múltiples recursos a la vez. Los cambios se aplicarán inmediatamente.
+                </div>
+
+                <div id="contenedorActualizacionMasiva">
+                    <!-- Se genera dinámicamente con JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarActualizacionMasiva()">
+                    <i class="fas fa-check"></i> Aplicar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CONFIRMACIÓN DE ELIMINACIÓN -->
+<div class="modal" id="modalConfirmacion">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header modal-header-danger">
+                <h5 class="modal-title">⚠️ Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="mensajeConfirmacion">
+                    ¿Está seguro de que desea eliminar este elemento?
+                </p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> Esta acción no se puede deshacer.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarEliminacion">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: VER HISTORIAL DE UN ITEM -->
+<div class="modal" id="modalHistorialItem">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header modal-header-info">
+                <h5 class="modal-title" id="tituloModalHistorialItem">Historial del Item</h5>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body modal-body-scroll">
+                <div id="contenedorHistorialItem">
+                    <!-- Se genera dinámicamente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: RESET CONFIGURACIONES -->
+<div class="modal" id="modalResetConfiguraciones">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header modal-header-warning">
+                <h5 class="modal-title">🔄 Restablecer Configuraciones</h5>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    ¿Está seguro de que desea restablecer todas las configuraciones a sus valores por defecto?
+                </p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>Advertencia:</strong> Todos los cambios personalizados se perderán. 
+                    Esta acción quedará registrada en el historial.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" onclick="resetearConfiguraciones()">
+                    <i class="fas fa-redo"></i> Restablecer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <p id="loadingMessage">Procesando...</p>
+    </div>
+</div>

@@ -5,6 +5,266 @@
 <!-- Estilos -->
 {% include 'admin/prediccion/styles.html' %}
 
+<!-- Estilos para Modo Oscuro -->
+<style>
+/* Botón de Modo Oscuro */
+.dark-mode-toggle {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  transition: all 0.3s ease;
+  z-index: 9999;
+}
+
+.dark-mode-toggle:hover {
+  transform: scale(1.1) rotate(15deg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Estilos para Modo Oscuro */
+body.dark-mode {
+  background-color: #0a0a0a;
+  color: #e0e0e0;
+}
+
+body.dark-mode .prediccion-container {
+  background-color: #121212;
+}
+
+body.dark-mode .header {
+  background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+  color: #e0e0e0;
+}
+
+body.dark-mode .status-badge {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .tabs {
+  background-color: #1a1a1a;
+  border-bottom: 2px solid #333;
+}
+
+body.dark-mode .tab,
+body.dark-mode .tab-btn {
+  color: #fff;
+}
+
+body.dark-mode .tab:hover,
+body.dark-mode .tab-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+body.dark-mode .tab.active,
+body.dark-mode .tab-btn.active {
+  background-color: #2a2a2a;
+  color: #fff;
+  border-bottom: 3px solid #667eea;
+}
+
+/* Tabs en modo claro */
+.tab,
+.tab-btn {
+  color: #333;
+}
+
+.tab:hover,
+.tab-btn:hover {
+  color: #000;
+}
+
+.tab.active,
+.tab-btn.active {
+  color: #000;
+}
+
+body.dark-mode .control-panel {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+}
+
+body.dark-mode .control-panel h3,
+body.dark-mode .control-panel h4 {
+  color: #e0e0e0;
+}
+
+body.dark-mode .control-group label {
+  color: #bbb;
+}
+
+body.dark-mode input[type="number"],
+body.dark-mode select {
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+  border: 1px solid #444;
+}
+
+body.dark-mode input[type="number"]:focus,
+body.dark-mode select:focus {
+  border-color: #667eea;
+  background-color: #333;
+}
+
+body.dark-mode .metric-card {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  color: #e0e0e0;
+}
+
+body.dark-mode .metric-card h3 {
+  color: #999;
+}
+
+body.dark-mode .metric-value {
+  color: #667eea;
+}
+
+body.dark-mode .chart-container {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+}
+
+body.dark-mode .alert-info {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+body.dark-mode .btn {
+  background-color: #2a2a2a;
+  color: #fff;
+  border: 1px solid #444;
+}
+
+body.dark-mode .btn:hover {
+  background-color: #3a3a3a;
+  border-color: #667eea;
+  transform: translateY(-2px);
+}
+
+body.dark-mode .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+body.dark-mode .btn-success {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  border: none;
+}
+
+body.dark-mode table {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+body.dark-mode thead {
+  background-color: #2a2a2a !important;
+}
+
+body.dark-mode tbody tr {
+  border-bottom: 1px solid #333;
+}
+
+body.dark-mode tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Filtros en modo oscuro */
+body.dark-mode #panelFiltros {
+  background: linear-gradient(135deg, #1a1a1a 0%, #121212 100%);
+}
+
+body.dark-mode #filtrosDenuncias,
+body.dark-mode #filtrosEmergencias {
+  background-color: #2a2a2a !important;
+  border: 1px solid #444;
+}
+
+body.dark-mode h3{
+  color: #e0e0e0 !important;
+}
+
+body.dark-mode .metric-card{
+  background-color: #1a1a1a !important;
+  border: 1px solid #333;
+}
+
+body.dark-mode #filtrosDenuncias label,
+body.dark-mode #filtrosEmergencias label {
+  background-color: #1a1a1a !important;
+  color: #e0e0e0;
+  border: 1px solid #333;
+}
+
+body.dark-mode #filtrosDenuncias label:hover {
+  background-color: #2a2a2a !important;
+  border-color: #667eea;
+}
+
+body.dark-mode #filtrosEmergencias label:hover {
+  background-color: #2a2a2a !important;
+  border-color: #f44336;
+}
+
+/* Cuadros de información */
+body.dark-mode .info-box {
+  background-color: #1a1a1a;
+  border-left-color: #667eea;
+  color: #e0e0e0;
+}
+
+
+body.dark-mode h4 {
+  color: #e0e0e0 !important;
+}
+/* Modales en modo oscuro */
+body.dark-mode .modal-content,
+body.dark-mode #modalEstadisticas > div,
+body.dark-mode #modalDetalleCuadrante > div {
+  background-color: #1a1a1a !important;
+  color: #e0e0e0 !important;
+}
+
+/* Cards especiales */
+body.dark-mode .cards-grid > div {
+  background-color: #1a1a1a !important;
+  border: 1px solid #333;
+}
+
+/* Ajustes de Chart.js en modo oscuro */
+body.dark-mode canvas {
+  filter: brightness(0.9);
+}
+
+/* Transición suave */
+body,
+.prediccion-container,
+.control-panel,
+.metric-card,
+.chart-container,
+.btn,
+input,
+select,
+table,
+.tab {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+</style>
+
 <div class="prediccion-container">
   <!-- Header -->
   {% include 'admin/prediccion/header.html' %}
@@ -14,6 +274,8 @@
 
   <!-- Tab 1: Predicción -->
   {% include 'admin/prediccion/tab_prediccion.html' %}
+
+  {% include 'admin/prediccion/tab_espacial.html' %}
 
   <!-- Tab 2: Análisis Histórico -->
   {% include 'admin/prediccion/tab_analisis.html' %}
@@ -34,7 +296,53 @@
   {% include 'admin/prediccion/tab_configuracion.html' %}
 </div>
 
+<!-- Botón de Modo Oscuro -->
+<button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Cambiar modo de visualización">
+  <span id="darkModeIcon">🌙</span>
+</button>
+
 <!-- Scripts -->
 {% include 'admin/prediccion/scripts.html' %}
+
+<!-- Script para Modo Oscuro -->
+<script>
+// Cargar preferencia guardada
+document.addEventListener('DOMContentLoaded', function() {
+  const darkModeEnabled = localStorage.getItem('darkMode') === 'true';
+  if (darkModeEnabled) {
+    document.body.classList.add('dark-mode');
+    document.getElementById('darkModeIcon').textContent = '☀️';
+  }
+});
+
+// Toggle modo oscuro
+function toggleDarkMode() {
+  const body = document.body;
+  const icon = document.getElementById('darkModeIcon');
+  
+  body.classList.toggle('dark-mode');
+  
+  const isDarkMode = body.classList.contains('dark-mode');
+  
+  // Cambiar icono con animación
+  icon.style.transform = 'rotate(360deg)';
+  setTimeout(() => {
+    icon.textContent = isDarkMode ? '☀️' : '🌙';
+    icon.style.transform = 'rotate(0deg)';
+  }, 150);
+  
+  // Guardar preferencia
+  localStorage.setItem('darkMode', isDarkMode);
+  
+  // Notificación
+  if (typeof showToast === 'function') {
+    showToast(
+      isDarkMode ? '🌙 Modo oscuro activado' : '☀️ Modo claro activado',
+      'info',
+      2000
+    );
+  }
+}
+</script>
 
 {% endblock %}

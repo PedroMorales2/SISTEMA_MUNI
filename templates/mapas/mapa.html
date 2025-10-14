@@ -859,6 +859,14 @@
             max-height: 90vh;
         }
     }
+
+    .type-filters {
+        padding: 1rem;
+        background: var(--background-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        margin-bottom: 1rem;
+    }
 </style>
 
 <div class="dashboard-container">
@@ -906,6 +914,28 @@
                     </button>
                 </div>
             </div>
+
+            <div class="type-filters">
+                <div class="time-filters-title">
+                    <i class="fas fa-filter"></i>
+                    Filtro por Tipo
+                </div>
+                <div class="time-buttons">
+                    <button class="time-btn active" data-type="all">
+                        <i class="fas fa-th"></i>
+                        Todos
+                    </button>
+                    <button class="time-btn" data-type="denuncias">
+                        <i class="fas fa-file-alt"></i>
+                        Denuncias
+                    </button>
+                    <button class="time-btn" data-type="emergencias">
+                        <i class="fas fa-ambulance"></i>
+                        Emergencias
+                    </button>
+                </div>
+            </div>
+
 
             <div class="metrics-grid">
                 <div class="metric-card">
@@ -1118,6 +1148,7 @@ class IncidentMonitoringSystem {
         this.incidencias = [];
         this.incidenciasFiltradas = [];
         this.filtroTemporal = 'all';
+        this.filtroTipo = 'all'; // NUEVO
         this.isLoading = false;
         this.retryCount = 0;
         this.maxRetries = 3;
@@ -1184,6 +1215,45 @@ class IncidentMonitoringSystem {
         return this.hslToHex(hue, saturation, lightness);
     }
 
+    // NUEVO: Detectar tipo de incidencia
+    detectarTipoIncidencia(incidencia) {
+        const descripcion = (incidencia.descripcion || '').toLowerCase();
+        const categoria = (incidencia.tipo_categoria || '').toLowerCase();
+        const tipo = (incidencia.tipo || '').toLowerCase();
+        
+        // Palabras clave para emergencias
+        const emergenciasKeywords = [
+            'emergencia', 'ambulancia', 'bomberos', 'policía', 'serenazgo',
+            '911', '955', '666', '444', '922', 'urgente', 'accidente',
+            'incendio', 'rescate', 'patrulla', 'siniestro'
+        ];
+        
+        // Palabras clave para denuncias
+        const denunciasKeywords = [
+            'denuncia', 'reclamo', 'queja', 'solicitud', 'basura',
+            'ruido', 'bache', 'alumbrado', 'alcantarilla', 'poda',
+            'limpieza', 'pista', 'vereda', 'parque', 'jardín'
+        ];
+        
+        const texto = `${descripcion} ${categoria} ${tipo}`;
+        
+        // Verificar emergencias
+        if (emergenciasKeywords.some(keyword => texto.includes(keyword))) {
+            return 'emergencia';
+        }
+        
+        // Verificar denuncias
+        if (denunciasKeywords.some(keyword => texto.includes(keyword))) {
+            return 'denuncia';
+        }
+        
+        // Por defecto, clasificar según el tipo si existe
+        if (tipo.includes('emerg')) return 'emergencia';
+        if (tipo.includes('denun')) return 'denuncia';
+        
+        return 'denuncia'; // Por defecto
+    }
+
     async init() {
         try {
             this.updateSystemStatus('loading', 'Inicializando...');
@@ -1212,12 +1282,22 @@ class IncidentMonitoringSystem {
 
     setupEventListeners() {
         // Filtros temporales
-        document.querySelectorAll('.time-btn').forEach(btn => {
+        document.querySelectorAll('.time-filters .time-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.time-filters .time-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.filtroTemporal = btn.dataset.filter;
-                this.aplicarFiltroTemporal();
+                this.aplicarFiltros();
+            });
+        });
+
+        // NUEVO: Filtros por tipo
+        document.querySelectorAll('.type-filters .time-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.type-filters .time-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.filtroTipo = btn.dataset.type;
+                this.aplicarFiltros();
             });
         });
 
@@ -1297,6 +1377,55 @@ class IncidentMonitoringSystem {
         });
     }
 
+    // NUEVO: Aplicar todos los filtros
+    aplicarFiltros() {
+        if (this.incidencias.length === 0) return;
+
+        let datosFiltrados = [...this.incidencias];
+
+        // Filtro temporal
+        if (this.filtroTemporal !== 'all') {
+            const ahora = new Date();
+            let fechaLimite;
+
+            switch(this.filtroTemporal) {
+                case 'week':
+                    fechaLimite = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    fechaLimite = new Date(ahora.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'year':
+                    fechaLimite = new Date(ahora.getTime() - 365 * 24 * 60 * 60 * 1000);
+                    break;
+            }
+
+            if (fechaLimite) {
+                datosFiltrados = datosFiltrados.filter(item => {
+                    if (!item.fecha) return true;
+                    try {
+                        const fechaItem = new Date(item.fecha);
+                        return fechaItem >= fechaLimite;
+                    } catch {
+                        return true;
+                    }
+                });
+            }
+        }
+
+        // NUEVO: Filtro por tipo
+        if (this.filtroTipo !== 'all') {
+            datosFiltrados = datosFiltrados.filter(item => {
+                const tipo = this.detectarTipoIncidencia(item);
+                return this.filtroTipo === 'denuncias' ? tipo === 'denuncia' : tipo === 'emergencia';
+            });
+        }
+
+        this.incidenciasFiltradas = datosFiltrados;
+        this.processIncidentData();
+        this.renderMapLayers();
+    }
+
     showClusterDetails() {
         const datos = this.incidenciasFiltradas;
         
@@ -1311,6 +1440,8 @@ class IncidentMonitoringSystem {
     generateOverviewTab(datos) {
         const clustersMap = new Map();
         const categorias = {};
+        let denuncias = 0;
+        let emergencias = 0;
         
         datos.forEach(inc => {
             const clusterId = inc.cluster;
@@ -1320,6 +1451,11 @@ class IncidentMonitoringSystem {
                 }
                 clustersMap.get(clusterId).push(inc);
             }
+            
+            // Contar tipos
+            const tipo = this.detectarTipoIncidencia(inc);
+            if (tipo === 'denuncia') denuncias++;
+            else emergencias++;
             
             const cat = inc.tipo_categoria || 'Sin categoría';
             categorias[cat] = (categorias[cat] || 0) + 1;
@@ -1336,23 +1472,23 @@ class IncidentMonitoringSystem {
             ? Math.min(...Array.from(clustersMap.values()).map(arr => arr.length))
             : 0;
 
-        // Estadísticas
+        // Estadísticas con tipos
         const statsHTML = `
             <div class="stat-box">
                 <div class="stat-box-label">Total de Clusters</div>
                 <div class="stat-box-value">${totalClusters}</div>
             </div>
             <div class="stat-box blue">
-                <div class="stat-box-label">Tamaño Promedio</div>
-                <div class="stat-box-value">${avgClusterSize}</div>
-            </div>
-            <div class="stat-box green">
-                <div class="stat-box-label">Cluster Más Grande</div>
-                <div class="stat-box-value">${maxClusterSize}</div>
+                <div class="stat-box-label">📋 Denuncias</div>
+                <div class="stat-box-value">${denuncias}</div>
             </div>
             <div class="stat-box orange">
-                <div class="stat-box-label">Cluster Más Pequeño</div>
-                <div class="stat-box-value">${minClusterSize}</div>
+                <div class="stat-box-label">🚨 Emergencias</div>
+                <div class="stat-box-value">${emergencias}</div>
+            </div>
+            <div class="stat-box green">
+                <div class="stat-box-label">Tamaño Promedio</div>
+                <div class="stat-box-value">${avgClusterSize}</div>
             </div>
         `;
         document.getElementById('stats-grid').innerHTML = statsHTML;
@@ -1404,6 +1540,15 @@ class IncidentMonitoringSystem {
         const clustersHTML = sortedClusters.map(([clusterId, incidencias]) => {
             const color = this.generateColorForCluster(clusterId);
             
+            // Contar tipos en el cluster
+            let denuncias = 0;
+            let emergencias = 0;
+            incidencias.forEach(inc => {
+                const tipo = this.detectarTipoIncidencia(inc);
+                if (tipo === 'denuncia') denuncias++;
+                else emergencias++;
+            });
+            
             const categorias = {};
             incidencias.forEach(inc => {
                 const cat = inc.tipo_categoria || 'Sin categoría';
@@ -1424,7 +1569,8 @@ class IncidentMonitoringSystem {
                     <div class="cluster-item-info">
                         <div class="cluster-item-title">Cluster ${clusterId}</div>
                         <div class="cluster-item-detail">
-                            <i class="fas fa-layer-group"></i> <strong>${incidencias.length}</strong> incidencias agrupadas
+                            <i class="fas fa-layer-group"></i> <strong>${incidencias.length}</strong> incidencias 
+                            (📋 ${denuncias} denuncias, 🚨 ${emergencias} emergencias)
                         </div>
                         <div class="cluster-item-detail">
                             <i class="fas fa-tag"></i> Predominante: <strong>${categoriaComun}</strong> (${categorias[categoriaComun]} casos)
@@ -1452,6 +1598,11 @@ class IncidentMonitoringSystem {
 
         const incidentsHTML = clusteredData.map(inc => {
             const color = this.generateColorForCluster(inc.cluster);
+            const tipo = this.detectarTipoIncidencia(inc);
+            const tipoIcon = tipo === 'denuncia' ? '📋' : '🚨';
+            const tipoLabel = tipo === 'denuncia' ? 'Denuncia' : 'Emergencia';
+            const tipoColor = tipo === 'denuncia' ? '#4facfe' : '#fa709a';
+            
             return `
                 <div class="incident-card" style="border-left-color: ${color}">
                     <div class="incident-card-header">
@@ -1469,14 +1620,14 @@ class IncidentMonitoringSystem {
                         <span class="incident-badge" style="background-color: ${color}; color: white;">
                             Cluster ${inc.cluster}
                         </span>
+                        <span class="incident-badge" style="background-color: ${tipoColor}; color: white;">
+                            ${tipoIcon} ${tipoLabel}
+                        </span>
                         <span class="incident-badge">
                             <i class="fas fa-tag"></i> ${inc.tipo_categoria || 'N/A'}
                         </span>
                         <span class="incident-badge">
                             <i class="fas fa-info-circle"></i> ${inc.estado || 'N/A'}
-                        </span>
-                        <span class="incident-badge">
-                            <i class="fas fa-map-marker-alt"></i> ${inc.lat?.toFixed(6)}, ${inc.lon?.toFixed(6)}
                         </span>
                     </div>
                 </div>
@@ -1567,7 +1718,8 @@ class IncidentMonitoringSystem {
                 total_incidencias: datos.length,
                 total_clusters: clustersMap.size,
                 fecha_export: new Date().toISOString(),
-                filtro_temporal: this.filtroTemporal
+                filtro_temporal: this.filtroTemporal,
+                filtro_tipo: this.filtroTipo
             },
             clusters: Array.from(clustersMap.entries()).map(([id, incidencias]) => ({
                 cluster_id: id,
@@ -1591,16 +1743,20 @@ class IncidentMonitoringSystem {
         const datos = this.incidenciasFiltradas;
         
         const headers = [
-            'id_incidencia', 'cluster', 'lat', 'lon', 'descripcion', 
+            'id_incidencia', 'cluster', 'tipo', 'lat', 'lon', 'descripcion', 
             'tipo_categoria', 'fecha', 'hora', 'estado', 'nivel_incidencia'
         ];
 
         const csvContent = [
             headers.join(','),
-            ...datos.map(inc => headers.map(h => {
-                const val = inc[h] || '';
-                return `"${String(val).replace(/"/g, '""')}"`;
-            }).join(','))
+            ...datos.map(inc => {
+                const tipo = this.detectarTipoIncidencia(inc);
+                return headers.map(h => {
+                    if (h === 'tipo') return `"${tipo}"`;
+                    const val = inc[h] || '';
+                    return `"${String(val).replace(/"/g, '""')}"`;
+                }).join(',');
+            })
         ].join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1644,8 +1800,7 @@ class IncidentMonitoringSystem {
                 this.generateColorForCluster(clusterId);
             });
             
-            this.processIncidentData();
-            this.renderMapLayers();
+            this.aplicarFiltros();
             this.updateSystemStatus('online', 'Operativo');
             this.retryCount = 0;
             
@@ -1659,43 +1814,6 @@ class IncidentMonitoringSystem {
         } finally {
             this.isLoading = false;
         }
-    }
-
-    aplicarFiltroTemporal() {
-        if (this.incidencias.length === 0) return;
-
-        const ahora = new Date();
-        let fechaLimite;
-
-        switch(this.filtroTemporal) {
-            case 'week':
-                fechaLimite = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000);
-                break;
-            case 'month':
-                fechaLimite = new Date(ahora.getTime() - 30 * 24 * 60 * 60 * 1000);
-                break;
-            case 'year':
-                fechaLimite = new Date(ahora.getTime() - 365 * 24 * 60 * 60 * 1000);
-                break;
-            default:
-                this.incidenciasFiltradas = [...this.incidencias];
-                this.processIncidentData();
-                this.renderMapLayers();
-                return;
-        }
-
-        this.incidenciasFiltradas = this.incidencias.filter(item => {
-            if (!item.fecha) return true;
-            try {
-                const fechaItem = new Date(item.fecha);
-                return fechaItem >= fechaLimite;
-            } catch {
-                return true;
-            }
-        });
-
-        this.processIncidentData();
-        this.renderMapLayers();
     }
 
     processIncidentData() {
@@ -1738,7 +1856,8 @@ class IncidentMonitoringSystem {
                     estado: inc.estado || 'N/A',
                     nivel: inc.nivel_incidencia || 'N/A',
                     cluster: parseInt(inc.cluster) || -1,
-                    tipo_categoria: inc.tipo_categoria || 'N/A'
+                    tipo_categoria: inc.tipo_categoria || 'N/A',
+                    tipo: this.detectarTipoIncidencia(inc)
                 }
             }))
         };
@@ -1862,6 +1981,11 @@ class IncidentMonitoringSystem {
 
     showIncidentPopup(coordinates, properties) {
         const clusterId = properties.cluster;
+        const tipo = properties.tipo;
+        const tipoIcon = tipo === 'denuncia' ? '📋' : '🚨';
+        const tipoLabel = tipo === 'denuncia' ? 'Denuncia' : 'Emergencia';
+        const tipoColor = tipo === 'denuncia' ? '#4facfe' : '#fa709a';
+        
         const color = clusterId === -1 ? '#6c757d' : this.generateColorForCluster(clusterId);
         const clusterInfo = clusterId === -1 
             ? '<span style="color: #6c757d; font-weight: 600;">Punto Aislado (Ruido)</span>'
@@ -1879,6 +2003,12 @@ class IncidentMonitoringSystem {
                 Incidencia #${properties.id}
             </div>
             <div class="popup-content">
+                <div class="popup-field">
+                    <span class="popup-label">Tipo:</span><br>
+                    <span class="popup-value" style="background: ${tipoColor}; color: white; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 4px;">
+                        ${tipoIcon} ${tipoLabel}
+                    </span>
+                </div>
                 <div class="popup-field">
                     <span class="popup-label">Descripción:</span><br>
                     <span class="popup-value">${properties.descripcion}</span>
@@ -2021,6 +2151,27 @@ class IncidentMonitoringSystem {
         this.updateMetric('coverage', 'Error');
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof mapboxgl === 'undefined') {
+        alert('Error: Mapbox GL JS no cargado');
+        return;
+    }
+    
+    try {
+        window.incidentSystem = new IncidentMonitoringSystem();
+    } catch (error) {
+        console.error('Error crítico:', error);
+        alert('Error: ' + error.message);
+    }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Error no manejado:', event.reason);
+    if (window.incidentSystem) {
+        window.incidentSystem.handleError('Error del sistema', event.reason);
+    }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof mapboxgl === 'undefined') {

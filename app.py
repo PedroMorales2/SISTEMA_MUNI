@@ -20,6 +20,8 @@ from routes.api.modelo_dbscan import dbscan_bp
 from routes.api.modelo_prediccion import prediccion_bp
 from routes.api.exportacion import exportacion_bp
 from routes.api.recursos import recursos_bp
+from routes.api.configuracion import configuracion_bp
+from routes.api.prediccion_espacial import espacial_bp
 
 # Importar blueprints Views (Frontend)
 from routes.views.auth_views import auth_views_bp
@@ -116,11 +118,17 @@ def create_app(config_name='default'):
     app.register_blueprint(prediccion_bp, url_prefix='/api/modelo/prediccion')
     print("  ✓ /api/modelo/prediccion")
     
+    app.register_blueprint(espacial_bp, url_prefix='/api/modelo/espacial')
+
+    
     app.register_blueprint(exportacion_bp, url_prefix='/api/exportar')
     print("  ✓ /api/exportar")
     
     app.register_blueprint(recursos_bp, url_prefix='/api/recursos')
     print("  ✓ /api/recursos")
+    
+    app.register_blueprint(configuracion_bp, url_prefix='/api/configuracion')
+    print("  ✓ /api/configuracion")
     
     # ============================================
     # REGISTRAR BLUEPRINTS VIEWS (Frontend HTML)

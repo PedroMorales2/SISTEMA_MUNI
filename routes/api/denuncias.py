@@ -6,7 +6,7 @@ from flask import Blueprint, request, jsonify, current_app
 import traceback
 
 import controladores.controlador_denuncia as controlador_denuncia
-import controladores.controlador_detalle_incidencia as controlador_detalle
+import controladores.controlador_detalle_denuncia as controlador_detalle
 from services.file_service import FileService
 from utils.formatters import serializar_denuncia, parsear_ubicacion, convertir_estado_texto
 from utils.constants import *
