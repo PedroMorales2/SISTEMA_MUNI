@@ -1,5 +1,4 @@
 from utils.database import obtenerconexion as obtenerconexion
-
 def obtener_denuncias_pendientes():
     conexion = None
     cursor = None
@@ -20,33 +19,56 @@ def obtener_denuncias_pendientes():
                 CONCAT(inc.fecha, ' ', inc.hora) AS fecha_hora,
                 inc.descripcion
             FROM incidencia inc
-            WHERE inc.id_tipo_incidencia = 3;
-
-
+            WHERE inc.id_tipo_incidencia = 3 AND inc.estado = 1;
         """
         cursor.execute(sql)
         resultados = cursor.fetchall()
 
-        # data = []
-        # for ubicacion, nivel, fecha_hora, descripcion in resultados:
-        #     data.append({
-        #         'ubicacion': ubicacion,
-        #         'nivel_incidencia': nivel,
-        #         'fecha': fecha_hora,
-        #         'descripcion': descripcion
-        #     })
+        # ESTO ES CRÍTICO: Convertir tuplas a diccionarios
+        data = []
+        for row in resultados:
+            id_incidencia = row['id_incidencia']
+            ubicacion = row['ubicacion']
+            nivel = row['nivel_incidencia']
+            fecha_hora = row['fecha_hora']
+            descripcion = row['descripcion']
 
-        return resultados
+            latitud, longitud = None, None
+            if ubicacion:
+                try:
+                    coords = ubicacion.strip().split(",")
+                    if len(coords) == 2:
+                        latitud = float(coords[0].strip())
+                        longitud = float(coords[1].strip())
+                    else:
+                        raise ValueError(f"Ubicacion inválida: {ubicacion}")
+                except Exception as e:
+                    print(f"Error parsing ubicacion '{ubicacion}': {e}")
+                    latitud = -6.865187
+                    longitud = -79.818437
+            else:
+                latitud = -6.865187
+                longitud = -79.818437
+
+            data.append({
+                'id_incidencia': id_incidencia,
+                'latitud': latitud,
+                'longitud': longitud,
+                'nivel_incidencia': nivel,
+                'fecha_hora': fecha_hora,
+                'descripcion': descripcion or "Sin descripción"
+            })
+
+
+        return data
 
     except Exception as e:
         raise Exception(f"Database error: {str(e)}")
-
     finally:
         if cursor:
             cursor.close()
         if conexion:
             conexion.close()
-
 
 
 def obtener_emergencias_pendientes():
@@ -61,42 +83,55 @@ def obtener_emergencias_pendientes():
                 inc.id_incidencia,
                 inc.ubicacion,
                 CASE
-				        WHEN inc.nivel_incidencia = '3' THEN 'Alto'
-				        WHEN inc.nivel_incidencia = 'A' THEN 'Alto'
-				        WHEN inc.nivel_incidencia = '2' THEN 'Medio'
-				        WHEN inc.nivel_incidencia = '1' THEN 'Bajo'
-				        ELSE 'Desconocido'
-				    END AS nivel_incidencia,
+                    WHEN inc.nivel_incidencia = '3' THEN 'Alto'
+                    WHEN inc.nivel_incidencia = 'A' THEN 'Alto'
+                    WHEN inc.nivel_incidencia = '2' THEN 'Medio'
+                    WHEN inc.nivel_incidencia = '1' THEN 'Bajo'
+                    ELSE 'Desconocido'
+                END AS nivel_incidencia,
                 CONCAT(inc.fecha, ' ', inc.hora) AS fecha_hora,
                 eme.nombre_emergencia AS descripcion
             FROM incidencia inc
             INNER JOIN emergencia eme ON eme.id_numero_emergencia = inc.id_numero_emergencia
-            WHERE inc.id_tipo_incidencia = 4;
-
+            WHERE inc.id_tipo_incidencia = 4 AND inc.estado = 1;
         """
         cursor.execute(sql)
         resultados = cursor.fetchall()
 
-        # data = []
-        # for ubicacion, nivel, fecha_hora, descripcion in resultados:
-        #     data.append({
-        #         'ubicacion': ubicacion,
-        #         'nivel_incidencia': nivel,
-        #         'fecha': fecha_hora,
-        #         'descripcion': descripcion
-        #     })
+        data = []
+        for row in resultados:
+            id_incidencia = row['id_incidencia']
+            ubicacion = row['ubicacion']
+            nivel = row['nivel_incidencia']
+            fecha_hora = row['fecha_hora']
+            descripcion = row['descripcion']
+                
+            try:
+                coords = ubicacion.replace(" ", "").split(",")
+                latitud = float(coords[0])
+                longitud = float(coords[1])
+            except:
+                latitud = -6.865187
+                longitud = -79.818437
+            
+            data.append({
+                'id_incidencia': id_incidencia,
+                'latitud': latitud,
+                'longitud': longitud,
+                'nivel_incidencia': nivel,
+                'fecha_hora': fecha_hora,
+                'descripcion': descripcion or "Sin descripción"
+            })
 
-        return resultados
+        return data
 
     except Exception as e:
         raise Exception(f"Database error: {str(e)}")
-
     finally:
         if cursor:
             cursor.close()
         if conexion:
             conexion.close()
-
 
 
 def obtener_fotos_por_denuncia(id_denuncia):

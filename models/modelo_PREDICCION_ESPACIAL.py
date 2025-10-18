@@ -1,500 +1,420 @@
-"""
-modelo_PREDICCION_ESPACIAL.py
-Extensión del modelo LSTM con predicción espacial por cuadrantes
-"""
+# models/modelo_PREDICCION_ESPACIAL.py
 
-import pandas as pd
-import numpy as np
-import pickle
-import os
-from sklearn.cluster import KMeans
-from scipy.spatial import cKDTree
 import json
+import os
+import pandas as pd
+from shapely.geometry import Point, Polygon
+from config import get_config
 
-# Directorio para datos espaciales
-SPATIAL_DIR = 'datos_espaciales'
-os.makedirs(SPATIAL_DIR, exist_ok=True)
+config = get_config()
 
-
-class PrediccionEspacial:
-    """Maneja predicciones espaciales por cuadrantes"""
+class ModeloPrediccionEspacial:
+    """
+    Modelo de Predicción Espacial por Sectores
+    
+    Incluye predicción y análisis histórico por TIPOS de denuncias y emergencias.
+    """
     
     def __init__(self):
-        self.cuadrantes = None
-        self.distribuciones_historicas = {}
-        self.grid_bounds = None
-        self.grid_size = (5, 5)  # 5x5 = 25 cuadrantes por defecto
-        self.kdtree = None
+        self.sectores = []
+        self.densidad_historica = {}
+        self.sectores_con_data = []
+        self.estadisticas_historicas = {}
+        self.tipos_denuncias = config.DENUNCIAS_MAP  # Desde config
+        self.tipos_emergencias = config.EMERGENCIAS_MAP  # Desde config
+        self.dataset_path = "data_modelo/dataset_incidencias_reque_2015_2024.csv"
+        self.cargar_sectores()
+    
+    
+    def cargar_sectores(self):
+        """Carga sectores activos desde BD"""
+        try:
+            from utils.database import obtenerconexion as obtener_conexion
+            
+            conexion = obtener_conexion()
+            cursor = conexion.cursor()
+            
+            sql = """
+                SELECT 
+                    id_sector, codigo_sector, nombre,
+                    lat_min, lat_max, lon_min, lon_max,
+                    centro_lat, centro_lon, poligono_geojson
+                FROM sectores
+                WHERE activo = TRUE
+                ORDER BY codigo_sector
+            """
+            
+            cursor.execute(sql)
+            resultados = cursor.fetchall()
+            
+            self.sectores = []
+            for row in resultados:
+                poligono_json = json.loads(row['poligono_geojson']) if row['poligono_geojson'] else None
+                
+                poligono_shapely = None
+                if poligono_json:
+                    try:
+                        coords = poligono_json['geometry']['coordinates'][0]
+                        poligono_shapely = Polygon([(c[0], c[1]) for c in coords])
+                    except Exception as e:
+                        print(f"⚠️ Error en polígono {row['codigo_sector']}: {e}")
+                
+                sector = {
+                    'id_sector': row['id_sector'],
+                    'codigo_sector': row['codigo_sector'],
+                    'nombre': row['nombre'],
+                    'bounds': {
+                        'lat_min': float(row['lat_min']),
+                        'lat_max': float(row['lat_max']),
+                        'lon_min': float(row['lon_min']),
+                        'lon_max': float(row['lon_max'])
+                    },
+                    'centro': {
+                        'lat': float(row['centro_lat']) if row['centro_lat'] else 0,
+                        'lon': float(row['centro_lon']) if row['centro_lon'] else 0
+                    },
+                    'poligono': poligono_json,
+                    'poligono_shapely': poligono_shapely
+                }
+                self.sectores.append(sector)
+            
+            cursor.close()
+            conexion.close()
+            
+            print(f"✅ {len(self.sectores)} sectores cargados")
+            
+        except Exception as e:
+            print(f"❌ Error cargando sectores: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            self.sectores = []
+    
+    
+    def calcular_densidad_historica(self):
+        """
+        Calcula densidad y estadísticas históricas POR TIPO
+        """
+        try:
+            if not self.sectores:
+                print("⚠️ No hay sectores definidos")
+                return {}
+            
+            if not os.path.exists(self.dataset_path):
+                print(f"⚠️ Dataset no encontrado: {self.dataset_path}")
+                return {}
+            
+            print(f"\n📂 Analizando dataset: {self.dataset_path}")
+            df = pd.read_csv(self.dataset_path)
+            
+            # Filtrar válidos
+            df_coords = df[
+                (df['lat'].notna()) & 
+                (df['lon'].notna())
+            ].copy()
+            
+            print(f"📍 {len(df_coords)} incidencias válidas")
+            
+            if len(df_coords) == 0:
+                return {}
+            
+            # Análisis por sector
+            print(f"\n🔍 Analizando sectores...")
+            
+            densidad = {}
+            self.sectores_con_data = []
+            self.estadisticas_historicas = {}
+            total_incidencias = 0
+            
+            for sector in self.sectores:
+                if sector['poligono_shapely'] is None:
+                    densidad[sector['id_sector']] = 0
+                    self._inicializar_estadisticas_vacias(sector['id_sector'])
+                    continue
+                
+                poligono = sector['poligono_shapely']
+                incidencias_sector = []
+                
+                # Filtrar incidencias dentro del polígono
+                for idx, row in df_coords.iterrows():
+                    try:
+                        punto = Point(row['lon'], row['lat'])
+                        if poligono.contains(punto):
+                            incidencias_sector.append(row)
+                    except:
+                        continue
+                
+                count_sector = len(incidencias_sector)
+                
+                if count_sector > 0:
+                    df_sector = pd.DataFrame(incidencias_sector)
+                    
+                    # Separar denuncias y emergencias
+                    df_denuncias = df_sector[df_sector['id_denuncia'].notna()]
+                    df_emergencias = df_sector[df_sector['id_numero_emergencia'].notna()]
+                    
+                    total_denuncias = len(df_denuncias)
+                    total_emergencias = len(df_emergencias)
+                    
+                    # Por tipo con nombres
+                    denuncias_por_tipo = {}
+                    if len(df_denuncias) > 0:
+                        conteo = df_denuncias.groupby('id_tipo_incidencia').size().to_dict()
+                        for tipo_id, cantidad in conteo.items():
+                            tipo_id_int = int(tipo_id)
+                            nombre_tipo = self.tipos_denuncias.get(tipo_id_int, f"Tipo {tipo_id_int}")
+                            denuncias_por_tipo[nombre_tipo] = {
+                                'cantidad': int(cantidad),
+                                'id_tipo': tipo_id_int
+                            }
+                    
+                    emergencias_por_tipo = {}
+                    if len(df_emergencias) > 0:
+                        conteo = df_emergencias.groupby('id_tipo_incidencia').size().to_dict()
+                        for tipo_id, cantidad in conteo.items():
+                            tipo_id_int = int(tipo_id)
+                            nombre_tipo = self.tipos_emergencias.get(tipo_id_int, f"Tipo {tipo_id_int}")
+                            emergencias_por_tipo[nombre_tipo] = {
+                                'cantidad': int(cantidad),
+                                'id_tipo': tipo_id_int
+                            }
+                    
+                    nivel_historico = self._calcular_nivel_criticidad(count_sector)
+                    
+                    self.estadisticas_historicas[sector['id_sector']] = {
+                        'total': count_sector,
+                        'denuncias': total_denuncias,
+                        'emergencias': total_emergencias,
+                        'denuncias_por_tipo': denuncias_por_tipo,
+                        'emergencias_por_tipo': emergencias_por_tipo,
+                        'nivel': nivel_historico['nivel'],
+                        'color': nivel_historico['color']
+                    }
+                    
+                    self.sectores_con_data.append(sector['id_sector'])
+                    total_incidencias += count_sector
+                    
+                    print(f"✅ {sector['codigo_sector']}: {count_sector} incidencias ({total_denuncias} den, {total_emergencias} emer)")
+                else:
+                    densidad[sector['id_sector']] = 0
+                    self._inicializar_estadisticas_vacias(sector['id_sector'])
+                    print(f"⚪ {sector['codigo_sector']}: Sin data histórica")
+            
+            # Calcular porcentajes
+            if total_incidencias > 0:
+                for id_sector in self.estadisticas_historicas:
+                    count = self.estadisticas_historicas[id_sector]['total']
+                    densidad[id_sector] = count / total_incidencias if count > 0 else 0.0
+            else:
+                for sector in self.sectores:
+                    densidad[sector['id_sector']] = 0.0
+            
+            self.densidad_historica = densidad
+            
+            print(f"\n✅ Análisis completo: {len(self.sectores_con_data)}/{len(self.sectores)} sectores con data")
+            
+            return densidad
+            
+        except Exception as e:
+            print(f"❌ Error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {}
+    
+    
+    def _inicializar_estadisticas_vacias(self, id_sector):
+        """Inicializa estadísticas vacías para sectores sin data"""
+        self.estadisticas_historicas[id_sector] = {
+            'total': 0,
+            'denuncias': 0,
+            'emergencias': 0,
+            'denuncias_por_tipo': {},
+            'emergencias_por_tipo': {},
+            'nivel': 'muy_bajo',
+            'color': '#4caf50'
+        }
+    
+    
+    def predecir_sectores(self, prediccion_global, incluir_detalles=True):
+        """
+        Distribuye predicción CON TIPOS entre sectores
+        """
+        try:
+            self.cargar_sectores()
+            
+            if not self.sectores:
+                return []
+            
+            if not self.densidad_historica:
+                self.calcular_densidad_historica()
+            
+            # Totales de predicción global
+            denuncias_globales = prediccion_global.get('denuncias', {})
+            emergencias_globales = prediccion_global.get('emergencias', {})
+            
+            total_denuncias = sum(denuncias_globales.values())
+            total_emergencias = sum(emergencias_globales.values())
+            
+            print(f"\n🎯 Distribuyendo predicción por tipos:")
+            print(f"   Total: {total_denuncias + total_emergencias} ({total_denuncias} den, {total_emergencias} emer)")
+            
+            predicciones_sectores = []
+            
+            for sector in self.sectores:
+                id_sector = sector['id_sector']
+                densidad = self.densidad_historica.get(id_sector, 0.0)
+                historico = self.estadisticas_historicas.get(id_sector, {
+                    'total': 0, 'denuncias': 0, 'emergencias': 0,
+                    'denuncias_por_tipo': {}, 'emergencias_por_tipo': {},
+                    'nivel': 'muy_bajo', 'color': '#4caf50'
+                })
+                
+                # Predicción total
+                if densidad == 0:
+                    denuncias_sector = 0.0
+                    emergencias_sector = 0.0
+                    total_sector = 0.0
+                    denuncias_por_tipo_pred = {}
+                    emergencias_por_tipo_pred = {}
+                else:
+                    denuncias_sector = total_denuncias * densidad
+                    emergencias_sector = total_emergencias * densidad
+                    total_sector = denuncias_sector + emergencias_sector
+                    
+                    # Predicción POR TIPO
+                    denuncias_por_tipo_pred = {}
+                    for tipo_id, cantidad in denuncias_globales.items():
+                        tipo_id_int = int(tipo_id)
+                        nombre_tipo = self.tipos_denuncias.get(tipo_id_int, f"Tipo {tipo_id_int}")
+                        denuncias_por_tipo_pred[nombre_tipo] = {
+                            'cantidad': round(cantidad * densidad, 2),
+                            'id_tipo': tipo_id_int
+                        }
+                    
+                    emergencias_por_tipo_pred = {}
+                    for tipo_id, cantidad in emergencias_globales.items():
+                        tipo_id_int = int(tipo_id)
+                        nombre_tipo = self.tipos_emergencias.get(tipo_id_int, f"Tipo {tipo_id_int}")
+                        emergencias_por_tipo_pred[nombre_tipo] = {
+                            'cantidad': round(cantidad * densidad, 2),
+                            'id_tipo': tipo_id_int
+                        }
+                
+                nivel = self._calcular_nivel_criticidad(total_sector)
+                
+                prediccion_sector = {
+                    'id_sector': id_sector,
+                    'codigo_sector': sector['codigo_sector'],
+                    'nombre': sector['nombre'],
+                    'centro': sector['centro'],
+                    'bounds': sector['bounds'],
+                    'poligono': sector['poligono'],
+                    'prediccion': {
+                        'total': round(total_sector, 2),
+                        'denuncias': round(denuncias_sector, 2),
+                        'emergencias': round(emergencias_sector, 2),
+                        'denuncias_por_tipo': denuncias_por_tipo_pred,
+                        'emergencias_por_tipo': emergencias_por_tipo_pred
+                    },
+                    'historico': historico,
+                    'densidad_historica': round(densidad * 100, 2),
+                    'nivel_criticidad': nivel['nivel'],
+                    'color': nivel['color'],
+                    'prioridad': nivel['prioridad'],
+                    'tiene_data_historica': densidad > 0
+                }
+                
+                predicciones_sectores.append(prediccion_sector)
+            
+            predicciones_sectores.sort(key=lambda x: x['prioridad'], reverse=True)
+            
+            return predicciones_sectores
+            
+        except Exception as e:
+            print(f"❌ Error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    
+    def _calcular_nivel_criticidad(self, total_incidencias):
+        """Calcula nivel de criticidad"""
+        if total_incidencias >= 100:
+            return {'nivel': 'muy_alto', 'color': '#d32f2f', 'prioridad': 5}
+        elif total_incidencias >= 50:
+            return {'nivel': 'alto', 'color': '#f44336', 'prioridad': 4}
+        elif total_incidencias >= 20:
+            return {'nivel': 'medio', 'color': '#ff9800', 'prioridad': 3}
+        elif total_incidencias >= 5:
+            return {'nivel': 'bajo', 'color': '#ffc107', 'prioridad': 2}
+        else:
+            return {'nivel': 'muy_bajo', 'color': '#4caf50', 'prioridad': 1}
+    
+    
+    def generar_resumen(self, predicciones_sectores):
+        """Genera resumen estadístico"""
+        if not predicciones_sectores:
+            return {}
         
-    def calcular_limites_mapa(self, df):
-        """Calcula límites geográficos del mapa"""
-        lat_min, lat_max = df['lat'].min(), df['lat'].max()
-        lon_min, lon_max = df['lon'].min(), df['lon'].max()
+        sectores_activos = [s for s in predicciones_sectores if s['prediccion']['total'] > 0]
         
-        # Añadir margen del 5%
-        lat_margin = (lat_max - lat_min) * 0.05
-        lon_margin = (lon_max - lon_min) * 0.05
+        # Predicción
+        total_denuncias = sum(s['prediccion']['denuncias'] for s in predicciones_sectores)
+        total_emergencias = sum(s['prediccion']['emergencias'] for s in predicciones_sectores)
+        total_incidencias = sum(s['prediccion']['total'] for s in predicciones_sectores)
+        
+        # Histórico
+        total_historico = sum(s['historico']['total'] for s in predicciones_sectores)
+        den_historico = sum(s['historico']['denuncias'] for s in predicciones_sectores)
+        emer_historico = sum(s['historico']['emergencias'] for s in predicciones_sectores)
+        
+        # Sector crítico
+        sector_critico = max(sectores_activos, key=lambda x: x['prediccion']['total']) if sectores_activos else None
+        
+        # Distribución niveles
+        distribucion_niveles = {
+            'muy_alto': len([s for s in predicciones_sectores if s['nivel_criticidad'] == 'muy_alto']),
+            'alto': len([s for s in predicciones_sectores if s['nivel_criticidad'] == 'alto']),
+            'medio': len([s for s in predicciones_sectores if s['nivel_criticidad'] == 'medio']),
+            'bajo': len([s for s in predicciones_sectores if s['nivel_criticidad'] == 'bajo']),
+            'muy_bajo': len([s for s in predicciones_sectores if s['nivel_criticidad'] == 'muy_bajo'])
+        }
+        
+        # Top 5
+        top_5_criticos = sorted(sectores_activos, key=lambda x: x['prediccion']['total'], reverse=True)[:5]
         
         return {
-            'lat_min': lat_min - lat_margin,
-            'lat_max': lat_max + lat_margin,
-            'lon_min': lon_min - lon_margin,
-            'lon_max': lon_max + lon_margin
+            'total_sectores': len(predicciones_sectores),
+            'sectores_con_prediccion': len(sectores_activos),
+            'sectores_sin_prediccion': len(predicciones_sectores) - len(sectores_activos),
+            'prediccion': {
+                'total_incidencias': round(total_incidencias, 2),
+                'total_denuncias': round(total_denuncias, 2),
+                'total_emergencias': round(total_emergencias, 2)
+            },
+            'historico': {
+                'total_incidencias': total_historico,
+                'total_denuncias': den_historico,
+                'total_emergencias': emer_historico
+            },
+            'sector_mas_critico': {
+                'id_sector': sector_critico['id_sector'],
+                'codigo': sector_critico['codigo_sector'],
+                'nombre': sector_critico['nombre'],
+                'total': sector_critico['prediccion']['total'],
+                'nivel': sector_critico['nivel_criticidad']
+            } if sector_critico else None,
+            'distribucion_niveles': distribucion_niveles,
+            'top_5_criticos': [
+                {
+                    'codigo': s['codigo_sector'],
+                    'nombre': s['nombre'],
+                    'total': s['prediccion']['total'],
+                    'nivel': s['nivel_criticidad']
+                }
+                for s in top_5_criticos
+            ]
         }
-    
-    def crear_cuadrantes(self, df, n_filas=5, n_cols=5):
-        """
-        Divide el mapa en cuadrantes rectangulares
-        
-        Args:
-            df: DataFrame con columnas 'lat', 'lon'
-            n_filas: Número de filas en la grilla
-            n_cols: Número de columnas en la grilla
-        """
-        print(f"\n🗺️  Creando grilla de {n_filas}x{n_cols} cuadrantes...")
-        
-        self.grid_size = (n_filas, n_cols)
-        self.grid_bounds = self.calcular_limites_mapa(df)
-        
-        lat_min = self.grid_bounds['lat_min']
-        lat_max = self.grid_bounds['lat_max']
-        lon_min = self.grid_bounds['lon_min']
-        lon_max = self.grid_bounds['lon_max']
-        
-        lat_step = (lat_max - lat_min) / n_filas
-        lon_step = (lon_max - lon_min) / n_cols
-        
-        cuadrantes = []
-        
-        for i in range(n_filas):
-            for j in range(n_cols):
-                cuadrante = {
-                    'id': i * n_cols + j,
-                    'fila': i,
-                    'columna': j,
-                    'lat_min': lat_min + i * lat_step,
-                    'lat_max': lat_min + (i + 1) * lat_step,
-                    'lon_min': lon_min + j * lon_step,
-                    'lon_max': lon_min + (j + 1) * lon_step,
-                    'centro_lat': lat_min + (i + 0.5) * lat_step,
-                    'centro_lon': lon_min + (j + 0.5) * lon_step
-                }
-                cuadrantes.append(cuadrante)
-        
-        self.cuadrantes = pd.DataFrame(cuadrantes)
-        
-        # Crear KDTree para búsqueda rápida
-        centros = self.cuadrantes[['centro_lat', 'centro_lon']].values
-        self.kdtree = cKDTree(centros)
-        
-        print(f"✅ {len(self.cuadrantes)} cuadrantes creados")
-        return self.cuadrantes
-    
-    def asignar_cuadrante(self, lat, lon):
-        """Asigna una coordenada al cuadrante más cercano"""
-        if self.kdtree is None:
-            return None
-        
-        # Buscar cuadrante más cercano
-        _, idx = self.kdtree.query([lat, lon])
-        return int(self.cuadrantes.iloc[idx]['id'])
-    
-    def analizar_distribucion_historica(self, df):
-        """
-        Analiza la distribución histórica de incidencias por cuadrante
-        
-        Args:
-            df: DataFrame con columnas ['lat', 'lon', 'id_denuncia', 'id_numero_emergencia', 'fecha']
-        """
-        print("\n📊 Analizando distribución histórica por cuadrante...")
-        
-        # Asignar cuadrante a cada incidencia
-        df['cuadrante_id'] = df.apply(
-            lambda row: self.asignar_cuadrante(row['lat'], row['lon']), 
-            axis=1
-        )
-        
-        # Análisis de DENUNCIAS por cuadrante
-        denuncias = df[df['id_denuncia'].notna()].copy()
-        dist_denuncias = (denuncias
-                          .groupby(['cuadrante_id', 'id_denuncia'])
-                          .size()
-                          .reset_index(name='count'))
-        
-        # Análisis de EMERGENCIAS por cuadrante
-        emergencias = df[df['id_numero_emergencia'].notna()].copy()
-        dist_emergencias = (emergencias
-                            .groupby(['cuadrante_id', 'id_numero_emergencia'])
-                            .size()
-                            .reset_index(name='count'))
-        
-        # Calcular distribuciones porcentuales
-        self.distribuciones_historicas = {
-            'denuncias': {},
-            'emergencias': {},
-            'totales_cuadrante': {}
-        }
-        
-        # Por cada cuadrante, calcular distribución de tipos
-        for cuad_id in self.cuadrantes['id']:
-            # DENUNCIAS
-            den_cuad = dist_denuncias[dist_denuncias['cuadrante_id'] == cuad_id]
-            total_den = den_cuad['count'].sum()
-            
-            if total_den > 0:
-                distribucion_den = {}
-                for _, row in den_cuad.iterrows():
-                    tipo_id = int(row['id_denuncia'])
-                    porcentaje = (row['count'] / total_den) * 100
-                    distribucion_den[tipo_id] = {
-                        'count': int(row['count']),
-                        'porcentaje': round(porcentaje, 2)
-                    }
-                self.distribuciones_historicas['denuncias'][int(cuad_id)] = distribucion_den
-            
-            # EMERGENCIAS
-            eme_cuad = dist_emergencias[dist_emergencias['cuadrante_id'] == cuad_id]
-            total_eme = eme_cuad['count'].sum()
-            
-            if total_eme > 0:
-                distribucion_eme = {}
-                for _, row in eme_cuad.iterrows():
-                    tipo_id = int(row['id_numero_emergencia'])
-                    porcentaje = (row['count'] / total_eme) * 100
-                    distribucion_eme[tipo_id] = {
-                        'count': int(row['count']),
-                        'porcentaje': round(porcentaje, 2)
-                    }
-                self.distribuciones_historicas['emergencias'][int(cuad_id)] = distribucion_eme
-            
-            # TOTALES
-            self.distribuciones_historicas['totales_cuadrante'][int(cuad_id)] = {
-                'denuncias': int(total_den),
-                'emergencias': int(total_eme),
-                'total': int(total_den + total_eme)
-            }
-        
-        print(f"✅ Distribución histórica calculada para {len(self.cuadrantes)} cuadrantes")
-        
-        # Guardar en disco
-        self.guardar_datos_espaciales()
-        
-        return self.distribuciones_historicas
-    
-    def predecir_cuadrantes(self, prediccion_global):
-        """
-        Distribuye la predicción global entre cuadrantes según patrones históricos
-        CONSERVANDO EL TOTAL EXACTO predicho por el modelo LSTM
-        
-        Args:
-            prediccion_global: Dict con 'denuncias' y 'emergencias' del modelo LSTM
-                               {'denuncias': {1: 50, 2: 30, ...}, 'emergencias': {...}}
-        
-        Returns:
-            Dict con predicciones por cuadrante
-        """
-        prediccion_cuadrantes = []
-        
-        # Calcular totales históricos globales
-        total_historico_global_den = sum(
-            t.get('denuncias', 0) 
-            for t in self.distribuciones_historicas['totales_cuadrante'].values()
-        )
-        total_historico_global_eme = sum(
-            t.get('emergencias', 0) 
-            for t in self.distribuciones_historicas['totales_cuadrante'].values()
-        )
-        
-        # Paso 1: Distribuir cada TIPO de incidencia por separado (más preciso)
-        # Estructura: {tipo_id: {cuadrante_id: cantidad}}
-        distribucion_denuncias_por_tipo = {}
-        distribucion_emergencias_por_tipo = {}
-        
-        # Para cada tipo de DENUNCIA
-        for tipo_id, cantidad_total in prediccion_global['denuncias'].items():
-            distribucion_denuncias_por_tipo[tipo_id] = {}
-            
-            # Calcular cuánto de este tipo ocurrió en cada cuadrante históricamente
-            totales_tipo_por_cuadrante = {}
-            total_tipo = 0
-            
-            for cuad_id in self.cuadrantes['id']:
-                dist_den_hist = self.distribuciones_historicas['denuncias'].get(cuad_id, {})
-                count_tipo = dist_den_hist.get(tipo_id, {}).get('count', 0)
-                totales_tipo_por_cuadrante[cuad_id] = count_tipo
-                total_tipo += count_tipo
-            
-            # Si hay datos históricos para este tipo, distribuir proporcionalmente
-            if total_tipo > 0:
-                # Calcular proporciones exactas (sin redondear aún)
-                proporciones = {}
-                for cuad_id, count in totales_tipo_por_cuadrante.items():
-                    proporciones[cuad_id] = (count / total_tipo) * cantidad_total
-                
-                # Redondear y ajustar para que sumen exactamente cantidad_total
-                asignados = {cuad_id: int(prop) for cuad_id, prop in proporciones.items()}
-                total_asignado = sum(asignados.values())
-                diferencia = cantidad_total - total_asignado
-                
-                # Distribuir la diferencia a los cuadrantes con mayor residuo
-                if diferencia != 0:
-                    residuos = {cuad_id: proporciones[cuad_id] - asignados[cuad_id] 
-                               for cuad_id in proporciones.keys()}
-                    cuadrantes_ordenados = sorted(residuos.items(), key=lambda x: x[1], reverse=True)
-                    
-                    for i in range(abs(diferencia)):
-                        cuad_id = cuadrantes_ordenados[i % len(cuadrantes_ordenados)][0]
-                        asignados[cuad_id] += 1 if diferencia > 0 else -1
-                
-                distribucion_denuncias_por_tipo[tipo_id] = asignados
-            else:
-                # Si no hay datos históricos, distribuir uniformemente
-                cantidad_por_cuadrante = cantidad_total // len(self.cuadrantes)
-                resto = cantidad_total % len(self.cuadrantes)
-                
-                for idx, cuad_id in enumerate(self.cuadrantes['id']):
-                    distribucion_denuncias_por_tipo[tipo_id][cuad_id] = cantidad_por_cuadrante + (1 if idx < resto else 0)
-        
-        # Para cada tipo de EMERGENCIA (mismo proceso)
-        for tipo_id, cantidad_total in prediccion_global['emergencias'].items():
-            distribucion_emergencias_por_tipo[tipo_id] = {}
-            
-            totales_tipo_por_cuadrante = {}
-            total_tipo = 0
-            
-            for cuad_id in self.cuadrantes['id']:
-                dist_eme_hist = self.distribuciones_historicas['emergencias'].get(cuad_id, {})
-                count_tipo = dist_eme_hist.get(tipo_id, {}).get('count', 0)
-                totales_tipo_por_cuadrante[cuad_id] = count_tipo
-                total_tipo += count_tipo
-            
-            if total_tipo > 0:
-                proporciones = {}
-                for cuad_id, count in totales_tipo_por_cuadrante.items():
-                    proporciones[cuad_id] = (count / total_tipo) * cantidad_total
-                
-                asignados = {cuad_id: int(prop) for cuad_id, prop in proporciones.items()}
-                total_asignado = sum(asignados.values())
-                diferencia = cantidad_total - total_asignado
-                
-                if diferencia != 0:
-                    residuos = {cuad_id: proporciones[cuad_id] - asignados[cuad_id] 
-                               for cuad_id in proporciones.keys()}
-                    cuadrantes_ordenados = sorted(residuos.items(), key=lambda x: x[1], reverse=True)
-                    
-                    for i in range(abs(diferencia)):
-                        cuad_id = cuadrantes_ordenados[i % len(cuadrantes_ordenados)][0]
-                        asignados[cuad_id] += 1 if diferencia > 0 else -1
-                
-                distribucion_emergencias_por_tipo[tipo_id] = asignados
-            else:
-                cantidad_por_cuadrante = cantidad_total // len(self.cuadrantes)
-                resto = cantidad_total % len(self.cuadrantes)
-                
-                for idx, cuad_id in enumerate(self.cuadrantes['id']):
-                    distribucion_emergencias_por_tipo[tipo_id][cuad_id] = cantidad_por_cuadrante + (1 if idx < resto else 0)
-        
-        # Paso 2: Consolidar por cuadrante
-        for _, cuad in self.cuadrantes.iterrows():
-            cuad_id = int(cuad['id'])
-            
-            # Obtener distribución histórica
-            dist_den_hist = self.distribuciones_historicas['denuncias'].get(cuad_id, {})
-            dist_eme_hist = self.distribuciones_historicas['emergencias'].get(cuad_id, {})
-            totales = self.distribuciones_historicas['totales_cuadrante'].get(cuad_id, {})
-            
-            # Consolidar denuncias para este cuadrante
-            pred_denuncias = {}
-            for tipo_id, distribucion in distribucion_denuncias_por_tipo.items():
-                cantidad = distribucion.get(cuad_id, 0)
-                if cantidad > 0:
-                    pred_denuncias[int(tipo_id)] = cantidad
-            
-            # Consolidar emergencias para este cuadrante
-            pred_emergencias = {}
-            for tipo_id, distribucion in distribucion_emergencias_por_tipo.items():
-                cantidad = distribucion.get(cuad_id, 0)
-                if cantidad > 0:
-                    pred_emergencias[int(tipo_id)] = cantidad
-            
-            # Identificar tipo dominante (el más frecuente histórico)
-            tipo_dominante_den = None
-            tipo_dominante_eme = None
-            
-            if dist_den_hist:
-                tipo_dominante_den = max(dist_den_hist.items(), key=lambda x: x[1]['porcentaje'])
-                tipo_dominante_den = {
-                    'tipo_id': int(tipo_dominante_den[0]),
-                    'porcentaje_historico': tipo_dominante_den[1]['porcentaje']
-                }
-            
-            if dist_eme_hist:
-                tipo_dominante_eme = max(dist_eme_hist.items(), key=lambda x: x[1]['porcentaje'])
-                tipo_dominante_eme = {
-                    'tipo_id': int(tipo_dominante_eme[0]),
-                    'porcentaje_historico': tipo_dominante_eme[1]['porcentaje']
-                }
-            
-            # Nivel de criticidad (basado en cantidad de incidencias)
-            total_predicho = sum(pred_denuncias.values()) + sum(pred_emergencias.values())
-            if total_predicho >= 50:
-                nivel_criticidad = 'alto'
-                color = '#d32f2f'
-            elif total_predicho >= 20:
-                nivel_criticidad = 'medio'
-                color = '#f57c00'
-            elif total_predicho >= 5:
-                nivel_criticidad = 'bajo'
-                color = '#fbc02d'
-            else:
-                nivel_criticidad = 'muy_bajo'
-                color = '#388e3c'
-            
-            prediccion_cuadrantes.append({
-                'cuadrante_id': cuad_id,
-                'fila': int(cuad['fila']),
-                'columna': int(cuad['columna']),
-                'bounds': {
-                    'lat_min': float(cuad['lat_min']),
-                    'lat_max': float(cuad['lat_max']),
-                    'lon_min': float(cuad['lon_min']),
-                    'lon_max': float(cuad['lon_max'])
-                },
-                'centro': {
-                    'lat': float(cuad['centro_lat']),
-                    'lon': float(cuad['centro_lon'])
-                },
-                'prediccion': {
-                    'denuncias': pred_denuncias,
-                    'emergencias': pred_emergencias,
-                    'total': total_predicho
-                },
-                'tipo_dominante': {
-                    'denuncia': tipo_dominante_den,
-                    'emergencia': tipo_dominante_eme
-                },
-                'nivel_criticidad': nivel_criticidad,
-                'color': color,
-                'historico': {
-                    'total_denuncias': totales.get('denuncias', 0),
-                    'total_emergencias': totales.get('emergencias', 0)
-                }
-            })
-        
-        # Verificación: Imprimir totales para debug
-        total_den_distribuido = sum(sum(c['prediccion']['denuncias'].values()) for c in prediccion_cuadrantes)
-        total_eme_distribuido = sum(sum(c['prediccion']['emergencias'].values()) for c in prediccion_cuadrantes)
-        total_den_original = sum(prediccion_global['denuncias'].values())
-        total_eme_original = sum(prediccion_global['emergencias'].values())
-        
-        print(f"\n✅ Validación de distribución:")
-        print(f"   Denuncias - Original: {total_den_original}, Distribuido: {total_den_distribuido}, Diferencia: {total_den_original - total_den_distribuido}")
-        print(f"   Emergencias - Original: {total_eme_original}, Distribuido: {total_eme_distribuido}, Diferencia: {total_eme_original - total_eme_distribuido}")
-        
-        return prediccion_cuadrantes
-    
-    def guardar_datos_espaciales(self):
-        """Guarda cuadrantes y distribuciones en disco"""
-        # Guardar cuadrantes
-        self.cuadrantes.to_pickle(f'{SPATIAL_DIR}/cuadrantes.pkl')
-        
-        # Guardar distribuciones
-        with open(f'{SPATIAL_DIR}/distribuciones_historicas.pkl', 'wb') as f:
-            pickle.dump(self.distribuciones_historicas, f)
-        
-        # Guardar grid_bounds
-        with open(f'{SPATIAL_DIR}/grid_bounds.json', 'w') as f:
-            json.dump(self.grid_bounds, f)
-        
-        print(f"✅ Datos espaciales guardados en {SPATIAL_DIR}/")
-    
-    def cargar_datos_espaciales(self):
-        """Carga cuadrantes y distribuciones desde disco"""
-        cuad_path = f'{SPATIAL_DIR}/cuadrantes.pkl'
-        dist_path = f'{SPATIAL_DIR}/distribuciones_historicas.pkl'
-        bounds_path = f'{SPATIAL_DIR}/grid_bounds.json'
-        
-        if not all([os.path.exists(p) for p in [cuad_path, dist_path, bounds_path]]):
-            raise FileNotFoundError("No se encontraron datos espaciales. Ejecuta analizar_distribucion_historica() primero.")
-        
-        self.cuadrantes = pd.read_pickle(cuad_path)
-        
-        with open(dist_path, 'rb') as f:
-            self.distribuciones_historicas = pickle.load(f)
-        
-        with open(bounds_path, 'r') as f:
-            self.grid_bounds = json.load(f)
-        
-        # Recrear KDTree
-        centros = self.cuadrantes[['centro_lat', 'centro_lon']].values
-        self.kdtree = cKDTree(centros)
-        
-        print(f"✅ Datos espaciales cargados: {len(self.cuadrantes)} cuadrantes")
 
 
-# Función de inicialización
-def entrenar_modelo_espacial(csv_path='data_modelo/dataset_incidencias_reque_2015_2024.csv', 
-                              n_filas=15, n_cols=15):
-    """
-    Entrena el modelo espacial con datos históricos
-    
-    Args:
-        csv_path: Ruta al CSV con datos históricos
-        n_filas: Número de filas en la grilla
-        n_cols: Número de columnas en la grilla
-    """
-    print("="*70)
-    print("ENTRENAMIENTO DE MODELO ESPACIAL")
-    print("="*70)
-    
-    # Cargar datos
-    df = pd.read_csv(csv_path, parse_dates=['fecha'])
-    
-    # Convertir tipos
-    for col in ["id_numero_emergencia", "id_denuncia"]:
-        df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
-    
-    print(f"\n📂 Datos cargados: {len(df)} incidencias")
-    print(f"   Rango temporal: {df['fecha'].min()} a {df['fecha'].max()}")
-    print(f"   Rango geográfico: lat [{df['lat'].min():.4f}, {df['lat'].max():.4f}]")
-    print(f"                    lon [{df['lon'].min():.4f}, {df['lon'].max():.4f}]")
-    
-    # Crear modelo espacial
-    modelo_espacial = PrediccionEspacial()
-    
-    # Crear cuadrantes
-    modelo_espacial.crear_cuadrantes(df, n_filas, n_cols)
-    
-    # Analizar distribución histórica
-    modelo_espacial.analizar_distribucion_historica(df)
-    
-    print("\n✅ Modelo espacial entrenado exitosamente")
-    
-    return modelo_espacial
-
-
-# Singleton global
-_modelo_espacial_global = None
-
-def get_modelo_espacial():
-    """Obtiene instancia singleton del modelo espacial"""
-    global _modelo_espacial_global
-    if _modelo_espacial_global is None:
-        _modelo_espacial_global = PrediccionEspacial()
-        try:
-            _modelo_espacial_global.cargar_datos_espaciales()
-        except FileNotFoundError:
-            print("⚠️  No hay modelo espacial guardado. Se necesita entrenar primero.")
-    return _modelo_espacial_global
-
-
-if __name__ == "__main__":
-    # Ejemplo de uso
-    modelo = entrenar_modelo_espacial(
-        csv_path='data_modelo/dataset_incidencias_reque_2015_2024.csv',
-        n_filas=5,
-        n_cols=5
-    )
-    
-    print("\n📊 Ejemplo de distribución en cuadrante 0:")
-    print(json.dumps(modelo.distribuciones_historicas['denuncias'].get(0, {}), indent=2))
+# Instancia global
+modelo_espacial = ModeloPrediccionEspacial()

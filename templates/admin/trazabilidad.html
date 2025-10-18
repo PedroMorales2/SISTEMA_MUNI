@@ -1,0 +1,1053 @@
+<!-- templates/trazabilidad_sectores.html -->
+
+{% extends "partials/sidebar.html" %}
+
+{% block title %} Trazabilidad de Sectores - Central {% endblock %}
+
+{% block content %}
+<div class="trazabilidad-container">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-title">
+                <i class="fas fa-map-marked-alt"></i>
+                <div>
+                    <h1>Trazabilidad de Sectores</h1>
+                    <p>Gestión y delimitación de zonas geográficas</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="limpiarMapa()">
+                    <i class="fas fa-eraser"></i> Limpiar
+                </button>
+                <button class="btn btn-outline" onclick="cargarSectoresExistentes()">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor principal -->
+    <div class="main-container">
+        <!-- Panel lateral izquierdo - Herramientas y Sectores -->
+        <div class="left-panel">
+            <!-- Sección de herramientas de dibujo -->
+            <div class="panel-section">
+                <div class="section-header">
+                    <i class="fas fa-pencil-ruler"></i>
+                    <h3>Herramientas de Dibujo</h3>
+                </div>
+                <div class="tools-grid">
+                    <button class="tool-btn" id="drawPolygon" onclick="activarDibujo('polygon')" title="Dibujar polígono">
+                        <i class="fas fa-draw-polygon"></i>
+                        <span>Polígono</span>
+                    </button>
+                    <button class="tool-btn" id="drawRectangle" onclick="activarDibujo('rectangle')" title="Dibujar rectángulo">
+                        <i class="far fa-square"></i>
+                        <span>Rectángulo</span>
+                    </button>
+                    <button class="tool-btn" id="editShape" onclick="activarEdicion()" title="Editar forma">
+                        <i class="fas fa-edit"></i>
+                        <span>Editar</span>
+                    </button>
+                    <button class="tool-btn" id="deleteShape" onclick="eliminarForma()" title="Eliminar forma">
+                        <i class="fas fa-trash"></i>
+                        <span>Eliminar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sección de sectores registrados -->
+            <div class="panel-section">
+                <div class="section-header">
+                    <i class="fas fa-list"></i>
+                    <h3>Sectores Registrados</h3>
+                    <span class="badge badge-info" id="totalSectores">0</span>
+                </div>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchSector" placeholder="Buscar sector..." onkeyup="filtrarSectores()">
+                </div>
+                <div id="listaSectores" class="sectores-list">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> Cargando...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mapa central -->
+        <div class="map-wrapper">
+            <div id="map"></div>
+            
+            <!-- Información flotante -->
+            <div class="map-info">
+                <i class="fas fa-info-circle"></i>
+                <span id="mapStatus">Listo para dibujar</span>
+            </div>
+        </div>
+
+        <!-- Panel lateral derecho - Formulario -->
+        <div class="right-panel">
+            <div class="panel-section">
+                <div class="section-header">
+                    <i class="fas fa-plus-circle"></i>
+                    <h3>Nuevo Sector</h3>
+                </div>
+                
+                <form id="formSector" onsubmit="event.preventDefault(); guardarSector();">
+                    <div class="form-group">
+                        <label for="codigoSector">
+                            <i class="fas fa-barcode"></i> Código del Sector *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="codigoSector" 
+                            class="form-control" 
+                            placeholder="SECT-01"
+                            required
+                            maxlength="20">
+                        <small class="form-text">Código único identificador</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="nombreSector">
+                            <i class="fas fa-tag"></i> Nombre del Sector *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="nombreSector" 
+                            class="form-control" 
+                            placeholder="Sector Centro"
+                            required
+                            maxlength="100">
+                        <small class="form-text">Nombre descriptivo del sector</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="descripcionSector">
+                            <i class="fas fa-align-left"></i> Descripción
+                        </label>
+                        <textarea 
+                            id="descripcionSector" 
+                            class="form-control" 
+                            placeholder="Descripción detallada del sector..."
+                            rows="4"
+                            maxlength="500"></textarea>
+                        <small class="form-text">Información adicional (opcional)</small>
+                    </div>
+                    
+                    <div class="polygon-status" id="polygonStatus">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Dibuja un polígono en el mapa</span>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block" id="btnGuardar" disabled>
+                        <i class="fas fa-save"></i> Guardar Sector
+                    </button>
+                </form>
+                
+                <div id="mensaje"></div>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="panel-section stats-section">
+                <div class="stat-item">
+                    <i class="fas fa-layer-group"></i>
+                    <div>
+                        <span class="stat-value" id="statTotal">0</span>
+                        <span class="stat-label">Total Sectores</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-ruler-combined"></i>
+                    <div>
+                        <span class="stat-value" id="statArea">0 km²</span>
+                        <span class="stat-label">Área Dibujada</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    .trazabilidad-container {
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: #f5f6fa;
+    }
+
+    /* ========== HEADER ========== */
+    .page-header {
+        background: white;
+        border-bottom: 1px solid #e1e8ed;
+        padding: 20px 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-title {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .header-title > i {
+        font-size: 32px;
+        color: #3498db;
+    }
+
+    .header-title h1 {
+        margin: 0;
+        font-size: 24px;
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    .header-title p {
+        margin: 5px 0 0 0;
+        color: #7f8c8d;
+        font-size: 14px;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    /* ========== MAIN CONTAINER ========== */
+    .main-container {
+        display: grid;
+        grid-template-columns: 320px 1fr 350px;
+        gap: 0;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    /* ========== PANELES LATERALES ========== */
+    .left-panel,
+    .right-panel {
+        background: white;
+        border-right: 1px solid #e1e8ed;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .right-panel {
+        border-right: none;
+        border-left: 1px solid #e1e8ed;
+    }
+
+    .panel-section {
+        padding: 20px;
+        border-bottom: 1px solid #e1e8ed;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .section-header i {
+        color: #3498db;
+        font-size: 18px;
+    }
+
+    .section-header h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #2c3e50;
+        font-weight: 600;
+        flex: 1;
+    }
+
+    /* ========== HERRAMIENTAS DE DIBUJO ========== */
+    .tools-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .tool-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 15px;
+        background: #f8f9fa;
+        border: 2px solid #e1e8ed;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+        color: #2c3e50;
+    }
+
+    .tool-btn i {
+        font-size: 24px;
+        color: #3498db;
+    }
+
+    .tool-btn:hover {
+        background: #e8f4f8;
+        border-color: #3498db;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);
+    }
+
+    .tool-btn.active {
+        background: #3498db;
+        border-color: #3498db;
+        color: white;
+    }
+
+    .tool-btn.active i {
+        color: white;
+    }
+
+    /* ========== BÚSQUEDA ========== */
+    .search-box {
+        position: relative;
+        margin-bottom: 15px;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #95a5a6;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 10px 10px 10px 35px;
+        border: 1px solid #e1e8ed;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+
+    /* ========== LISTA DE SECTORES ========== */
+    .sectores-list {
+        max-height: calc(100vh - 450px);
+        overflow-y: auto;
+    }
+
+    .sector-item {
+        background: #f8f9fa;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        border-left: 4px solid #3498db;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .sector-item:hover {
+        background: #e8f4f8;
+        transform: translateX(4px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .sector-item strong {
+        display: block;
+        color: #2c3e50;
+        margin-bottom: 4px;
+        font-size: 14px;
+    }
+
+    .sector-item small {
+        color: #7f8c8d;
+        font-size: 12px;
+    }
+
+    .sector-item .badge {
+        margin-top: 6px;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 30px;
+        color: #95a5a6;
+    }
+
+    /* ========== FORMULARIO ========== */
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #2c3e50;
+    }
+
+    .form-group label i {
+        margin-right: 5px;
+        color: #3498db;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #e1e8ed;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    .form-text {
+        display: block;
+        margin-top: 5px;
+        font-size: 12px;
+        color: #95a5a6;
+    }
+
+    .polygon-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px;
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        font-size: 13px;
+        color: #856404;
+    }
+
+    .polygon-status.success {
+        background: #d4edda;
+        border-color: #28a745;
+        color: #155724;
+    }
+
+    .polygon-status.success i {
+        color: #28a745;
+    }
+
+    /* ========== BOTONES ========== */
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #2980b9;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+    }
+
+    .btn-primary:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .btn-outline {
+        background: white;
+        color: #3498db;
+        border: 2px solid #3498db;
+    }
+
+    .btn-outline:hover {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-block {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* ========== BADGES ========== */
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 12px;
+    }
+
+    .badge-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .badge-info {
+        background: #3498db;
+        color: white;
+    }
+
+    /* ========== ALERTAS ========== */
+    .alert {
+        padding: 12px 15px;
+        border-radius: 6px;
+        margin-top: 15px;
+        font-size: 13px;
+        animation: slideIn 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .alert-warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    /* ========== MAPA ========== */
+    .map-wrapper {
+        position: relative;
+        background: #ecf0f1;
+    }
+
+    #map {
+        height: 100%;
+        width: 100%;
+    }
+
+    .map-info {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: white;
+        padding: 10px 15px;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #2c3e50;
+    }
+
+    .map-info i {
+        color: #3498db;
+    }
+
+    /* ========== ESTADÍSTICAS ========== */
+    .stats-section {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .stat-item i {
+        font-size: 24px;
+        color: #3498db;
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 20px;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+
+    .stat-label {
+        display: block;
+        font-size: 12px;
+        color: #7f8c8d;
+        margin-top: 2px;
+    }
+
+    /* ========== SCROLLBAR ========== */
+    .sectores-list::-webkit-scrollbar,
+    .left-panel::-webkit-scrollbar,
+    .right-panel::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .sectores-list::-webkit-scrollbar-track,
+    .left-panel::-webkit-scrollbar-track,
+    .right-panel::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .sectores-list::-webkit-scrollbar-thumb,
+    .left-panel::-webkit-scrollbar-thumb,
+    .right-panel::-webkit-scrollbar-thumb {
+        background: #bdc3c7;
+        border-radius: 10px;
+    }
+
+    .sectores-list::-webkit-scrollbar-thumb:hover,
+    .left-panel::-webkit-scrollbar-thumb:hover,
+    .right-panel::-webkit-scrollbar-thumb:hover {
+        background: #95a5a6;
+    }
+</style>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+<script>
+    // ========================================================================
+    // CONFIGURACIÓN
+    // ========================================================================
+    
+    const API_URL = '{{ BASE_URL }}';
+    
+    let map;
+    let drawnItems;
+    let sectoresLayer;
+    let drawControl;
+    let currentPolygon = null;
+    let currentDrawMode = null;
+    
+    // ========================================================================
+    // INICIALIZACIÓN DEL MAPA
+    // ========================================================================
+    
+    function initMap() {
+        map = L.map('map').setView([-6.8650, -79.8145], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+        
+        sectoresLayer = new L.FeatureGroup();
+        map.addLayer(sectoresLayer);
+        
+        // Configurar control de dibujo (oculto por defecto)
+        drawControl = new L.Control.Draw({
+            draw: false,
+            edit: {
+                featureGroup: drawnItems,
+                edit: false,
+                remove: false
+            }
+        });
+        
+        setupMapEvents();
+    }
+    
+    // ========================================================================
+    // EVENTOS DEL MAPA
+    // ========================================================================
+    
+    function setupMapEvents() {
+        map.on(L.Draw.Event.CREATED, function (event) {
+            drawnItems.clearLayers();
+            const layer = event.layer;
+            drawnItems.addLayer(layer);
+            currentPolygon = layer.toGeoJSON();
+            
+            calcularAreaPoligono(layer);
+            actualizarEstadoPoligono(true);
+            desactivarDibujo();
+            
+            updateMapStatus('Polígono dibujado correctamente');
+        });
+        
+        map.on(L.Draw.Event.DRAWSTART, function () {
+            updateMapStatus('Dibujando...');
+        });
+        
+        map.on(L.Draw.Event.DRAWSTOP, function () {
+            desactivarDibujo();
+        });
+    }
+    
+    // ========================================================================
+    // FUNCIONES DE DIBUJO
+    // ========================================================================
+    
+    function activarDibujo(tipo) {
+        desactivarDibujo();
+        
+        currentDrawMode = tipo;
+        
+        // Activar botón
+        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(tipo === 'polygon' ? 'drawPolygon' : 'drawRectangle').classList.add('active');
+        
+        if (tipo === 'polygon') {
+            new L.Draw.Polygon(map, {
+                shapeOptions: {
+                    color: '#3498db',
+                    weight: 3,
+                    fillOpacity: 0.3
+                }
+            }).enable();
+        } else if (tipo === 'rectangle') {
+            new L.Draw.Rectangle(map, {
+                shapeOptions: {
+                    color: '#3498db',
+                    weight: 3,
+                    fillOpacity: 0.3
+                }
+            }).enable();
+        }
+        
+        updateMapStatus('Haz clic en el mapa para dibujar');
+    }
+    
+    function desactivarDibujo() {
+        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+        currentDrawMode = null;
+    }
+    
+    function activarEdicion() {
+        if (!currentPolygon) {
+            mostrarMensaje('⚠️ No hay polígono para editar', 'warning');
+            return;
+        }
+        
+        drawnItems.eachLayer(function (layer) {
+            layer.editing.enable();
+        });
+        
+        document.getElementById('editShape').classList.add('active');
+        updateMapStatus('Modo edición activado');
+        
+        mostrarMensaje('✏️ Arrastra los puntos para editar', 'warning');
+    }
+    
+    function eliminarForma() {
+        if (!currentPolygon) {
+            mostrarMensaje('⚠️ No hay polígono para eliminar', 'warning');
+            return;
+        }
+        
+        if (confirm('¿Estás seguro de eliminar este polígono?')) {
+            drawnItems.clearLayers();
+            currentPolygon = null;
+            actualizarEstadoPoligono(false);
+            updateMapStatus('Polígono eliminado');
+            mostrarMensaje('🗑️ Polígono eliminado', 'warning');
+        }
+    }
+    
+    function limpiarMapa() {
+        drawnItems.clearLayers();
+        currentPolygon = null;
+        actualizarEstadoPoligono(false);
+        limpiarFormulario();
+        updateMapStatus('Mapa limpio');
+    }
+    
+    // ========================================================================
+    // GESTIÓN DE SECTORES
+    // ========================================================================
+    
+    async function guardarSector() {
+        if (!currentPolygon) {
+            mostrarMensaje('⚠️ Dibuja un polígono primero', 'error');
+            return;
+        }
+        
+        const codigo = document.getElementById('codigoSector').value.trim();
+        const nombre = document.getElementById('nombreSector').value.trim();
+        const descripcion = document.getElementById('descripcionSector').value.trim();
+        
+        if (!codigo || !nombre) {
+            mostrarMensaje('⚠️ Código y Nombre son obligatorios', 'error');
+            return;
+        }
+        
+        const sectorData = {
+            codigo_sector: codigo,
+            nombre: nombre,
+            descripcion: descripcion,
+            poligono_geojson: currentPolygon,
+            usuario_creacion: 'admin'
+        };
+        
+        try {
+            const response = await fetch(`${API_URL}/api/sectores/crear`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(sectorData)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                mostrarMensaje('✅ Sector guardado correctamente', 'success');
+                limpiarFormulario();
+                limpiarMapa();
+                cargarSectoresExistentes();
+            } else {
+                mostrarMensaje('❌ Error: ' + result.error, 'error');
+            }
+        } catch (error) {
+            mostrarMensaje('❌ Error de conexión: ' + error.message, 'error');
+            console.error('Error:', error);
+        }
+    }
+    
+    async function cargarSectoresExistentes() {
+        try {
+            const response = await fetch(`${API_URL}/api/sectores/listar`);
+            const data = await response.json();
+            
+            if (data.success) {
+                sectoresLayer.clearLayers();
+                
+                const listaSectores = document.getElementById('listaSectores');
+                
+                if (data.data.length === 0) {
+                    listaSectores.innerHTML = '<div class="loading">No hay sectores registrados</div>';
+                    document.getElementById('totalSectores').textContent = '0';
+                    document.getElementById('statTotal').textContent = '0';
+                    return;
+                }
+                
+                listaSectores.innerHTML = '';
+                document.getElementById('totalSectores').textContent = data.data.length;
+                document.getElementById('statTotal').textContent = data.data.length;
+                
+                data.data.forEach(sector => {
+                    if (sector.poligono) {
+                        const polygon = L.geoJSON(sector.poligono, {
+                            style: {
+                                color: '#27ae60',
+                                weight: 2,
+                                fillOpacity: 0.15
+                            }
+                        }).addTo(sectoresLayer);
+                        
+                        polygon.bindPopup(`
+                            <div style="min-width: 220px; padding: 5px;">
+                                <h4 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 16px;">
+                                    <i class="fas fa-map-marker-alt" style="color: #27ae60;"></i> ${sector.nombre}
+                                </h4>
+                                <p style="margin: 5px 0; font-size: 13px;">
+                                    <strong>Código:</strong> ${sector.codigo_sector}
+                                </p>
+                                ${sector.descripcion ? `
+                                    <p style="margin: 5px 0; font-size: 12px; color: #7f8c8d;">
+                                        ${sector.descripcion}
+                                    </p>
+                                ` : ''}
+                                <p style="margin: 8px 0 0 0; font-size: 11px; color: #95a5a6;">
+                                    <i class="far fa-calendar-alt"></i> ${new Date(sector.fecha_creacion).toLocaleDateString()}
+                                </p>
+                            </div>
+                        `);
+                        
+                        polygon.on('click', function() {
+                            map.fitBounds(polygon.getBounds());
+                        });
+                    }
+                    
+                    const itemHTML = `
+                        <div class="sector-item" onclick="centrarSector(${sector.centro.lat}, ${sector.centro.lon})">
+                            <strong><i class="fas fa-map-pin"></i> ${sector.nombre}</strong>
+                            <small>${sector.codigo_sector}</small>
+                            <br>
+                            <span class="badge badge-success">
+                                <i class="fas fa-check-circle"></i> Activo
+                            </span>
+                        </div>
+                    `;
+                    listaSectores.innerHTML += itemHTML;
+                });
+            }
+        } catch (error) {
+            console.error('Error al cargar sectores:', error);
+            document.getElementById('listaSectores').innerHTML = 
+                '<div class="loading"><i class="fas fa-exclamation-triangle"></i> Error al cargar</div>';
+        }
+    }
+    
+    function centrarSector(lat, lon) {
+        map.setView([lat, lon], 16);
+    }
+    
+    function filtrarSectores() {
+        const busqueda = document.getElementById('searchSector').value.toLowerCase();
+        const items = document.querySelectorAll('.sector-item');
+        
+        items.forEach(item => {
+            const texto = item.textContent.toLowerCase();
+            item.style.display = texto.includes(busqueda) ? 'block' : 'none';
+        });
+    }
+    
+    // ========================================================================
+    // UTILIDADES
+    // ========================================================================
+    
+    function calcularAreaPoligono(layer) {
+        const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
+        const areaKm2 = (area / 1000000).toFixed(4);
+        document.getElementById('statArea').textContent = `${areaKm2} km²`;
+    }
+    
+    function actualizarEstadoPoligono(dibujado) {
+        const btnGuardar = document.getElementById('btnGuardar');
+        const polygonStatus = document.getElementById('polygonStatus');
+        
+        if (dibujado) {
+            btnGuardar.disabled = false;
+            polygonStatus.classList.add('success');
+            polygonStatus.innerHTML = '<i class="fas fa-check-circle"></i> <span>Polígono listo para guardar</span>';
+        } else {
+            btnGuardar.disabled = true;
+            polygonStatus.classList.remove('success');
+            polygonStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Dibuja un polígono en el mapa</span>';
+            document.getElementById('statArea').textContent = '0 km²';
+        }
+    }
+    
+    function updateMapStatus(mensaje) {
+        document.getElementById('mapStatus').textContent = mensaje;
+    }
+    
+    function mostrarMensaje(texto, tipo) {
+        const divMensaje = document.getElementById('mensaje');
+        if (!texto) {
+            divMensaje.innerHTML = '';
+            return;
+        }
+        
+        const icono = tipo === 'success' ? 'check-circle' : tipo === 'error' ? 'times-circle' : 'exclamation-triangle';
+        
+        divMensaje.innerHTML = `
+            <div class="alert alert-${tipo}">
+                <i class="fas fa-${icono}"></i>
+                <span>${texto}</span>
+            </div>
+        `;
+        
+        if (tipo === 'success') {
+            setTimeout(() => {
+                divMensaje.innerHTML = '';
+            }, 5000);
+        }
+    }
+    
+    function limpiarFormulario() {
+        document.getElementById('formSector').reset();
+    }
+    
+    // ========================================================================
+    // AUTO-GENERACIÓN DE CÓDIGO
+    // ========================================================================
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('nombreSector').addEventListener('input', function() {
+            const nombre = this.value.trim();
+            const codigoInput = document.getElementById('codigoSector');
+            
+            if (nombre && !codigoInput.value) {
+                const palabras = nombre.split(' ');
+                let codigo = 'SECT-';
+                
+                if (palabras.length >= 2) {
+                    codigo += palabras[0].substring(0, 2).toUpperCase() + palabras[1].substring(0, 2).toUpperCase();
+                } else {
+                    codigo += palabras[0].substring(0, 4).toUpperCase();
+                }
+                
+                codigoInput.value = codigo;
+            }
+        });
+    });
+    
+    // ========================================================================
+    // INICIALIZACIÓN
+    // ========================================================================
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        initMap();
+        cargarSectoresExistentes();
+        updateMapStatus('Listo para dibujar');
+    });
+</script>
+
+{% endblock %}

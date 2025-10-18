@@ -62,3 +62,9 @@ def prueba():
 def gestion_recursos():
     """Página de gestión de recursos"""
     return render_template('admin/gestion_recursos.html')
+
+@admin_views_bp.route('/trazabilidad')
+@require_login
+def trazabilidad():
+    """Página de trazabilidad de sectores"""
+    return render_template('admin/trazabilidad.html')

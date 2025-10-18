@@ -98,7 +98,6 @@ def obtener_detalle_incidencia():
         for motivo in motivos_raw:
             motivo_dict = {
                 "descripcion": motivo['descripcion'],
-                "archivo_adjunto": FileService.obtener_url_publica(motivo['archivo_adjunto']) if motivo.get('archivo_adjunto') else None,
                 "id_correo": motivo['id_correo'],
                 "fecha_aceptacion": motivo['fecha_aceptacion'].strftime('%Y-%m-%d %H:%M:%S') if motivo['fecha_aceptacion'] else None
             }

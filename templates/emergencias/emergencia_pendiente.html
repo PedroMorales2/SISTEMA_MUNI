@@ -286,14 +286,27 @@ $(document).ready(function () {
         const tituloAccion = accion === 'aceptar' ? 'Aceptar' : 'Rechazar';
         const colorBoton = accion === 'aceptar' ? '#28a745' : '#dc3545';
 
+        // Motivos predefinidos según acción
+        const motivosPredefinidos = accion === 'aceptar'
+            ? ['Emergencia verificada', 'Solicitud válida', 'Confirmación ciudadana', 'Otro motivo']
+            : ['Emergencia inválida', 'Falsa alarma', 'Datos insuficientes', 'Otro motivo'];
+
         Swal.fire({
             title: `${tituloAccion} emergencias - Motivo`,
             html: `
                 <div class="form-motivos">
                     <div class="form-group">
-                        <label for="descripcionMotivo">Descripción del motivo: <span class="required">*</span></label>
+                        <label for="motivoCombo">Motivo predefinido: <span class="required">*</span></label>
+                        <select id="motivoCombo" class="swal-select">
+                            <option value="">Seleccione un motivo...</option>
+                            ${motivosPredefinidos.map(m => `<option value="${m}">${m}</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descripcionMotivo">Descripción adicional: <span class="required">*</span></label>
                         <textarea id="descripcionMotivo" class="swal-textarea" rows="4" 
-                                  placeholder="Ingrese el motivo para ${accion} estas emergencias..." required></textarea>
+                                placeholder="Ingrese detalles adicionales para ${accion} estas emergencias..." required></textarea>
                     </div>
                     
                     <div class="form-group">
@@ -325,7 +338,7 @@ $(document).ready(function () {
             },
             didOpen: () => {
                 // Manejar cambio de archivo
-                document.getElementById('archivoAdjunto').addEventListener('change', function(e) {
+                document.getElementById('archivoAdjunto').addEventListener('change', function() {
                     if (this.files.length > 0) {
                         const archivo = this.files[0];
                         document.querySelector('.archivo-nombre').textContent = archivo.name;
@@ -335,16 +348,25 @@ $(document).ready(function () {
                 });
             },
             preConfirm: () => {
+                const motivoCombo = document.getElementById('motivoCombo').value;
                 const descripcion = document.getElementById('descripcionMotivo').value.trim();
                 const archivo = document.getElementById('archivoAdjunto').files[0];
 
-                if (!descripcion) {
-                    Swal.showValidationMessage('La descripción del motivo es obligatoria');
+                if (!motivoCombo) {
+                    Swal.showValidationMessage('Debe seleccionar un motivo predefinido');
                     return false;
                 }
 
+                if (!descripcion) {
+                    Swal.showValidationMessage('Debe ingresar una descripción adicional');
+                    return false;
+                }
+
+                // Concatenamos el motivo predefinido con la descripción
+                const motivoFinal = `${motivoCombo}: ${descripcion}`;
+
                 return {
-                    descripcion: descripcion,
+                    descripcion: motivoFinal,
                     archivo: archivo
                 };
             }
@@ -357,6 +379,7 @@ $(document).ready(function () {
             }
         });
     }
+
 
     // Función para procesar las emergencias
     async function procesarConMotivos(accion, ids, descripcion, archivo) {
@@ -897,6 +920,36 @@ function verEmergencia(id_incidencia) {
         .btn-accion {
             flex: 1;
         }
+    }
+
+    .swal-select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #fff;
+        font-size: 15px;
+        font-family: 'Segoe UI', sans-serif;
+        color: #333;
+        outline: none;
+        transition: all 0.2s ease;
+        appearance: none; /* Quita estilo nativo */
+        background-image: linear-gradient(45deg, transparent 50%, #999 50%), 
+                        linear-gradient(135deg, #999 50%, transparent 50%);
+        background-position: calc(100% - 20px) calc(1em + 2px), 
+                            calc(100% - 15px) calc(1em + 2px);
+        background-size: 5px 5px, 5px 5px;
+        background-repeat: no-repeat;
+        cursor: pointer;
+    }
+
+    .swal-select:hover {
+        border-color: #888;
+    }
+
+    .swal-select:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
     }
 </style>
 

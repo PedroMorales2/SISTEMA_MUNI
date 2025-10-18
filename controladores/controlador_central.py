@@ -384,7 +384,7 @@ def insertar_descripcion(id_incidencia, descripcion, archivo_adjunto):
 
 
 
-BASE_URL = "https://munireque.pythonanywhere.com/"
+# BASE_URL = "https://munireque.pythonanywhere.com/"
 
 def obtener_fotos(id):
     conexion = obtener_conexion()
@@ -394,7 +394,7 @@ def obtener_fotos(id):
     fotos = cursor.fetchall()
     cursor.close()
     conexion.close()
-    return [BASE_URL + fila['ubicacion_foto'] for fila in fotos]
+    return [fila['ubicacion_foto'] for fila in fotos]
 
 def obtener_videos(id):
     conexion = obtener_conexion()
@@ -404,7 +404,7 @@ def obtener_videos(id):
     videos = cursor.fetchall()
     cursor.close()
     conexion.close()
-    return [BASE_URL + fila['ubicacion_video'] for fila in videos]
+    return [fila['ubicacion_video'] for fila in videos]
 
 def obtener_audio(id):
     conexion = obtener_conexion()
@@ -414,7 +414,7 @@ def obtener_audio(id):
     audios = cursor.fetchall()
     cursor.close()
     conexion.close()
-    return [BASE_URL + fila['ubicacion_audio'] for fila in audios]
+    return [fila['ubicacion_audio'] for fila in audios]
 
 
 def iniciar_sesion(usuario, contraseña):
@@ -443,6 +443,16 @@ def obtener_denuncia():
     conexion = obtener_conexion()
     cursor = conexion.cursor()
     sql = "SELECT id_denuncia, nombre   FROM denuncia   ORDER BY id_denuncia ASC   LIMIT 8;"
+    cursor.execute(sql)
+    correo = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+    return correo
+
+def obtener_emergencia():
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = "SELECT id_numero_emergencia, nombre_emergencia as nombre  FROM emergencia   ORDER BY id_numero_emergencia ASC;"
     cursor.execute(sql)
     correo = cursor.fetchall()
     cursor.close()
@@ -478,6 +488,16 @@ def insertar_denuncia_correo(id_correo, id_denuncia):
     cursor = conexion.cursor()
     sql = "INSERT INTO denuncia_correo (id_correo, id_denuncia) VALUES (%s, %s);"
     cursor.execute(sql, (id_correo, id_denuncia))
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+    return True
+
+def insertar_emergencia_correo(id_correo, id_numero_emergencia):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = "INSERT INTO emergencia_correo (id_correo, id_numero_emergencia) VALUES (%s, %s);"
+    cursor.execute(sql, (id_correo, id_numero_emergencia))
     conexion.commit()
     cursor.close()
     conexion.close()
@@ -774,7 +794,294 @@ WHERE ini.fecha >= CURDATE() - INTERVAL 1 MONTH AND ini.id_tipo_incidencia =4; "
     cursor.close()
     conexion.close()
     return conteo
+# Nuevas funciones para agregar al controlador_central.py
 
+def obtener_total_denuncias():
+    """Obtiene el total de denuncias del día actual"""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT COUNT(*) AS total 
+        FROM incidencia 
+        WHERE id_tipo_incidencia = 3 
+        AND DATE(fecha) = CURDATE()
+    """
+    cursor.execute(sql)
+    resultado = cursor.fetchone()
+    total = resultado['total'] if resultado else 0
+    cursor.close()
+    conexion.close()
+    return total
+
+def obtener_total_emergencias():
+    """Obtiene el total de emergencias del día actual"""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT COUNT(*) AS total 
+        FROM incidencia 
+        WHERE id_tipo_incidencia = 4 
+        AND DATE(fecha) = CURDATE()
+    """
+    cursor.execute(sql)
+    resultado = cursor.fetchone()
+    total = resultado['total'] if resultado else 0
+    cursor.close()
+    conexion.close()
+    return total
+
+def obtener_tendencia_denuncias():
+    """Calcula tendencia de denuncias (mes actual vs mes anterior)"""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT 
+            (SELECT COUNT(*) FROM incidencia 
+             WHERE id_tipo_incidencia = 3 
+             AND MONTH(fecha) = MONTH(CURDATE()) 
+             AND YEAR(fecha) = YEAR(CURDATE())) AS mes_actual,
+            (SELECT COUNT(*) FROM incidencia 
+             WHERE id_tipo_incidencia = 3 
+             AND MONTH(fecha) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+             AND YEAR(fecha) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))) AS mes_anterior
+    """
+    cursor.execute(sql)
+    resultado = cursor.fetchone()
+    cursor.close()
+    conexion.close()
+    
+    if resultado and resultado['mes_anterior'] > 0:
+        porcentaje = ((resultado['mes_actual'] - resultado['mes_anterior']) / resultado['mes_anterior']) * 100
+        return {
+            "porcentaje": round(porcentaje, 1),
+            "direccion": "up" if porcentaje > 0 else "down"
+        }
+    return {"porcentaje": 0, "direccion": "neutral"}
+
+def obtener_tendencia_emergencias():
+    """Calcula tendencia de emergencias (mes actual vs mes anterior)"""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT 
+            (SELECT COUNT(*) FROM incidencia 
+             WHERE id_tipo_incidencia = 4 
+             AND MONTH(fecha) = MONTH(CURDATE()) 
+             AND YEAR(fecha) = YEAR(CURDATE())) AS mes_actual,
+            (SELECT COUNT(*) FROM incidencia 
+             WHERE id_tipo_incidencia = 4 
+             AND MONTH(fecha) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+             AND YEAR(fecha) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))) AS mes_anterior
+    """
+    cursor.execute(sql)
+    resultado = cursor.fetchone()
+    cursor.close()
+    conexion.close()
+    
+    if resultado and resultado['mes_anterior'] > 0:
+        porcentaje = ((resultado['mes_actual'] - resultado['mes_anterior']) / resultado['mes_anterior']) * 100
+        return {
+            "porcentaje": round(porcentaje, 1),
+            "direccion": "up" if porcentaje > 0 else "down"
+        }
+    return {"porcentaje": 0, "direccion": "neutral"}
+
+def obtener_alertas_recientes():
+    """Obtiene las últimas 5 alertas/incidencias con mayor prioridad"""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT 
+    CASE 
+        WHEN ini.id_tipo_incidencia = 3 THEN CONCAT('Denuncia: ', de.nombre)
+        WHEN ini.id_tipo_incidencia = 4 THEN CONCAT('Emergencia: ', eme.nombre_emergencia)
+        ELSE 'Incidencia'
+    END AS descripcion,
+    
+    ini.id_tipo_incidencia,
+    TIMESTAMPDIFF(
+        HOUR, 
+        TIMESTAMP(ini.fecha, ini.hora), 
+        NOW()
+    ) AS horas_transcurridas
+FROM incidencia ini
+LEFT JOIN denuncia de ON de.id_denuncia = ini.id_denuncia
+LEFT JOIN emergencia eme ON eme.id_numero_emergencia = ini.id_numero_emergencia
+WHERE TIMESTAMP(ini.fecha, ini.hora) >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+ORDER BY ini.fecha DESC, ini.hora DESC
+LIMIT 5;
+
+    """
+    cursor.execute(sql)
+    alertas = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+    
+    resultado = []
+    for alerta in alertas:
+        horas = alerta['horas_transcurridas']
+        if horas < 1:
+            tiempo = "Hace menos de 1h"
+        elif horas < 24:
+            tiempo = f"Hace {horas}h"
+        else:
+            tiempo = f"Hace {horas // 24}d"
+            
+        resultado.append({
+            "descripcion": alerta['descripcion'],
+            "tiempo": tiempo,
+            "tipo": "danger" if alerta['id_tipo_incidencia'] == 4 else "warning"
+        })
+    
+    return resultado
+
+def obtener_actividad_tiempo_real():
+    """Obtiene las últimas 10 actividades registradas"""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT 
+            CASE 
+                WHEN ini.id_tipo_incidencia = 3 THEN CONCAT('Nueva denuncia: ', de.nombre)
+                WHEN ini.id_tipo_incidencia = 4 THEN CONCAT('Emergencia: ', eme.nombre_emergencia)
+                ELSE 'Nueva incidencia registrada'
+            END AS actividad,
+            TIME_FORMAT(ini.hora, '%H:%i:%s') AS hora
+        FROM incidencia ini
+        LEFT JOIN denuncia de ON de.id_denuncia = ini.id_denuncia
+        LEFT JOIN emergencia eme ON eme.id_numero_emergencia = ini.id_numero_emergencia
+        WHERE DATE(ini.fecha) = CURDATE()
+        ORDER BY ini.fecha DESC
+        LIMIT 10
+    """
+    cursor.execute(sql)
+    actividades = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+    return actividades
+
+def obtener_estadisticas_por_hora():
+    """Obtiene distribución de incidencias por hora del día actual"""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT 
+            HOUR(hora) AS hora,
+            COUNT(*) AS total,
+            SUM(CASE WHEN id_tipo_incidencia = 3 THEN 1 ELSE 0 END) AS denuncias,
+            SUM(CASE WHEN id_tipo_incidencia = 4 THEN 1 ELSE 0 END) AS emergencias
+        FROM incidencia
+        WHERE DATE(fecha) = CURDATE()
+        GROUP BY HOUR(hora)
+        ORDER BY HOUR(hora)
+    """
+    cursor.execute(sql)
+    resultados = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+
+    # Formatear para gráfico
+    horas = []
+    denuncias = []
+    emergencias = []
+
+    for i in range(24):
+        hora_str = f"{i:02d}:00"
+        horas.append(hora_str)
+
+        # Buscar si existe registro para esta hora
+        datos_hora = next((r for r in resultados if r['hora'] == i), None)
+        if datos_hora:
+            denuncias.append(datos_hora['denuncias'])
+            emergencias.append(datos_hora['emergencias'])
+        else:
+            denuncias.append(0)
+            emergencias.append(0)
+
+    return {
+        "labels": horas,
+        "denuncias": denuncias,
+        "emergencias": emergencias
+    }
+
+
+def obtener_top_denuncias():
+    """Obtiene el top 5 de tipos de denuncias más frecuentes del mes"""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT 
+            de.nombre,
+            COUNT(*) as total
+        FROM incidencia ini
+        INNER JOIN denuncia de ON de.id_denuncia = ini.id_denuncia
+        WHERE ini.id_tipo_incidencia = 3
+        AND ini.fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+        GROUP BY de.id_denuncia, de.nombre
+        ORDER BY total DESC
+        LIMIT 5
+    """
+    cursor.execute(sql)
+    resultados = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+    
+    labels = [r['nombre'] for r in resultados]
+    valores = [r['total'] for r in resultados]
+    
+    return {
+        "labels": labels,
+        "valores": valores
+    }
+
+def obtener_resumen_semanal():
+    """Obtiene resumen de la última semana"""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT 
+            DATE(fecha) as dia,
+            DAYNAME(fecha) as nombre_dia,
+            COUNT(*) as total,
+            SUM(CASE WHEN id_tipo_incidencia = 3 THEN 1 ELSE 0 END) AS denuncias,
+            SUM(CASE WHEN id_tipo_incidencia = 4 THEN 1 ELSE 0 END) AS emergencias
+        FROM incidencia
+        WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DATE(fecha)
+        ORDER BY dia
+    """
+    cursor.execute(sql)
+    resultados = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+    
+    dias_es = {
+        'Monday': 'Lun',
+        'Tuesday': 'Mar',
+        'Wednesday': 'Mié',
+        'Thursday': 'Jue',
+        'Friday': 'Vie',
+        'Saturday': 'Sáb',
+        'Sunday': 'Dom'
+    }
+    
+    labels = []
+    totales = []
+    denuncias = []
+    emergencias = []
+    
+    for r in resultados:
+        labels.append(dias_es.get(r['nombre_dia'], r['nombre_dia'][:3]))
+        totales.append(r['total'])
+        denuncias.append(r['denuncias'])
+        emergencias.append(r['emergencias'])
+    
+    return {
+        "labels": labels,
+        "totales": totales,
+        "denuncias": denuncias,
+        "emergencias": emergencias
+    }
 
 import urllib.parse
 
@@ -791,7 +1098,8 @@ def obtener_motivo(id_incidencia):
         archivo = motivo['archivo_adjunto']
         if archivo:
             archivo = archivo.replace('\\', '/')
-            archivo_adjunto_url = urllib.parse.urljoin(BASE_URL, archivo)
+            base_url = "http://10.0.0.36:5000/"
+            archivo_adjunto_url = urllib.parse.urljoin(base_url, archivo)
         else:
             archivo_adjunto_url = None
 

@@ -579,17 +579,29 @@
 <div id="modal-accion" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-header">
-      <h3 id="modal-titulo" class="modal-title">Confirmar acción</h3>
+      <h3 id="modal-titulo" class="modal-title"></h3>
     </div>
     
     <form id="form-accion">
       <div class="modal-body">
+
+        <!-- Combo de motivos -->
+        <div class="form-group">
+          <label for="motivoCombo" class="form-label">
+            Motivo predefinido <span class="required">*</span>
+          </label>
+          <select id="motivoCombo" name="motivoCombo" class="form-control">
+            <option value="">Seleccione un motivo...</option>
+            <!-- Se llenará dinámicamente con JS -->
+          </select>
+        </div>
+
         <div class="form-group">
           <label for="descripcion" class="form-label">
-            Descripción del motivo <span class="required">*</span>
+            Descripción adicional <span class="required">*</span>
           </label>
           <textarea id="descripcion" name="descripcion" class="form-control" 
-                    placeholder="Ingrese el motivo detallado..." required></textarea>
+                    placeholder="Ingrese detalles adicionales..." required></textarea>
         </div>
 
         <div class="form-group">
@@ -751,7 +763,7 @@
                     <div class="media-grid">
                       ${d.fotos.map(foto => `
                         <div class="media-item">
-                          <img src="${foto}" alt="Foto denuncia" onclick="window.open('${foto}', '_blank')">
+                          <img src="{{ BASE_URL }}/${foto}" alt="Foto denuncia" onclick="window.open('{{ BASE_URL }}/${foto}', '_blank')">
                         </div>
                       `).join("")}
                     </div>
@@ -766,7 +778,7 @@
                     <div class="media-grid">
                       ${d.videos.map(video => `
                         <div class="media-item">
-                          <video controls src="${video}"></video>
+                          <video controls src="{{ BASE_URL }}/${video}"></video>
                         </div>
                       `).join("")}
                     </div>
@@ -781,7 +793,7 @@
                     ${d.audios.map((audio, index) => `
                       <div class="audio-player">
                         <strong>Audio ${index + 1}</strong>
-                        <audio controls src="${audio}"></audio>
+                        <audio controls src="{{ BASE_URL }}/${audio}"></audio>
                       </div>
                     `).join("")}
                   </div>
@@ -835,27 +847,61 @@
   const btnCerrarModal = document.getElementById('btn-cerrar-modal');
   const formAccion = document.getElementById('form-accion');
   const modalTitulo = document.getElementById('modal-titulo');
+  const motivoCombo = document.getElementById('motivoCombo');
   const descripcionInput = document.getElementById('descripcion');
   const archivoInput = document.getElementById('archivo');
   const archivoPreview = document.getElementById('archivo-preview');
 
   let accionActual = null;
+   
+  const motivos = {
+    aceptar: [
+      'Emergencia verificada',
+      'Solicitud válida',
+      'Confirmación ciudadana',
+      'Otro motivo'
+    ],
+    rechazar: [
+      'Emergencia inválida',
+      'Falsa alarma',
+      'Datos insuficientes',
+      'Otro motivo'
+    ]
+  };
 
   if (btnAceptar) {
     btnAceptar.addEventListener('click', () => {
       accionActual = 'aceptar';
-      modalTitulo.textContent = 'Confirmar Aceptación de Denuncia';
+      if (modalTitulo) {
+        modalTitulo.innerHTML = '<i class="fas fa-check-circle"></i> Aceptar Emergencia';
+      }
+      llenarComboMotivos('aceptar');
       resetForm();
-      modal.style.display = 'flex';
+      if (modal) modal.style.display = 'flex';
     });
   }
 
+  // Abrir modal para RECHAZAR
   if (btnRechazar) {
     btnRechazar.addEventListener('click', () => {
       accionActual = 'rechazar';
-      modalTitulo.textContent = 'Confirmar Rechazo de Denuncia';
+      if (modalTitulo) {
+        modalTitulo.innerHTML = '<i class="fas fa-times-circle"></i> Rechazar Emergencia';
+      }
+      llenarComboMotivos('rechazar');
       resetForm();
-      modal.style.display = 'flex';
+      if (modal) modal.style.display = 'flex';
+    });
+  }
+
+  // Llenar el combo dinámicamente
+  function llenarComboMotivos(tipo) {
+    motivoCombo.innerHTML = '<option value="">Seleccione un motivo...</option>';
+    motivos[tipo].forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      motivoCombo.appendChild(opt);
     });
   }
 

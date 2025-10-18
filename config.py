@@ -99,5 +99,5 @@ config = {
 }
 
 def get_config():
-    env = os.environ.get('FLASK_ENV', 'development')
+    env = os.environ.get('FLASK_ENV', 'production')
     return config.get(env, config['default'])

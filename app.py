@@ -22,6 +22,7 @@ from routes.api.exportacion import exportacion_bp
 from routes.api.recursos import recursos_bp
 from routes.api.configuracion import configuracion_bp
 from routes.api.prediccion_espacial import espacial_bp
+from routes.api.sectores import sectores_bp
 
 # Importar blueprints Views (Frontend)
 from routes.views.auth_views import auth_views_bp
@@ -129,6 +130,9 @@ def create_app(config_name='default'):
     
     app.register_blueprint(configuracion_bp, url_prefix='/api/configuracion')
     print("  ✓ /api/configuracion")
+    
+    app.register_blueprint(sectores_bp, url_prefix='/api/sectores')
+    print("  ✓ /api/sectores")
     
     # ============================================
     # REGISTRAR BLUEPRINTS VIEWS (Frontend HTML)

@@ -261,14 +261,18 @@ def ver_motivo(id_denuncia):
 
 
 # ============ ESTADÍSTICAS ============
+# Nuevas rutas para agregar a tu archivo de rutas central_bp
+
+# ============ NUEVAS APIS PARA DASHBOARD MEJORADO ============
+
 @central_bp.route('/stats/severidad', methods=['GET'])
 def obtener_severidad():
     """Obtiene estadísticas de severidad por tipo"""
     try:
         severidades = {
             "Ruidos molestos": controlador_central.obtener_ruidos(),
-            "Iluminación": controlador_central.obtener_iluminacion(),
-            "Pistas y veredas": controlador_central.obtener_pistas(),
+            "Bulling y violencia familiar": controlador_central.obtener_iluminacion(),
+            "Ocupacion via publica": controlador_central.obtener_pistas(),
             "Parques y jardines": controlador_central.obtener_parques(),
             "Limpieza pública": controlador_central.obtener_limpieza(),
             "Negocios informales": controlador_central.obtener_negocios(),
@@ -292,50 +296,7 @@ def obtener_severidad():
 
     except Exception as e:
         return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
-
-
-@central_bp.route('/stats/ultima_emergencia', methods=['GET'])
-def obtener_ultima_emergencia():
-    """Obtiene última emergencia registrada"""
-    try:
-        ultima_emergencia = controlador_central.obtener_ultima_emergencia()
-        
-        if ultima_emergencia:
-            return jsonify(ultima_emergencia), HTTP_OK
-        else:
-            return jsonify({"message": "No emergencies found"}), HTTP_NOT_FOUND
-    except Exception as e:
-        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
-
-
-@central_bp.route('/stats/ultima_denuncia', methods=['GET'])
-def obtener_ultima_denuncia():
-    """Obtiene última denuncia registrada"""
-    try:
-        ultima_denuncia = controlador_central.obtener_ultima_denuncia()
-        
-        if ultima_denuncia:
-            return jsonify(ultima_denuncia), HTTP_OK
-        else:
-            return jsonify({"message": "No reports found"}), HTTP_NOT_FOUND
-    except Exception as e:
-        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
-
-
-@central_bp.route('/stats/ultimo_riesgo', methods=['GET'])
-def obtener_ultimo_riesgo():
-    """Obtiene último riesgo registrado"""
-    try:
-        ultimo_riesgo = controlador_central.obtener_ultima_riesgo()
-        
-        if ultimo_riesgo:
-            return jsonify(ultimo_riesgo), HTTP_OK
-        else:
-            return jsonify({"message": "No risks found"}), HTTP_NOT_FOUND
-    except Exception as e:
-        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
-
-
+    
 @central_bp.route('/stats/reportes_fecha', methods=['GET'])
 def reportes_por_fecha():
     """Obtiene estadísticas de reportes por fecha"""
@@ -344,24 +305,116 @@ def reportes_por_fecha():
         return jsonify(datos), HTTP_OK
     except Exception as e:
         return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
-
-
-@central_bp.route('/stats/doughnut', methods=['GET'])
-def reporte_doughnut():
-    """Obtiene datos para gráfico doughnut"""
+    
+@central_bp.route('/stats/ultima_emergencia', methods=['GET'])
+def obtener_ultima_emergencia():
+    """Obtiene última emergencia registrada"""
     try:
-        denuncia = controlador_central.obtener_conteo_denuncia()
-        emergencia = controlador_central.obtener_conteo_emergencia()
-        riesgo = controlador_central.obtener_conteo_riesgos()
-        
+        ultima_emergencia = controlador_central.obtener_ultima_emergencia()
+
+        if ultima_emergencia:
+            return jsonify(ultima_emergencia), HTTP_OK
+        else:
+            return jsonify({"message": "No emergencies found"}), HTTP_NOT_FOUND
+    except Exception as e:
+        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
+
+@central_bp.route('/stats/ultima_denuncia', methods=['GET'])
+def obtener_ultima_denuncia():
+    """Obtiene última denuncia registrada"""
+    try:
+        ultima_denuncia = controlador_central.obtener_ultima_denuncia()
+
+        if ultima_denuncia:
+            return jsonify(ultima_denuncia), HTTP_OK
+        else:
+            return jsonify({"message": "No reports found"}), HTTP_NOT_FOUND
+    except Exception as e:
+        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
+    
+
+
+@central_bp.route('/stats/totales_dia', methods=['GET'])
+def obtener_totales_dia():
+    """Obtiene totales del día actual"""
+    try:
         return jsonify({
-            "denuncia": denuncia,
-            "emergencia": emergencia,
-            "riesgo": riesgo
+            "denuncias": controlador_central.obtener_total_denuncias(),
+            "emergencias": controlador_central.obtener_total_emergencias()
         }), HTTP_OK
     except Exception as e:
         return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
 
+@central_bp.route('/stats/tendencias', methods=['GET'])
+def obtener_tendencias():
+    """Obtiene tendencias de denuncias y emergencias"""
+    try:
+        return jsonify({
+            "denuncias": controlador_central.obtener_tendencia_denuncias(),
+            "emergencias": controlador_central.obtener_tendencia_emergencias()
+        }), HTTP_OK
+    except Exception as e:
+        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
+
+@central_bp.route('/stats/alertas_recientes', methods=['GET'])
+def obtener_alertas():
+    """Obtiene alertas recientes de las últimas 24 horas"""
+    try:
+        alertas = controlador_central.obtener_alertas_recientes()
+        return jsonify(alertas), HTTP_OK
+    except Exception as e:
+        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
+
+@central_bp.route('/stats/actividad_real', methods=['GET'])
+def obtener_actividad():
+    """Obtiene actividad en tiempo real del día"""
+    try:
+        actividades = controlador_central.obtener_actividad_tiempo_real()
+        return jsonify(actividades), HTTP_OK
+    except Exception as e:
+        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
+
+@central_bp.route('/stats/por_hora', methods=['GET'])
+def obtener_por_hora():
+    """Obtiene estadísticas por hora del día actual"""
+    try:
+        datos = controlador_central.obtener_estadisticas_por_hora()
+        return jsonify(datos), HTTP_OK
+    except Exception as e:
+        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
+
+@central_bp.route('/stats/top_denuncias', methods=['GET'])
+def obtener_top_denuncias():
+    """Obtiene top 5 tipos de denuncias más frecuentes"""
+    try:
+        datos = controlador_central.obtener_top_denuncias()
+        return jsonify(datos), HTTP_OK
+    except Exception as e:
+        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
+
+@central_bp.route('/stats/resumen_semanal', methods=['GET'])
+def obtener_resumen_semanal():
+    """Obtiene resumen de la última semana"""
+    try:
+        datos = controlador_central.obtener_resumen_semanal()
+        return jsonify(datos), HTTP_OK
+    except Exception as e:
+        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
+
+# Modificación del endpoint de doughnut para no incluir riesgos
+@central_bp.route('/stats/doughnut', methods=['GET'])
+def reporte_doughnut():
+    """Obtiene datos para gráfico doughnut (solo denuncias y emergencias)"""
+    try:
+        denuncia = controlador_central.obtener_conteo_denuncia()
+        emergencia = controlador_central.obtener_conteo_emergencia()
+        
+        return jsonify({
+            "denuncia": denuncia,
+            "emergencia": emergencia
+        }), HTTP_OK
+    except Exception as e:
+        return jsonify({"error": str(e)}), HTTP_INTERNAL_ERROR
 
 # ============ GESTIÓN DE USUARIOS ============
 @central_bp.route('/usuarios/correos', methods=['GET'])
@@ -388,6 +441,18 @@ def obtener_denuncias_disponibles():
             return jsonify({"message": "No se encontraron denuncias"}), HTTP_NOT_FOUND
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), HTTP_INTERNAL_ERROR
+    
+@central_bp.route('/usuarios/emergencias_disponibles', methods=['GET'])
+def obtener_emergencias_disponibles():
+    """Obtiene tipos de emergencias disponibles"""
+    try:
+        emergencias = controlador_central.obtener_emergencia()
+        if emergencias:
+            return jsonify({"message": emergencias}), HTTP_OK
+        else:
+            return jsonify({"message": "No se encontraron emergencias"}), HTTP_NOT_FOUND
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), HTTP_INTERNAL_ERROR
 
 
 @central_bp.route('/usuarios/riesgos_disponibles', methods=['GET'])
@@ -403,8 +468,8 @@ def obtener_riesgos_disponibles():
         return jsonify({"error": f"An error occurred: {str(e)}"}), HTTP_INTERNAL_ERROR
 
 
-@central_bp.route('/usuarios/crear', methods=['POST'])
-def insertar_usuario():
+@central_bp.route('/usuarios/crear/denuncia', methods=['POST'])
+def insertar_usuario_denuncia():
     """Crea nuevo usuario administrador"""
     try:
         data = request.json
@@ -417,6 +482,29 @@ def insertar_usuario():
 
         for id_denuncia in denuncias:
             controlador_central.insertar_denuncia_correo(id_correo, id_denuncia)
+
+        return jsonify({
+            "mensaje": "Usuario creado correctamente",
+            "id_correo": id_correo
+        }), HTTP_CREATED
+
+    except Exception as e:
+        return jsonify({"error": f"Error: {str(e)}"}), HTTP_INTERNAL_ERROR
+
+@central_bp.route('/usuarios/crear/emergencia', methods=['POST'])
+def insertar_usuario_emergencia():
+    """Crea nuevo usuario administrador"""
+    try:
+        data = request.json
+        nombre = data.get('nombre')
+        correo = data.get('correo')
+        contra = data.get('contra')
+        denuncias = data.get('denuncias', [])
+
+        id_correo = controlador_central.insertar_correo(correo, nombre, contra)
+
+        for id_denuncia in denuncias:
+            controlador_central.insertar_emergencia_correo(id_correo, id_denuncia)
 
         return jsonify({
             "mensaje": "Usuario creado correctamente",

@@ -62,8 +62,8 @@
 
     .sidebar-header {
         padding: 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+        
+        background: black;
         color: white;
     }
 
@@ -867,6 +867,57 @@
         border-radius: var(--radius-lg);
         margin-bottom: 1rem;
     }
+
+    .grid-controls {
+    padding: 1rem;
+    background: var(--background-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    margin-bottom: 1rem;
+}
+
+.grid-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    color: white;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.quadrant-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+
+    /* ✅ Scroll horizontal */
+    overflow-x: auto;
+    white-space: nowrap;
+    max-width: 100%;
+    padding-bottom: 0.3rem; /* espacio para el scrollbar */
+}
+
+
+.quadrant-stat {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.quadrant-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: block;
+}
+
+.quadrant-stat-label {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+
 </style>
 
 <div class="dashboard-container">
@@ -1027,6 +1078,29 @@
                         Actualizar
                     </button>
                 </div>
+
+                <div class="grid-controls">
+                    <h3 class="controls-title">
+                        <i class="fas fa-th"></i>
+                        Cuadrantes
+                    </h3>
+                    <div class="control-group">
+                        <label class="control-label">Grilla 5x5</label>
+                        <div class="control-buttons">
+                            <button class="control-btn" id="toggle-grid">
+                                <i class="fas fa-border-all"></i>
+                                Mostrar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid-info" id="grid-info" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>25 cuadrantes</strong> activos sobre Reque
+                        <div class="quadrant-stats" id="quadrant-stats">
+                            <!-- Stats dinámicas -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </aside>
@@ -1155,6 +1229,8 @@ class IncidentMonitoringSystem {
         this.retryDelay = 2000;
         this.clusterColors = new Map();
         this.selectedCluster = null;
+        this.gridVisible = false;
+        this.cuadrantesData = null;
         
         this.mapConfig = {
             accessToken: 'pk.eyJ1IjoicGVkcm8xMjNhYmMiLCJhIjoiY21hcGh0YWRmMGk0ZTJscTc0Yml2djM2MSJ9.RdRrSKRsvzGdhNNCDBxPiA',
@@ -1374,6 +1450,11 @@ class IncidentMonitoringSystem {
 
         document.getElementById('refresh-data').addEventListener('click', () => {
             this.loadIncidentData();
+        });
+
+        // Agregar después de los event listeners existentes
+        document.getElementById('toggle-grid').addEventListener('click', () => {
+            this.toggleGrid();
         });
     }
 
@@ -2149,6 +2230,315 @@ class IncidentMonitoringSystem {
         this.updateMetric('heat-zones', 'Error');
         this.updateMetric('outliers', 'Error');
         this.updateMetric('coverage', 'Error');
+    }
+
+
+    async loadCuadrantes() {
+        try {
+            const response = await fetch('{{ BASE_URL }}/api/modelo/espacial/cuadrantes');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data.success || !data.data || !data.data.cuadrantes) {
+                throw new Error('Datos de cuadrantes inválidos');
+            }
+
+            this.cuadrantesData = data.data;
+            console.log('Cuadrantes cargados:', this.cuadrantesData.cuadrantes.length);
+            
+        } catch (error) {
+            console.error('Error al cargar cuadrantes:', error);
+            this.showError('No se pudieron cargar los cuadrantes');
+        }
+    }
+
+    createGridGeoJSONFromAPI() {
+    if (!this.cuadrantesData || !this.cuadrantesData.cuadrantes) {
+        console.error('No hay datos de cuadrantes');
+        return null;
+    }
+
+    const features = this.cuadrantesData.cuadrantes.map((cuadrante, index) => {
+        const { bounds, id, columna, fila, centro, historico } = cuadrante;
+
+        // Generar etiqueta original (A1, A2, etc.) si la quieres conservar
+        const label = String.fromCharCode(65 + fila) + (columna + 1);
+
+        // Nueva etiqueta tipo "#1"
+        const cuadranteLabel = `#${index + 1}`;
+
+        return {
+            type: 'Feature',
+            properties: {
+                id: id,
+                label: cuadranteLabel, // ✅ Aquí el nuevo formato
+                fila: fila,
+                columna: columna,
+                centro_lat: centro.lat,
+                centro_lon: centro.lon,
+                denuncias: historico.denuncias,
+                emergencias: historico.emergencias,
+                total: historico.total,
+                codigo: label // opcional: por si quieres mantener el código tipo A1
+            },
+            geometry: {
+                type: 'Polygon',
+                coordinates: [[
+                    [bounds.lon_min, bounds.lat_min],
+                    [bounds.lon_max, bounds.lat_min],
+                    [bounds.lon_max, bounds.lat_max],
+                    [bounds.lon_min, bounds.lat_max],
+                    [bounds.lon_min, bounds.lat_min]
+                ]]
+            }
+        };
+    });
+
+    return {
+        type: 'FeatureCollection',
+        features: features
+    };
+}
+
+
+    async toggleGrid() {
+        const button = document.getElementById('toggle-grid');
+        const gridInfo = document.getElementById('grid-info');
+        
+        if (!this.gridVisible) {
+            // Cargar cuadrantes si no están cargados
+            if (!this.cuadrantesData) {
+                button.innerHTML = '<div class="loading-spinner"></div> Cargando...';
+                button.disabled = true;
+                await this.loadCuadrantes();
+                button.disabled = false;
+            }
+            
+            if (this.cuadrantesData) {
+                this.showGrid();
+                button.classList.add('active');
+                button.innerHTML = '<i class="fas fa-border-all"></i> Ocultar';
+                gridInfo.style.display = 'block';
+                this.updateGridStats();
+            } else {
+                button.innerHTML = '<i class="fas fa-border-all"></i> Mostrar';
+            }
+        } else {
+            this.hideGrid();
+            button.classList.remove('active');
+            button.innerHTML = '<i class="fas fa-border-all"></i> Mostrar';
+            gridInfo.style.display = 'none';
+        }
+        
+        this.gridVisible = !this.gridVisible;
+    }
+
+    updateGridStats() {
+        if (!this.cuadrantesData) return;
+        
+        const totalDenuncias = this.cuadrantesData.cuadrantes.reduce(
+            (sum, c) => sum + c.historico.denuncias, 0
+        );
+        const totalEmergencias = this.cuadrantesData.cuadrantes.reduce(
+            (sum, c) => sum + c.historico.emergencias, 0
+        );
+        const totalIncidencias = this.cuadrantesData.cuadrantes.reduce(
+            (sum, c) => sum + c.historico.total, 0
+        );
+        
+        const statsHTML = `
+            <div class="quadrant-stat">
+                <span class="quadrant-stat-value">${totalIncidencias.toLocaleString()}</span>
+                <span class="quadrant-stat-label">Total</span>
+            </div>
+            <div class="quadrant-stat">
+                <span class="quadrant-stat-value">${totalDenuncias.toLocaleString()}</span>
+                <span class="quadrant-stat-label">📋 Denuncias</span>
+            </div>
+            <div class="quadrant-stat">
+                <span class="quadrant-stat-value">${totalEmergencias.toLocaleString()}</span>
+                <span class="quadrant-stat-label">🚨 Emergencias</span>
+            </div>
+        `;
+        
+        document.getElementById('quadrant-stats').innerHTML = statsHTML;
+    }
+
+    showGrid() {
+        const gridData = this.createGridGeoJSONFromAPI();
+        
+        if (!gridData) {
+            console.error('No se pudo crear el GeoJSON de la grilla');
+            return;
+        }
+
+        if (!this.map.getSource('grid')) {
+            this.map.addSource('grid', {
+                type: 'geojson',
+                data: gridData
+            });
+            
+            // Relleno con color según densidad
+            this.map.addLayer({
+                id: 'grid-fill',
+                type: 'fill',
+                source: 'grid',
+                paint: {
+                    'fill-color': [
+                        'interpolate',
+                        ['linear'],
+                        ['get', 'total'],
+                        0, 'rgba(255, 255, 255, 0.05)',
+                        500, 'rgba(59, 130, 246, 0.15)',
+                        5000, 'rgba(249, 115, 22, 0.25)',
+                        20000, 'rgba(239, 68, 68, 0.35)',
+                        80000, 'rgba(220, 38, 38, 0.5)'
+                    ],
+                    'fill-opacity': 0.6
+                }
+            });
+            
+            // Líneas de la grilla
+            this.map.addLayer({
+                id: 'grid-lines',
+                type: 'line',
+                source: 'grid',
+                paint: {
+                    'line-color': '#000000',
+                    'line-width': 2,
+                    'line-opacity': 0.7
+                }
+            });
+            
+            // Etiquetas de cuadrantes
+            this.map.addLayer({
+                id: 'grid-labels',
+                type: 'symbol',
+                source: 'grid',
+                layout: {
+                    'text-field': ['get', 'label'],
+                    'text-size': 18,
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold']
+                },
+                paint: {
+                    'text-color': '#000000',
+                    'text-halo-color': '#ffffff',
+                    'text-halo-width': 3,
+                    'text-halo-blur': 1
+                }
+            });
+            
+            // Interacciones
+            this.map.on('click', 'grid-fill', (e) => {
+                const properties = e.features[0].properties;
+                this.showQuadrantInfo(properties, e.lngLat);
+            });
+            
+            this.map.on('mouseenter', 'grid-fill', () => {
+                this.map.getCanvas().style.cursor = 'pointer';
+            });
+            
+            this.map.on('mouseleave', 'grid-fill', () => {
+                this.map.getCanvas().style.cursor = '';
+            });
+            
+        } else {
+            this.map.getSource('grid').setData(gridData);
+            this.map.setLayoutProperty('grid-lines', 'visibility', 'visible');
+            this.map.setLayoutProperty('grid-fill', 'visibility', 'visible');
+            this.map.setLayoutProperty('grid-labels', 'visibility', 'visible');
+        }
+    }
+
+    hideGrid() {
+        if (this.map.getLayer('grid-lines')) {
+            this.map.setLayoutProperty('grid-lines', 'visibility', 'none');
+            this.map.setLayoutProperty('grid-fill', 'visibility', 'none');
+            this.map.setLayoutProperty('grid-labels', 'visibility', 'none');
+        }
+    }
+
+    showQuadrantInfo(properties, lngLat) {
+        // Contar incidencias actuales (filtradas) en este cuadrante
+        const cuadrante = this.cuadrantesData.cuadrantes.find(c => c.id === properties.id);
+        if (!cuadrante) return;
+        
+        const bounds = cuadrante.bounds;
+        const incidenciasActuales = this.incidenciasFiltradas.filter(inc => {
+            const lon = parseFloat(inc.lon);
+            const lat = parseFloat(inc.lat);
+            return lon >= bounds.lon_min && lon <= bounds.lon_max && 
+                lat >= bounds.lat_min && lat <= bounds.lat_max;
+        });
+        
+        const denunciasActuales = incidenciasActuales.filter(inc => 
+            this.detectarTipoIncidencia(inc) === 'denuncia'
+        ).length;
+        
+        const emergenciasActuales = incidenciasActuales.filter(inc => 
+            this.detectarTipoIncidencia(inc) === 'emergencia'
+        ).length;
+        
+        // Calcular color según densidad
+        const densidad = properties.total;
+        let color = '#3b82f6';
+        if (densidad > 50000) color = '#dc2626';
+        else if (densidad > 20000) color = '#ef4444';
+        else if (densidad > 5000) color = '#f97316';
+        
+        new mapboxgl.Popup({ maxWidth: '350px' })
+            .setLngLat(lngLat)
+            .setHTML(`
+                <div class="popup-header" style="background-color: ${color};">
+                    <i class="fas fa-th-large"></i>
+                    Cuadrante ${properties.label}
+                </div>
+                <div class="popup-content">
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary);">
+                        📊 Histórico Total
+                    </h4>
+                    <div class="popup-field">
+                        <span class="popup-label">Total histórico:</span>
+                        <span class="popup-value"><strong>${properties.total.toLocaleString()}</strong> incidencias</span>
+                    </div>
+                    <div class="popup-field">
+                        <span class="popup-label">📋 Denuncias:</span>
+                        <span class="popup-value"><strong>${properties.denuncias.toLocaleString()}</strong></span>
+                    </div>
+                    <div class="popup-field">
+                        <span class="popup-label">🚨 Emergencias:</span>
+                        <span class="popup-value"><strong>${properties.emergencias.toLocaleString()}</strong></span>
+                    </div>
+                    
+                    <hr style="margin: 0.75rem 0; border: none; border-top: 1px solid var(--border-color);">
+                    
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary);">
+                        🔍 Filtro Actual
+                    </h4>
+                    <div class="popup-field">
+                        <span class="popup-label">Total:</span>
+                        <span class="popup-value"><strong>${incidenciasActuales.length}</strong> incidencias</span>
+                    </div>
+                    <div class="popup-field">
+                        <span class="popup-label">📋 Denuncias:</span>
+                        <span class="popup-value"><strong>${denunciasActuales}</strong></span>
+                    </div>
+                    <div class="popup-field">
+                        <span class="popup-label">🚨 Emergencias:</span>
+                        <span class="popup-value"><strong>${emergenciasActuales}</strong></span>
+                    </div>
+                    
+                    <div style="margin-top: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; font-size: 0.75rem; color: var(--text-secondary);">
+                        <i class="fas fa-map-marker-alt"></i> 
+                        Centro: ${properties.centro_lat.toFixed(6)}, ${properties.centro_lon.toFixed(6)}
+                    </div>
+                </div>
+            `)
+            .addTo(this.map);
     }
 }
 
