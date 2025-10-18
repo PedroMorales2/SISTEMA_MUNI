@@ -1,0 +1,85 @@
+<div id="tab-configuracion" class="tab-content">
+  <div class="control-panel">
+    <h3 style="margin-top: 0;">⚙️ Información del Sistema de Predicción</h3>
+    
+    <div class="alert alert-warning">
+      <span>⚠️</span>
+      <div>
+        <strong>Sobre el Reentrenamiento:</strong> Esta acción actualiza el modelo con datos nuevos. 
+        Solo realice esto si ha agregado información reciente al sistema. El proceso puede tardar 5-10 minutos.
+      </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <h4>📊 Detalles Técnicos del Modelo Actual</h4>
+      <table class="comparison-table">
+        <tr>
+          <th>Característica</th>
+          <th>Valor</th>
+          <th>Explicación</th>
+        </tr>
+        <tr>
+          <td><strong>Tipo de Modelo</strong></td>
+          <td id="infoArquitectura">-</td>
+          <td><small>Red neuronal avanzada para detectar patrones temporales</small></td>
+        </tr>
+        <tr>
+          <td><strong>Tipos de Denuncias</strong></td>
+          <td id="infoTiposDen">-</td>
+          <td><small>Cantidad de categorías diferentes que el modelo puede predecir</small></td>
+        </tr>
+        <tr>
+          <td><strong>Tipos de Emergencias</strong></td>
+          <td id="infoTiposEme">-</td>
+          <td><small>Cantidad de servicios de emergencia monitoreados</small></td>
+        </tr>
+        <tr>
+          <td><strong>Último Dato Registrado</strong></td>
+          <td id="infoUltimoMes">-</td>
+          <td><small>Fecha más reciente con información en el sistema</small></td>
+        </tr>
+        <tr>
+          <td><strong>Memoria del Modelo</strong></td>
+          <td><span id="infoLookback">-</span> meses</td>
+          <td><small>Cuántos meses anteriores usa para hacer predicciones</small></td>
+        </tr>
+        <tr>
+          <td><strong>Datos de Entrenamiento</strong></td>
+          <td id="infoPeriodoDatos">-</td>
+          <td><small>Rango completo de fechas usadas para entrenar el modelo</small></td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="margin-top: 30px; padding: 20px; background: rgba(74, 144, 226, 0.1); border-radius: 8px;">
+      <h4 style="margin-top: 0;">🔄 ¿Cuándo Reentrenar el Modelo?</h4>
+      <ul style="margin: 10px 0; padding-left: 20px; line-height: 1.8;">
+        <li>✅ Cuando hayan pasado <strong>1-3 meses</strong> desde el último entrenamiento</li>
+        <li>✅ Si las predicciones difieren mucho de la <strong>realidad actual</strong></li>
+        <li>✅ Después de agregar <strong>datos históricos nuevos</strong> al sistema</li>
+        <li>✅ Si nota cambios importantes en los <strong>patrones de incidencias</strong></li>
+        <li>❌ NO reentrenar si los datos no han cambiado (no mejorará nada)</li>
+      </ul>
+    </div>
+
+    <div style="margin-top: 30px; text-align: center;">
+      <button class="btn btn-danger" onclick="reentrenarModelo()">
+        🔄 Iniciar Reentrenamiento del Modelo
+      </button>
+      <p style="font-size: 13px; opacity: 0.7; margin-top: 10px;">
+        Esta acción puede tardar varios minutos. No cierre la ventana durante el proceso.
+      </p>
+    </div>
+
+    <div id="entrenamientoProgress" style="display: none; margin-top: 20px;">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p><strong>Entrenando el modelo de inteligencia artificial...</strong></p>
+        <p style="font-size: 14px; opacity: 0.7;">Esto puede tomar 5-10 minutos</p>
+        <p style="font-size: 13px; opacity: 0.6; margin-top: 10px;">
+          El modelo está aprendiendo patrones de los datos históricos
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

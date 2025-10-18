@@ -1,0 +1,747 @@
+{% extends "partials/sidebar.html" %}
+{% block title %} Gestión de Usuarios {% endblock %}
+{% block content %}
+
+<div class="content">
+    <h1 id="titulo">Gestión de Usuarios</h1>
+
+    <!-- FILTROS -->
+    <div class="filtros-container">
+        <div class="filtro-item">
+            <label for="filtroArea">Área:</label>
+            <input type="text" id="filtroArea" placeholder="Buscar área...">
+        </div>
+        <div class="filtro-item">
+            <label for="filtroCorreo">Correo:</label>
+            <input type="text" id="filtroCorreo" placeholder="Buscar correo...">
+        </div>
+        <div class="filtro-item">
+            <button id="btnFiltrar" class="btn-filtrar">
+                <span>🔍</span> Aplicar
+            </button>
+            <button id="btnLimpiar" class="btn-limpiar">
+                <span>✖</span> Limpiar
+            </button>
+        </div>
+    </div>
+
+    <!-- TABLA -->
+    <div class="tabla-wrapper">
+        <table id="tableUsuario" class="display nowrap" style="width:100%">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Área</th>
+                    <th>Correo Institucional</th>
+                    <th>Contraseña</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<!-- Modal para cambiar contraseña -->
+<div id="modal-detalle" class="modal-overlay">
+    <div class="modal-container">
+        <button class="modal-close-btn" onclick="cerrarModal()">✕</button>
+        
+        <div class="modal-header">
+            <i class="fas fa-key modal-icon"></i>
+            <h2 class="modal-title">Cambiar Contraseña</h2>
+        </div>
+        
+        <form id="form-password" onsubmit="return enviarNuevaContrasena(event)">
+            <div class="modal-body">
+                <input type="hidden" id="id-correo-hidden">
+                
+                <div class="form-group">
+                    <label for="area-usuario" class="form-label">
+                        <i class="fas fa-building"></i> Área del Usuario
+                    </label>
+                    <input type="text" id="area-usuario" class="form-control" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="correo-usuario" class="form-label">
+                        <i class="fas fa-envelope"></i> Correo Electrónico
+                    </label>
+                    <input type="email" id="correo-usuario" class="form-control" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="nueva-contrasena" class="form-label">
+                        <i class="fas fa-lock"></i> Nueva Contraseña <span class="required">*</span>
+                    </label>
+                    <div class="password-wrapper">
+                        <input type="password" id="nueva-contrasena" class="form-control" 
+                               placeholder="Ingrese la nueva contraseña" required minlength="6">
+                        <button type="button" class="toggle-password" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="toggle-icon"></i>
+                        </button>
+                    </div>
+                    <small class="form-help">La contraseña debe tener al menos 6 caracteres</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmar-contrasena" class="form-label">
+                        <i class="fas fa-lock"></i> Confirmar Contraseña <span class="required">*</span>
+                    </label>
+                    <input type="password" id="confirmar-contrasena" class="form-control" 
+                           placeholder="Confirme la nueva contraseña" required minlength="6">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-modal btn-cancel" onclick="cerrarModal()">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="submit" class="btn-modal btn-submit">
+                    <i class="fas fa-check"></i> Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- DataTables + jQuery -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+$(document).ready(function () {
+    const tabla = $('#tableUsuario').DataTable({
+        ajax: {
+            url: '{{ BASE_URL }}/api/central/usuarios/correos',
+            dataSrc: function (json) {
+                if (!json || !json.message) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sin datos',
+                        text: 'Aún no hay usuarios registrados',
+                        confirmButtonText: 'Aceptar',
+                        confirmButtonColor: '#17a2b8'
+                    });
+                    return [];
+                }
+                return json.message;
+            },
+            error: function (xhr, error, thrown) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudieron cargar los usuarios',
+                    confirmButtonText: 'Aceptar',
+                    confirmButtonColor: '#17a2b8'
+                });
+                console.error('Error en DataTables:', xhr.responseText);
+            }
+        },
+        columns: [
+            { data: 'id_correo' },
+            { 
+                data: 'nombre_area',
+                render: function(data) {
+                    return `<span class="area-badge"><i class="fas fa-building"></i> ${data}</span>`;
+                }
+            },
+            { 
+                data: 'correo',
+                render: function(data) {
+                    return `<span class="email-text"><i class="fas fa-envelope"></i> ${data}</span>`;
+                }
+            },
+            { 
+                data: 'contra',
+                render: function(data) {
+                    return `<span class="password-mask">••••••••</span>`;
+                }
+            },
+            {
+                data: null,
+                render: function (data, type, row) {
+                    return `
+                        <button class="btn-cambiar-password" onclick='verDetalle(${JSON.stringify(row)})'>
+                            <i class="fas fa-key"></i> Cambiar Contraseña
+                        </button>
+                    `;
+                }
+            }
+        ],
+        order: [[0, 'desc']],
+        responsive: true,
+        dom : 'rtip',
+        language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json',
+            search: "Buscar:",
+            lengthMenu: "Mostrar _MENU_ registros",
+            info: "Mostrando _START_ a _END_ de _TOTAL_ usuarios",
+            infoEmpty: "No hay usuarios disponibles",
+            infoFiltered: "(filtrado de _MAX_ usuarios totales)",
+            zeroRecords: "No se encontraron usuarios",
+            emptyTable: "No hay usuarios registrados"
+        }
+    });
+
+    // Filtros personalizados
+    $('#btnFiltrar').on('click', function () {
+        const area = $('#filtroArea').val().toLowerCase();
+        const correo = $('#filtroCorreo').val().toLowerCase();
+
+        tabla.rows().every(function () {
+            const data = this.data();
+            const matchArea = !area || data.nombre_area.toLowerCase().includes(area);
+            const matchCorreo = !correo || data.correo.toLowerCase().includes(correo);
+            
+            if (matchArea && matchCorreo) {
+                $(this.node()).show();
+            } else {
+                $(this.node()).hide();
+            }
+        });
+    });
+
+    $('#btnLimpiar').on('click', function () {
+        $('#filtroArea, #filtroCorreo').val('');
+        tabla.rows().every(function () { $(this.node()).show(); });
+    });
+});
+
+function verDetalle(row) {
+    document.getElementById('modal-detalle').style.display = 'flex';
+    document.getElementById('id-correo-hidden').value = row.id_correo;
+    document.getElementById('area-usuario').value = row.nombre_area;
+    document.getElementById('correo-usuario').value = row.correo;
+    document.getElementById('nueva-contrasena').value = '';
+    document.getElementById('confirmar-contrasena').value = '';
+    
+    // Reset password visibility
+    const passwordInput = document.getElementById('nueva-contrasena');
+    const toggleIcon = document.getElementById('toggle-icon');
+    passwordInput.type = 'password';
+    toggleIcon.className = 'fas fa-eye';
+}
+
+function cerrarModal() {
+    document.getElementById('modal-detalle').style.display = 'none';
+    document.getElementById('form-password').reset();
+}
+
+function togglePassword() {
+    const passwordInput = document.getElementById('nueva-contrasena');
+    const toggleIcon = document.getElementById('toggle-icon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.className = 'fas fa-eye-slash';
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.className = 'fas fa-eye';
+    }
+}
+
+window.onclick = function (event) {
+    const modal = document.getElementById('modal-detalle');
+    if (event.target === modal) {
+        cerrarModal();
+    }
+}
+
+function enviarNuevaContrasena(event) {
+    event.preventDefault();
+
+    const id_usuario = document.getElementById('id-correo-hidden').value;
+    const nueva_contrasena = document.getElementById('nueva-contrasena').value;
+    const confirmar_contrasena = document.getElementById('confirmar-contrasena').value;
+
+    // Validar que las contraseñas coincidan
+    if (nueva_contrasena !== confirmar_contrasena) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Las contraseñas no coinciden',
+            text: 'Por favor, asegúrese de que ambas contraseñas sean iguales',
+            confirmButtonColor: '#17a2b8'
+        });
+        return false;
+    }
+
+    // Validar longitud mínima
+    if (nueva_contrasena.length < 6) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Contraseña muy corta',
+            text: 'La contraseña debe tener al menos 6 caracteres',
+            confirmButtonColor: '#17a2b8'
+        });
+        return false;
+    }
+
+    // Mostrar loading
+    Swal.fire({
+        title: 'Procesando...',
+        text: 'Cambiando contraseña',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        willOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch('{{ BASE_URL }}/api/central/usuarios/cambiar_password', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            id_usuario: id_usuario,
+            nueva_contrasena: nueva_contrasena
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.mensaje) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Contraseña Actualizada!',
+                text: data.mensaje,
+                confirmButtonColor: '#17a2b8',
+                timer: 2000,
+                showConfirmButton: true
+            });
+            cerrarModal();
+            $('#tableUsuario').DataTable().ajax.reload();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || "No se pudo cambiar la contraseña",
+                confirmButtonColor: '#17a2b8'
+            });
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error del servidor',
+            text: 'No se pudo conectar con el servidor',
+            confirmButtonColor: '#17a2b8'
+        });
+        console.error("Error:", error);
+    });
+
+    return false;
+}
+</script>
+
+<style>
+    .content {
+        padding: 20px;
+        background-color: #f5f7fa;
+    }
+
+    #titulo {
+        color: #000000;
+        margin-bottom: 25px;
+        font-size: 28px;
+        font-weight: 600;
+        background: none;
+    }
+
+    /* Filtros */
+    .filtros-container {
+        background: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .filtro-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filtro-item label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .filtro-item input {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        font-size: 14px;
+        transition: all 0.3s;
+        min-width: 200px;
+    }
+
+    .filtro-item input:focus {
+        outline: none;
+        border-color: #17a2b8;
+        box-shadow: 0 0 0 3px rgba(23, 162, 184, 0.1);
+    }
+
+    .btn-filtrar, .btn-limpiar {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        color: white;
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-filtrar {
+        background-color: #17a2b8;
+    }
+
+    .btn-filtrar:hover {
+        background-color: #138496;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3);
+    }
+
+    .btn-limpiar {
+        background-color: #6c757d;
+    }
+
+    .btn-limpiar:hover {
+        background-color: #545b62;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+    }
+
+    /* Tabla */
+    .tabla-wrapper {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    #tableUsuario {
+        width: 100% !important;
+    }
+
+    #tableUsuario thead {
+        background-color: #b3e5fc;
+        color: #000000;
+    }
+
+    #tableUsuario thead th {
+        padding: 15px 10px;
+        font-weight: 600;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    #tableUsuario tbody tr {
+        transition: all 0.2s;
+    }
+
+    #tableUsuario tbody tr:hover {
+        background-color: #e1f5fe;
+        transform: scale(1.01);
+    }
+
+    #tableUsuario tbody td {
+        padding: 12px 10px;
+        vertical-align: middle;
+    }
+
+    /* Badges y etiquetas */
+    .area-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        background: linear-gradient(135deg, #e1f5fe 0%, #b3e5fc 100%);
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #01579b;
+    }
+
+    .email-text {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #495057;
+        font-size: 14px;
+    }
+
+    .password-mask {
+        font-size: 16px;
+        letter-spacing: 2px;
+        color: #6c757d;
+    }
+
+    /* Botón cambiar contraseña */
+    .btn-cambiar-password {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-cambiar-password:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
+    }
+
+    /* Modal */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.75);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-container {
+        background: white;
+        border-radius: 16px;
+        padding: 0;
+        max-width: 550px;
+        width: 90%;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        animation: modalAppear 0.3s ease-out;
+        overflow: hidden;
+        position: relative;
+    }
+
+    @keyframes modalAppear {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .modal-close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border: none;
+        color: #fff;
+        font-size: 20px;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 10;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 8px rgba(220,53,69,0.3);
+    }
+
+    .modal-close-btn:hover {
+        transform: rotate(90deg) scale(1.1);
+        box-shadow: 0 6px 16px rgba(220,53,69,0.5);
+    }
+
+    .modal-header {
+        padding: 2rem 2rem 1rem 2rem;
+        border-bottom: 2px solid #b3e5fc;
+        background: linear-gradient(135deg, #e1f5fe 0%, #ffffff 100%);
+        text-align: center;
+    }
+
+    .modal-icon {
+        font-size: 48px;
+        color: #17a2b8;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .modal-title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .modal-body {
+        padding: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-label i {
+        color: #17a2b8;
+    }
+
+    .form-label .required {
+        color: #dc3545;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ced4da;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        transition: all 0.3s;
+        box-sizing: border-box;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #17a2b8;
+        box-shadow: 0 0 0 3px rgba(23, 162, 184, 0.1);
+    }
+
+    .form-control:read-only {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
+
+    .password-wrapper {
+        position: relative;
+    }
+
+    .toggle-password {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        font-size: 18px;
+        transition: color 0.3s;
+    }
+
+    .toggle-password:hover {
+        color: #17a2b8;
+    }
+
+    .form-help {
+        display: block;
+        margin-top: 6px;
+        font-size: 12px;
+        color: #6c757d;
+    }
+
+    .modal-footer {
+        padding: 1.5rem 2rem;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+
+    .btn-modal {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-cancel {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-cancel:hover {
+        background: #545b62;
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filtros-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filtro-item {
+            width: 100%;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filtro-item input {
+            width: 100%;
+        }
+
+        .modal-container {
+            width: 95%;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+    }
+</style>
+
+{% endblock %}

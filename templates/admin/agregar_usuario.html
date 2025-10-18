@@ -1,0 +1,875 @@
+{% extends "partials/sidebar.html" %}
+{% block title %} Gestión de Usuarios - Central {% endblock %}
+{% block content %}
+
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f5f7fa;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .main-container {
+        display: flex;
+        height: 100vh;
+        padding: 1.5rem;
+        gap: 1.5rem;
+    }
+
+    /* Panel Izquierdo - Lista de Usuarios */
+    .left-panel {
+        flex: 0 0 35%;
+        display: flex;
+        flex-direction: column;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    /* Panel Derecho - Formulario */
+    .right-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .panel-header {
+        padding: 1.25rem 1.5rem;
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: white;
+        border-bottom: 3px solid #1a252f;
+    }
+
+    .panel-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .panel-header p {
+        margin: 0.25rem 0 0 0;
+        font-size: 0.85rem;
+        opacity: 0.9;
+    }
+
+    /* Lista de Usuarios */
+    .users-list-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    .search-box {
+        margin-bottom: 1rem;
+        position: relative;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 0.65rem 0.65rem 0.65rem 2.5rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: border-color 0.3s;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: #2c3e50;
+    }
+
+    .search-box::before {
+        content: '🔍';
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .user-card {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .user-card:hover {
+        border-color: #2c3e50;
+        box-shadow: 0 2px 8px rgba(44, 62, 80, 0.15);
+        transform: translateX(4px);
+    }
+
+    .user-card.active {
+        border-color: #2c3e50;
+        background: #e8ecef;
+    }
+
+    .user-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 0.5rem;
+    }
+
+    .user-name {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 0.95rem;
+    }
+
+    .user-email {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .user-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .tag {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        background: #dee2e6;
+        color: #495057;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .tag.denuncia { background: #cfe2ff; color: #084298; }
+    .tag.emergencia { background: #f8d7da; color: #842029; }
+    .tag.riesgo { background: #fff3cd; color: #664d03; }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Formulario */
+    .form-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .form-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .section-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.4rem;
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.875rem;
+    }
+
+    .required::after {
+        content: ' *';
+        color: #dc3545;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    select {
+        width: 100%;
+        padding: 0.65rem;
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        transition: border-color 0.3s;
+        background: white;
+    }
+
+    input:focus,
+    select:focus {
+        outline: none;
+        border-color: #2c3e50;
+    }
+
+    input:disabled,
+    select:disabled {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
+
+    .password-wrapper {
+        position: relative;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 0.65rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.1rem;
+        padding: 0.25rem;
+        color: #6c757d;
+    }
+
+    .password-toggle:hover {
+        color: #2c3e50;
+    }
+
+    /* Sección de Permisos */
+    .permissions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+
+    .permission-card {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1rem;
+        background: #f8f9fa;
+    }
+
+    .permission-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .permission-title {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 42px;
+        height: 22px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.3s;
+        border-radius: 22px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider {
+        background-color: #2c3e50;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(20px);
+    }
+
+    .options-list {
+        max-height: 140px;
+        overflow-y: auto;
+    }
+
+    .option-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0;
+        font-size: 0.85rem;
+    }
+
+    .option-item input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    .option-item label {
+        margin: 0;
+        cursor: pointer;
+        font-weight: 400;
+    }
+
+    /* Botones */
+    .form-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #e9ecef;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 0.75rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+        background: #2c3e50;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #1a252f;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(44, 62, 80, 0.3);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.6s linear infinite;
+        margin-left: 0.5rem;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Scrollbar personalizado */
+    .users-list-container::-webkit-scrollbar,
+    .form-container::-webkit-scrollbar,
+    .options-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .users-list-container::-webkit-scrollbar-track,
+    .form-container::-webkit-scrollbar-track,
+    .options-list::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .users-list-container::-webkit-scrollbar-thumb,
+    .form-container::-webkit-scrollbar-thumb,
+    .options-list::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+
+    .users-list-container::-webkit-scrollbar-thumb:hover,
+    .form-container::-webkit-scrollbar-thumb:hover,
+    .options-list::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+        .permissions-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .main-container {
+            flex-direction: column;
+        }
+
+        .left-panel {
+            flex: 0 0 40%;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .permissions-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="main-container">
+    <!-- Panel Izquierdo - Lista de Usuarios -->
+    <div class="left-panel">
+        <div class="panel-header">
+            <h2>👥 Usuarios Registrados</h2>
+            <p>Usuarios activos en el sistema</p>
+        </div>
+        
+        <div class="users-list-container">
+            <div class="search-box">
+                <input type="text" id="searchUsers" placeholder="Buscar usuario...">
+            </div>
+            
+            <div id="usersList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <p>Cargando usuarios...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Derecho - Formulario -->
+    <div class="right-panel">
+        <div class="panel-header">
+            <h2>➕ Registro de Nuevo Usuario</h2>
+            <p>Complete los datos para crear un nuevo usuario</p>
+        </div>
+
+        <div class="form-container">
+            <form id="userForm">
+                <!-- Información Básica -->
+                <div class="form-section">
+                    <h3 class="section-title">📝 Información Básica</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nombre_area" class="required">Nombre del Área</label>
+                            <input type="text" id="nombre_area" name="nombre_area" 
+                                   placeholder="Ej: Recursos Humanos" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="correo" class="required">Correo Institucional</label>
+                            <input type="email" id="correo" name="correo" 
+                                   placeholder="usuario@institucion.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contra" class="required">Contraseña</label>
+                            <div class="password-wrapper">
+                                <input type="password" id="contra" name="contra" 
+                                       placeholder="Mínimo 8 caracteres" required minlength="8">
+                                <button type="button" class="password-toggle" onclick="togglePassword()">
+                                    👁️
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tipo_usuario" class="required">Tipo de Usuario</label>
+                            <select id="tipo_usuario" name="tipo_usuario" required onchange="cambiarTipoUsuario()">
+                                <option value="">Seleccione...</option>
+                                <option value="denuncia">Gestión de Denuncias</option>
+                                <option value="emergencia">Gestión de Emergencias</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permisos -->
+                <div class="form-section">
+                    <h3 class="section-title">🔐 Configuración de Permisos</h3>
+                    
+                    <div class="permissions-grid">
+                        <!-- Denuncias -->
+                        <div class="permission-card" id="card-denuncias">
+                            <div class="permission-header">
+                                <span class="permission-title">📋 Denuncias</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="toggle-denuncias" checked 
+                                           onchange="togglePermission('denuncias')">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="options-list" id="list-denuncias"></div>
+                        </div>
+
+                        <!-- Emergencias -->
+                        <div class="permission-card" id="card-emergencias">
+                            <div class="permission-header">
+                                <span class="permission-title">🚨 Emergencias</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="toggle-emergencias" 
+                                           onchange="togglePermission('emergencias')">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="options-list" id="list-emergencias"></div>
+                        </div>
+
+                        <!-- Riesgos -->
+                        <div class="permission-card" id="card-riesgos">
+                            <div class="permission-header">
+                                <span class="permission-title">⚠️ Riesgos</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="toggle-riesgos" 
+                                           onchange="togglePermission('riesgos')">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="options-list" id="list-riesgos"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="limpiarFormulario()">
+                        Limpiar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        Registrar Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const BASE_URL = '{{ BASE_URL }}';
+    let denuncias = [];
+    let emergencias = [];
+    let riesgos = [];
+    let usuarios = [];
+
+    // Cargar datos al iniciar
+    document.addEventListener('DOMContentLoaded', function() {
+        cargarDatosIniciales();
+    });
+
+    async function cargarDatosIniciales() {
+        try {
+            // Cargar denuncias
+            const resDenuncias = await fetch(`${BASE_URL}/api/central/usuarios/denuncias_disponibles`);
+            if (resDenuncias.ok) {
+                const data = await resDenuncias.json();
+                denuncias = data.message || [];
+                renderizarOpciones('denuncias', denuncias);
+            }
+
+            // Cargar emergencias
+            const resEmergencias = await fetch(`${BASE_URL}/api/central/usuarios/emergencias_disponibles`);
+            if (resEmergencias.ok) {
+                const data = await resEmergencias.json();
+                emergencias = data.message || [];
+                renderizarOpciones('emergencias', emergencias);
+            }
+
+            // Cargar riesgos
+            const resRiesgos = await fetch(`${BASE_URL}/api/central/usuarios/riesgos_disponibles`);
+            if (resRiesgos.ok) {
+                const data = await resRiesgos.json();
+                riesgos = data.message || [];
+                renderizarOpciones('riesgos', riesgos);
+            }
+
+            // Cargar usuarios
+            await cargarUsuarios();
+
+        } catch (error) {
+            console.error('Error al cargar datos:', error);
+        }
+    }
+
+    async function cargarUsuarios() {
+        try {
+            const response = await fetch(`${BASE_URL}/api/central/usuarios/correos`);
+            if (response.ok) {
+                const data = await response.json();
+                usuarios = data.message || [];
+                renderizarUsuarios(usuarios);
+            } else {
+                document.getElementById('usersList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>No hay usuarios registrados</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error al cargar usuarios:', error);
+            document.getElementById('usersList').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">❌</div>
+                    <p>Error al cargar usuarios</p>
+                </div>
+            `;
+        }
+    }
+
+    function renderizarUsuarios(usuarios) {
+        const container = document.getElementById('usersList');
+        
+        if (!usuarios || usuarios.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <p>No hay usuarios registrados</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = usuarios.map(user => `
+            <div class="user-card">
+                <div class="user-card-header">
+                    <div>
+                        <div class="user-name">${user.nombre_area || 'Sin nombre'}</div>
+                        <span class="user-email">${user.correo || 'Sin correo'}</span>
+                    </div>
+                </div>
+                <div class="user-tags">
+                    ${user.tipo ? `<span class="tag ${user.tipo}">${user.tipo}</span>` : ''}
+                    ${user.permisos ? user.permisos.split(',').map(p => 
+                        `<span class="tag">${p.trim()}</span>`
+                    ).join('') : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderizarOpciones(tipo, datos) {
+        const container = document.getElementById(`list-${tipo}`);
+        if (!datos || datos.length === 0) {
+            container.innerHTML = '<p style="font-size: 0.8rem; color: #6c757d; padding: 0.5rem 0;">No hay opciones disponibles</p>';
+            return;
+        }
+
+        const idKey = tipo === 'denuncias' ? 'id_denuncia' : 
+                      tipo === 'emergencias' ? 'id_numero_emergencia' : 'id_riesgo';
+
+        container.innerHTML = datos.map(item => `
+            <div class="option-item">
+                <input type="checkbox" id="${tipo}-${item[idKey]}" 
+                       name="${tipo}" value="${item[idKey]}">
+                <label for="${tipo}-${item[idKey]}">${item.nombre}</label>
+            </div>
+        `).join('');
+    }
+
+    function togglePermission(tipo) {
+        const toggle = document.getElementById(`toggle-${tipo}`);
+        const checkboxes = document.querySelectorAll(`input[name="${tipo}"]`);
+        checkboxes.forEach(cb => cb.disabled = !toggle.checked);
+    }
+
+    function cambiarTipoUsuario() {
+        const tipo = document.getElementById('tipo_usuario').value;
+        
+        // Reset todos los toggles
+        document.getElementById('toggle-denuncias').checked = false;
+        document.getElementById('toggle-emergencias').checked = false;
+        document.getElementById('toggle-riesgos').checked = false;
+
+        // Activar según el tipo
+        if (tipo === 'denuncia') {
+            document.getElementById('toggle-denuncias').checked = true;
+            document.getElementById('toggle-riesgos').checked = true;
+        } else if (tipo === 'emergencia') {
+            document.getElementById('toggle-emergencias').checked = true;
+        }
+
+        // Actualizar estados
+        togglePermission('denuncias');
+        togglePermission('emergencias');
+        togglePermission('riesgos');
+    }
+
+    function togglePassword() {
+        const input = document.getElementById('contra');
+        const button = event.target;
+        if (input.type === 'password') {
+            input.type = 'text';
+            button.textContent = '🙈';
+        } else {
+            input.type = 'password';
+            button.textContent = '👁️';
+        }
+    }
+
+    function limpiarFormulario() {
+        document.getElementById('userForm').reset();
+        document.querySelectorAll('input[type="checkbox"][name]').forEach(cb => cb.checked = false);
+    }
+
+    // Búsqueda de usuarios
+    document.getElementById('searchUsers').addEventListener('input', function(e) {
+        const search = e.target.value.toLowerCase();
+        const filtered = usuarios.filter(user => 
+            (user.nombre || '').toLowerCase().includes(search) ||
+            (user.correo || '').toLowerCase().includes(search)
+        );
+        renderizarUsuarios(filtered);
+    });
+
+    // Submit del formulario
+    document.getElementById('userForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const nombre = document.getElementById('nombre_area').value.trim();
+        const correo = document.getElementById('correo').value.trim();
+        const contra = document.getElementById('contra').value.trim();
+        const tipoUsuario = document.getElementById('tipo_usuario').value;
+
+        if (!tipoUsuario) {
+            alert('⚠️ Debe seleccionar un tipo de usuario');
+            return;
+        }
+
+        // Recolectar permisos seleccionados
+        const permisosSeleccionados = [];
+        
+        const recolectar = (tipo) => {
+            const toggle = document.getElementById(`toggle-${tipo}`);
+            if (toggle.checked) {
+                const checkboxes = document.querySelectorAll(`input[name="${tipo}"]:checked`);
+                checkboxes.forEach(cb => permisosSeleccionados.push(parseInt(cb.value)));
+            }
+        };
+
+        if (tipoUsuario === 'denuncia') {
+            recolectar('denuncias');
+            recolectar('riesgos');
+        } else if (tipoUsuario === 'emergencia') {
+            recolectar('emergencias');
+        }
+
+        if (permisosSeleccionados.length === 0) {
+            alert('⚠️ Debe seleccionar al menos un permiso');
+            return;
+        }
+
+        const data = {
+            nombre: nombre,
+            correo: correo,
+            contra: contra,
+            denuncias: permisosSeleccionados
+        };
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Registrando... <span class="loading-spinner"></span>';
+
+        try {
+            const endpoint = tipoUsuario === 'denuncia' 
+                ? `${BASE_URL}/api/central/usuarios/crear/denuncia`
+                : `${BASE_URL}/api/central/usuarios/crear/emergencia`;
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert('✅ Usuario registrado correctamente');
+                limpiarFormulario();
+                await cargarUsuarios();
+            } else {
+                alert('❌ Error: ' + (result.error || 'No se pudo registrar el usuario'));
+            }
+        } catch (error) {
+            alert('❌ Error al registrar: ' + error.message);
+            console.error(error);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Registrar Usuario';
+        }
+    });
+</script>
+
+{% endblock %}

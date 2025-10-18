@@ -1,0 +1,78 @@
+<div class="card shadow-sm">
+    <div class="card-header" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h4 style="margin: 0; font-weight: 600;">📜 Historial de Cambios</h4>
+                <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">
+                    Registro completo de modificaciones en recursos y configuraciones
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body" style="padding: 25px;">
+        <!-- BARRA DE ACCIONES Y FILTROS -->
+        <div style="display: flex; gap: 12px; margin-bottom: 25px; flex-wrap: wrap; align-items: flex-end;">
+            <button class="btn btn-primary" onclick="cargarHistorial()" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+            <button class="btn btn-info" onclick="exportarHistorial()" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-file-download"></i> Exportar
+            </button>
+            
+            <div style="margin-left: auto; display: flex; gap: 15px;">
+                <div>
+                    <label style="font-size: 13px; font-weight: 600; margin-bottom: 5px; display: block;">Tipo:</label>
+                    <select id="filtroTipoHistorial" class="form-select" onchange="cargarHistorial()" style="width: 180px;">
+                        <option value="">Todos los tipos</option>
+                        <option value="RECURSO">Recursos</option>
+                        <option value="CONFIGURACION">Configuraciones</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 13px; font-weight: 600; margin-bottom: 5px; display: block;">Límite:</label>
+                    <select id="limiteHistorial" class="form-select" onchange="cargarHistorial()" style="width: 120px;">
+                        <option value="20">20 registros</option>
+                        <option value="50" selected>50 registros</option>
+                        <option value="100">100 registros</option>
+                        <option value="200">200 registros</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABLA DE HISTORIAL -->
+        <div style="overflow-x: auto;">
+            <table class="table table-hover" id="tablaHistorial" style="margin-bottom: 0;">
+                <thead style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                    <tr>
+                        <th style="padding: 15px; font-weight: 600; width: 60px;">ID</th>
+                        <th style="padding: 15px; font-weight: 600; width: 120px;">Tipo</th>
+                        <th style="padding: 15px; font-weight: 600; width: 100px;">ID Registro</th>
+                        <th style="padding: 15px; font-weight: 600; width: 180px;">Campo</th>
+                        <th style="padding: 15px; font-weight: 600; width: 200px;">Valor Anterior</th>
+                        <th style="padding: 15px; font-weight: 600; width: 200px;">Valor Nuevo</th>
+                        <th style="padding: 15px; font-weight: 600; width: 150px;">Usuario</th>
+                        <th style="padding: 15px; font-weight: 600;">Motivo</th>
+                        <th style="padding: 15px; font-weight: 600; width: 180px;">Fecha</th>
+                    </tr>
+                </thead>
+                <tbody id="bodyTablaHistorial">
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 50px; color: #999;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p style="margin-top: 15px;">Cargando historial...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINACIÓN -->
+        <div id="paginacionHistorial" style="margin-top: 20px; display: flex; justify-content: center;">
+            <!-- Se genera dinámicamente -->
+        </div>
+    </div>
+</div>

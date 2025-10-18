@@ -1,0 +1,100 @@
+<div id="tab-prediccion" class="tab-content active">
+  <!-- Control Panel -->
+  <div class="control-panel">
+    <h3 style="margin-top: 0;">🎯 Configurar Predicción</h3>
+    
+    <div class="control-row">
+      <div class="control-group">
+        <label>Año</label>
+        <input type="number" id="yearInput" min="2027" max="2035" value="2027">
+      </div>
+      <div class="control-group">
+        <label>Mes</label>
+        <select id="monthInput">
+          <option value="1">Enero</option>
+          <option value="2">Febrero</option>
+          <option value="3">Marzo</option>
+          <option value="4">Abril</option>
+          <option value="5">Mayo</option>
+          <option value="6">Junio</option>
+          <option value="7">Julio</option>
+          <option value="8">Agosto</option>
+          <option value="9">Septiembre</option>
+          <option value="10">Octubre</option>
+          <option value="11">Noviembre</option>
+          <option value="12">Diciembre</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="predecirMes()">
+        🔮 Predecir Mes
+      </button>
+    </div>
+
+    <div class="control-row" style="margin-bottom: 0;">
+      <div class="control-group">
+        <label>Predecir Rango de Meses</label>
+        <input type="number" id="rangoMeses" min="1" max="24" value="6" placeholder="Ej: 6 meses">
+      </div>
+      <button class="btn btn-success" onclick="predecirRango()">
+        📅 Predecir Rango
+      </button>
+    </div>
+  </div>
+
+  <!-- Panel de Filtros -->
+<div id="panelFiltros" class="control-panel">
+  <h3 style="margin: 0 0 20px 0; color: #333; text-align: center;">🎛️ Filtros de Visualización</h3>
+  
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+    <!-- Filtros de Denuncias -->
+    <div id="filtrosDenuncias" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"></div>
+    
+    <!-- Filtros de Emergencias -->
+    <div id="filtrosEmergencias" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"></div>
+  </div>
+  
+  <div style="margin-top: 15px; padding: 15px;  border-radius: 8px; border-left: 4px solid #ff9800; text-align: center;">
+    <p style="margin: 0; color: #e65100; font-size: 14px;">
+      💡 <strong>Tip:</strong> Selecciona o deselecciona tipos específicos para analizar patrones particulares en las predicciones
+    </p>
+  </div>
+</div>
+
+  <!-- Resultado de predicción -->
+  <div id="resultadoPrediccion" style="display: none;">
+    <!-- Cards con resumen -->
+    <div class="cards-grid">
+      <div class="metric-card">
+        <h3>📋 Total Denuncias Ciudadanas</h3>
+        <div class="metric-value" id="totalDenuncias">-</div>
+        <div class="metric-subtitle">Casos esperados en el mes<br><small style="opacity: 0.6;">Suma de todos los tipos de denuncia</small></div>
+      </div>
+      <div class="metric-card">
+        <h3>🚨 Total Llamadas Emergencia</h3>
+        <div class="metric-value" id="totalEmergencias">-</div>
+        <div class="metric-subtitle">Llamadas esperadas al mes<br><small style="opacity: 0.6;">Policía, bomberos, ambulancia, etc.</small></div>
+      </div>
+      <div class="metric-card">
+        <h3>⚠️ Denuncia Más Frecuente</h3>
+        <div class="metric-value" id="tipoMasFrecuente" style="font-size: 20px;">-</div>
+        <div class="metric-subtitle">Tipo con más casos<br><small style="opacity: 0.6;">Priorizar recursos para este tipo</small></div>
+      </div>
+      <div class="metric-card">
+        <h3>🎯 Precisión del Modelo</h3>
+        <div class="metric-value" id="confianzaModelo">-</div>
+        <div class="metric-subtitle">Nivel de confiabilidad<br><small style="opacity: 0.6;">>90% = Muy confiable</small></div>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="chart-container">
+      <h3>📊 Predicción de Denuncias por Tipo</h3>
+      <canvas id="chartDenuncias"></canvas>
+    </div>
+
+    <div class="chart-container">
+      <h3>🚨 Predicción de Emergencias por Tipo</h3>
+      <canvas id="chartEmergencias"></canvas>
+    </div>
+  </div>
+</div>

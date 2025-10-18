@@ -1,0 +1,67 @@
+<div class="card shadow-sm">
+    <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h4 style="margin: 0; font-weight: 600;">📦 Inventario de Recursos Físicos</h4>
+                <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">
+                    Personal, vehículos e infraestructura disponible en el municipio
+                </p>
+            </div>
+            <span id="badgeTotalRecursos" class="badge" style="background: rgba(255,255,255,0.3); font-size: 14px; padding: 8px 16px;">
+                0 recursos
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body" style="padding: 25px;">
+        <!-- BARRA DE ACCIONES -->
+        <div style="display: flex; gap: 12px; margin-bottom: 25px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="cargarRecursos()" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-sync-alt"></i> Actualizar Lista
+            </button>
+            <button class="btn btn-success" onclick="mostrarModalNuevoRecurso()" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-plus"></i> Agregar Recurso
+            </button>
+            <button class="btn btn-info" onclick="exportarRecursos()" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-file-download"></i> Exportar CSV
+            </button>
+            <button class="btn btn-warning" onclick="mostrarModalActualizacionMasiva()" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-edit"></i> Actualización Masiva
+            </button>
+        </div>
+
+        <!-- BUSCADOR -->
+        <div style="margin-bottom: 20px;">
+            <input type="text" id="buscarRecurso" class="form-control" 
+                   placeholder="🔍 Buscar recurso por nombre..." 
+                   onkeyup="filtrarRecursos()"
+                   style="max-width: 400px; border-radius: 8px;">
+        </div>
+
+        <!-- TABLA DE RECURSOS -->
+        <div style="overflow-x: auto;">
+            <table class="table table-hover" id="tablaRecursos" style="margin-bottom: 0;">
+                <thead style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                    <tr>
+                        <th style="padding: 15px; font-weight: 600; width: 80px;">ID</th>
+                        <th style="padding: 15px; font-weight: 600;">Recurso</th>
+                        <th style="padding: 15px; font-weight: 600; text-align: center; width: 150px;">Cantidad</th>
+                        <th style="padding: 15px; font-weight: 600; width: 300px;">Descripción</th>
+                        <th style="padding: 15px; font-weight: 600; width: 200px;">Última Actualización</th>
+                        <th style="padding: 15px; font-weight: 600; text-align: center; width: 220px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="bodyTablaRecursos">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 50px; color: #999;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p style="margin-top: 15px;">Cargando recursos...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,2588 @@
+{% extends "partials/sidebar.html" %}
+{% block title %}Dashboard de Incidencias - Sistema de Monitoreo DBSCAN{% endblock %}
+
+{% block content %}
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    :root {
+        --primary-color: #000000;
+        --primary-hover: #333333;
+        --secondary-color: #64748b;
+        --success-color: #059669;
+        --warning-color: #d97706;
+        --error-color: #dc2626;
+        --info-color: #0284c7;
+        --background-main: #f8fafc;
+        --background-card: #ffffff;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --text-muted: #94a3b8;
+        --border-color: #e2e8f0;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --radius-sm: 0.375rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body, html {
+        height: 100%;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background-color: var(--background-main);
+        color: var(--text-primary);
+        overflow: hidden;
+    }
+
+    .dashboard-container {
+        display: flex;
+        height: 100vh;
+        position: relative;
+    }
+
+    .dashboard-sidebar {
+        width: 380px;
+        background: var(--background-card);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow-md);
+        z-index: 1000;
+    }
+
+    .sidebar-header {
+        padding: 1.5rem;
+        
+        background: black;
+        color: white;
+    }
+
+    .sidebar-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .sidebar-subtitle {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        font-weight: 400;
+    }
+
+    .sidebar-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+
+    .status-indicator.online {
+        background-color: rgba(5, 150, 105, 0.1);
+        color: var(--success-color);
+    }
+
+    .status-indicator.loading {
+        background-color: rgba(217, 119, 6, 0.1);
+        color: var(--warning-color);
+    }
+
+    .status-indicator.offline {
+        background-color: rgba(220, 38, 38, 0.1);
+        color: var(--error-color);
+    }
+
+    .status-dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background-color: currentColor;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .time-filters {
+        padding: 1rem;
+        background: var(--background-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        margin-bottom: 1rem;
+    }
+
+    .time-filters-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .time-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .time-btn {
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: var(--background-card);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
+    }
+
+    .time-btn:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        background: rgba(0, 0, 0, 0.02);
+    }
+
+    .time-btn.active {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+
+    .metrics-grid {
+        display: grid;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .metric-card {
+        background: var(--background-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.2s ease;
+    }
+
+    .metric-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
+    }
+
+    .metric-card.clickable {
+        cursor: pointer;
+        position: relative;
+    }
+
+    .metric-card.clickable::after {
+        content: '\f0a9';
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        position: absolute;
+        top: 1.25rem;
+        right: 1.25rem;
+        color: var(--text-muted);
+        font-size: 1rem;
+    }
+
+    .metric-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .metric-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .metric-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        color: white;
+    }
+
+    .metric-icon.primary { background-color: var(--primary-color); }
+    .metric-icon.warning { background-color: var(--warning-color); }
+    .metric-icon.success { background-color: var(--success-color); }
+    .metric-icon.error { background-color: var(--error-color); }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-description {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        line-height: 1.4;
+    }
+
+    .cluster-detail-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        backdrop-filter: blur(4px);
+    }
+
+    .cluster-detail-modal.show {
+        display: flex;
+    }
+
+    .cluster-detail-content {
+        background: white;
+        border-radius: var(--radius-lg);
+        max-width: 900px;
+        max-height: 85vh;
+        width: 95%;
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cluster-detail-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+        color: white;
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .cluster-detail-header h2 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .cluster-detail-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .cluster-detail-close:hover {
+        transform: scale(1.1);
+    }
+
+    .cluster-detail-tabs {
+        display: flex;
+        background: #f8f9fa;
+        border-bottom: 2px solid var(--border-color);
+        flex-shrink: 0;
+    }
+
+    .cluster-tab {
+        flex: 1;
+        padding: 1rem;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        color: var(--text-secondary);
+        transition: all 0.2s;
+        border-bottom: 3px solid transparent;
+    }
+
+    .cluster-tab:hover {
+        background: rgba(0,0,0,0.02);
+    }
+
+    .cluster-tab.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+        background: white;
+    }
+
+    .cluster-detail-body {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .cluster-item {
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        transition: all 0.2s;
+    }
+
+    .cluster-item:hover {
+        box-shadow: var(--shadow-sm);
+        border-color: var(--primary-color);
+        cursor: pointer;
+    }
+
+    .cluster-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .cluster-color-box {
+        width: 50px;
+        height: 50px;
+        border-radius: var(--radius-md);
+        flex-shrink: 0;
+        border: 3px solid rgba(0,0,0,0.1);
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 0.75rem;
+    }
+
+    .cluster-item-info {
+        flex: 1;
+    }
+
+    .cluster-item-title {
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+    }
+
+    .cluster-item-detail {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+    }
+
+    .cluster-item-detail strong {
+        color: var(--text-primary);
+    }
+
+    .cluster-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.25rem;
+        border-radius: var(--radius-md);
+        color: white;
+    }
+
+    .stat-box.blue {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .stat-box.green {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .stat-box.orange {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    .stat-box-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-box-value {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .category-bar {
+        margin-bottom: 1rem;
+    }
+
+    .category-bar-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .category-bar-label {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .category-bar-value {
+        color: var(--text-secondary);
+    }
+
+    .category-bar-fill-container {
+        width: 100%;
+        height: 8px;
+        background: var(--border-color);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .category-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--info-color), var(--primary-color));
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+
+    .incident-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .incident-card {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 0.75rem;
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .incident-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 0.5rem;
+    }
+
+    .incident-id {
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .incident-date {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .incident-description {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    .incident-meta {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        font-size: 0.75rem;
+    }
+
+    .incident-badge {
+        background: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+        font-weight: 500;
+    }
+
+    .search-box {
+        margin-bottom: 1.5rem;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    .controls-section {
+        background: var(--background-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .controls-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .control-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .control-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .control-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    .control-slider {
+        width: 100%;
+        height: 0.375rem;
+        border-radius: var(--radius-sm);
+        background: var(--border-color);
+        outline: none;
+        appearance: none;
+        cursor: pointer;
+        margin-bottom: 0.5rem;
+    }
+
+    .control-slider::-webkit-slider-thumb {
+        appearance: none;
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 50%;
+        background: var(--primary-color);
+        cursor: pointer;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.2s ease;
+    }
+
+    .control-slider::-webkit-slider-thumb:hover {
+        background: var(--primary-hover);
+        box-shadow: var(--shadow-md);
+    }
+
+    .control-value {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .control-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .control-btn {
+        flex: 1;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: var(--background-card);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
+        min-width: 0;
+    }
+
+    .control-btn:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        background: rgba(0, 0, 0, 0.02);
+    }
+
+    .control-btn.active {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+
+    .control-btn.danger {
+        border-color: var(--error-color);
+        color: var(--error-color);
+    }
+
+    .control-btn.danger:hover {
+        background: var(--error-color);
+        color: white;
+    }
+
+    .map-container {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #map {
+        width: 100%;
+        height: 100%;
+    }
+
+    .map-controls {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .map-btn {
+        background: var(--background-card);
+        border: 1px solid var(--border-color);
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        cursor: pointer;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.2s ease;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+    }
+
+    .map-btn:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
+        border-color: var(--primary-color);
+    }
+
+    .map-btn.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid currentColor;
+        border-top: 2px solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .mapboxgl-popup-content {
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        padding: 0;
+        max-width: 320px;
+    }
+
+    .popup-header {
+        background: var(--primary-color);
+        color: white;
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .popup-content {
+        padding: 1rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .popup-field {
+        margin-bottom: 0.5rem;
+    }
+
+    .popup-field:last-child {
+        margin-bottom: 0;
+    }
+
+    .popup-label {
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    .popup-value {
+        color: var(--text-primary);
+    }
+
+    .error-message {
+        padding: 1rem;
+        background: rgba(220, 38, 38, 0.1);
+        border: 1px solid rgba(220, 38, 38, 0.2);
+        border-radius: var(--radius-md);
+        color: var(--error-color);
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+        display: none;
+    }
+
+    .error-message.show {
+        display: block;
+    }
+
+    .export-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .export-btn {
+        flex: 1;
+        padding: 0.75rem;
+        background: linear-gradient(135deg, var(--success-color), #10b981);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .export-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .export-btn.csv {
+        background: linear-gradient(135deg, var(--info-color), #0ea5e9);
+    }
+
+    @media (max-width: 1024px) {
+        .dashboard-sidebar {
+            width: 320px;
+        }
+        .metric-value {
+            font-size: 1.75rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-container {
+            flex-direction: column;
+        }
+        .dashboard-sidebar {
+            width: 100%;
+            height: 50vh;
+            border-right: none;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .map-container {
+            height: 50vh;
+        }
+        .map-controls {
+            top: 0.5rem;
+            right: 0.5rem;
+        }
+        .cluster-detail-content {
+            max-width: 100%;
+            max-height: 90vh;
+        }
+    }
+
+    .type-filters {
+        padding: 1rem;
+        background: var(--background-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        margin-bottom: 1rem;
+    }
+
+    .grid-controls {
+    padding: 1rem;
+    background: var(--background-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    margin-bottom: 1rem;
+}
+
+.grid-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    color: white;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.quadrant-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+
+    /* ✅ Scroll horizontal */
+    overflow-x: auto;
+    white-space: nowrap;
+    max-width: 100%;
+    padding-bottom: 0.3rem; /* espacio para el scrollbar */
+}
+
+
+.quadrant-stat {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.quadrant-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: block;
+}
+
+.quadrant-stat-label {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+
+</style>
+
+<div class="dashboard-container">
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <h1 class="sidebar-title">
+                <i class="fas fa-map-marked-alt"></i>
+                Sistema DBSCAN
+            </h1>
+            <p class="sidebar-subtitle">Análisis de Clusters - Municipalidad de Reque</p>
+        </div>
+        
+        <div class="sidebar-content">
+            <div class="status-indicator loading" id="system-status">
+                <div class="status-dot"></div>
+                <span id="status-text">Inicializando...</span>
+            </div>
+
+            <div class="error-message" id="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span id="error-text">Error</span>
+            </div>
+
+            <div class="time-filters">
+                <div class="time-filters-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    Filtro Temporal
+                </div>
+                <div class="time-buttons">
+                    <button class="time-btn active" data-filter="all">
+                        <i class="fas fa-infinity"></i>
+                        Todos
+                    </button>
+                    <button class="time-btn" data-filter="week">
+                        <i class="fas fa-calendar-week"></i>
+                        Semana
+                    </button>
+                    <button class="time-btn" data-filter="month">
+                        <i class="fas fa-calendar"></i>
+                        Mes
+                    </button>
+                    <button class="time-btn" data-filter="year">
+                        <i class="fas fa-calendar-check"></i>
+                        Año
+                    </button>
+                </div>
+            </div>
+
+            <div class="type-filters">
+                <div class="time-filters-title">
+                    <i class="fas fa-filter"></i>
+                    Filtro por Tipo
+                </div>
+                <div class="time-buttons">
+                    <button class="time-btn active" data-type="all">
+                        <i class="fas fa-th"></i>
+                        Todos
+                    </button>
+                    <button class="time-btn" data-type="denuncias">
+                        <i class="fas fa-file-alt"></i>
+                        Denuncias
+                    </button>
+                    <button class="time-btn" data-type="emergencias">
+                        <i class="fas fa-ambulance"></i>
+                        Emergencias
+                    </button>
+                </div>
+            </div>
+
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">Total Incidencias</span>
+                        <div class="metric-icon primary">
+                            <i class="fas fa-database"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value" id="total-incidents">-</div>
+                    <div class="metric-description">Registros procesados</div>
+                </div>
+
+                <div class="metric-card clickable" id="clusters-card">
+                    <div class="metric-header">
+                        <span class="metric-title">Clusters</span>
+                        <div class="metric-icon warning">
+                            <i class="fas fa-fire"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value" id="heat-zones">-</div>
+                    <div class="metric-description">Clic para ver detalles</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">Puntos Aislados</span>
+                        <div class="metric-icon success">
+                            <i class="fas fa-dot-circle"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value" id="outliers">-</div>
+                    <div class="metric-description">Ruido detectado</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">Agrupados</span>
+                        <div class="metric-icon primary">
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value" id="coverage">-</div>
+                    <div class="metric-description">% en clusters</div>
+                </div>
+            </div>
+
+            <div class="controls-section">
+                <h3 class="controls-title">
+                    <i class="fas fa-sliders-h"></i>
+                    Visualización
+                </h3>
+
+                <div class="control-group">
+                    <label class="control-label">Intensidad Mapa de Calor</label>
+                    <input type="range" class="control-slider" id="heat-intensity" 
+                           min="0.5" max="3" value="1.5" step="0.1">
+                    <div class="control-value">
+                        <span id="intensity-value">1.5</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Radio de Influencia</label>
+                    <input type="range" class="control-slider" id="heat-radius" 
+                           min="20" max="100" value="40" step="5">
+                    <div class="control-value">
+                        <span id="radius-value">40</span>px
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Capas</label>
+                    <div class="control-buttons">
+                        <button class="control-btn active" id="toggle-heatmap">
+                            <i class="fas fa-fire"></i>
+                            Calor
+                        </button>
+                        <button class="control-btn active" id="toggle-clusters">
+                            <i class="fas fa-circle"></i>
+                            Puntos
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <button class="control-btn danger" id="refresh-data" style="width: 100%;">
+                        <i class="fas fa-sync-alt"></i>
+                        Actualizar
+                    </button>
+                </div>
+
+                <div class="grid-controls">
+                    <h3 class="controls-title">
+                        <i class="fas fa-th"></i>
+                        Cuadrantes
+                    </h3>
+                    <div class="control-group">
+                        <label class="control-label">Grilla 5x5</label>
+                        <div class="control-buttons">
+                            <button class="control-btn" id="toggle-grid">
+                                <i class="fas fa-border-all"></i>
+                                Mostrar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid-info" id="grid-info" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>25 cuadrantes</strong> activos sobre Reque
+                        <div class="quadrant-stats" id="quadrant-stats">
+                            <!-- Stats dinámicas -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="map-container">
+        <div id="map"></div>
+        <div class="map-controls">
+            <button class="map-btn" id="toggle-style-btn">
+                <i class="fas fa-satellite"></i>
+                Satélite
+            </button>
+            <button class="map-btn" id="fullscreen-btn">
+                <i class="fas fa-expand"></i>
+                Pantalla
+            </button>
+        </div>
+    </main>
+</div>
+
+<!-- Modal de detalles de clusters -->
+<div class="cluster-detail-modal" id="cluster-modal">
+    <div class="cluster-detail-content">
+        <div class="cluster-detail-header">
+            <h2><i class="fas fa-chart-network"></i> Análisis de Clusters DBSCAN</h2>
+            <button class="cluster-detail-close" id="close-modal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="cluster-detail-tabs">
+            <button class="cluster-tab active" data-tab="overview">
+                <i class="fas fa-chart-pie"></i> Resumen
+            </button>
+            <button class="cluster-tab" data-tab="clusters">
+                <i class="fas fa-list"></i> Todos los Clusters
+            </button>
+            <button class="cluster-tab" data-tab="details">
+                <i class="fas fa-file-alt"></i> Incidencias
+            </button>
+            <button class="cluster-tab" data-tab="export">
+                <i class="fas fa-download"></i> Exportar
+            </button>
+        </div>
+
+        <div class="cluster-detail-body">
+            <!-- Tab: Resumen -->
+            <div class="tab-content active" id="tab-overview">
+                <div class="cluster-stats-grid" id="stats-grid">
+                    <!-- Estadísticas dinámicas -->
+                </div>
+                
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: var(--text-primary);">
+                    <i class="fas fa-chart-bar"></i> Distribución por Categoría
+                </h3>
+                <div id="category-distribution">
+                    <!-- Barras de categorías -->
+                </div>
+            </div>
+
+            <!-- Tab: Todos los Clusters -->
+            <div class="tab-content" id="tab-clusters">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="cluster-search" placeholder="Buscar cluster por ID o categoría...">
+                </div>
+                <div id="cluster-list">
+                    <!-- Lista de clusters -->
+                </div>
+            </div>
+
+            <!-- Tab: Detalles de Incidencias -->
+            <div class="tab-content" id="tab-details">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="incident-search" placeholder="Buscar incidencia por descripción...">
+                </div>
+                <div class="incident-list" id="incident-list">
+                    <!-- Lista de incidencias -->
+                </div>
+            </div>
+
+            <!-- Tab: Exportar -->
+            <div class="tab-content" id="tab-export">
+                <h3 style="margin-bottom: 1rem;">Exportar Datos del Análisis</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Descarga los resultados del clustering en diferentes formatos para análisis externo.
+                </p>
+                
+                <div class="export-buttons">
+                    <button class="export-btn" id="export-json">
+                        <i class="fas fa-file-code"></i>
+                        Exportar JSON
+                    </button>
+                    <button class="export-btn csv" id="export-csv">
+                        <i class="fas fa-file-csv"></i>
+                        Exportar CSV
+                    </button>
+                </div>
+
+                <div style="margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: var(--radius-md);">
+                    <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem;">Contenido del Export:</h4>
+                    <ul style="font-size: 0.875rem; color: var(--text-secondary); margin-left: 1.5rem;">
+                        <li>Información completa de clusters</li>
+                        <li>Estadísticas por cluster</li>
+                        <li>Todas las incidencias con su clasificación</li>
+                        <li>Coordenadas geográficas</li>
+                        <li>Categorías y fechas</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+class IncidentMonitoringSystem {
+    constructor() {
+        this.map = null;
+        this.incidencias = [];
+        this.incidenciasFiltradas = [];
+        this.filtroTemporal = 'all';
+        this.filtroTipo = 'all'; // NUEVO
+        this.isLoading = false;
+        this.retryCount = 0;
+        this.maxRetries = 3;
+        this.retryDelay = 2000;
+        this.clusterColors = new Map();
+        this.selectedCluster = null;
+        this.gridVisible = false;
+        this.cuadrantesData = null;
+        
+        this.mapConfig = {
+            accessToken: 'pk.eyJ1IjoicGVkcm8xMjNhYmMiLCJhIjoiY21hcGh0YWRmMGk0ZTJscTc0Yml2djM2MSJ9.RdRrSKRsvzGdhNNCDBxPiA',
+            styles: {
+                street: 'mapbox://styles/mapbox/streets-v12',
+                satellite: 'mapbox://styles/mapbox/satellite-streets-v12'
+            },
+            center: [-79.8175, -6.8644],
+            zoom: 14
+        };
+        
+        this.currentStyle = 'street';
+        this.init();
+    }
+
+    generateColorForCluster(clusterId) {
+        if (this.clusterColors.has(clusterId)) {
+            return this.clusterColors.get(clusterId);
+        }
+        
+        const goldenRatio = 0.618033988749895;
+        const hue = (clusterId * goldenRatio * 360) % 360;
+        const saturation = 65 + (clusterId * 7) % 20;
+        const lightness = 45 + (clusterId * 5) % 15;
+        
+        const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        this.clusterColors.set(clusterId, color);
+        return color;
+    }
+
+    hslToHex(h, s, l) {
+        s /= 100;
+        l /= 100;
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+        let r = 0, g = 0, b = 0;
+        
+        if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+        else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+        else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+        else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+        else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
+        else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+        
+        r = Math.round((r + m) * 255);
+        g = Math.round((g + m) * 255);
+        b = Math.round((b + m) * 255);
+        
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    getClusterColorHex(clusterId) {
+        const goldenRatio = 0.618033988749895;
+        const hue = (clusterId * goldenRatio * 360) % 360;
+        const saturation = 65 + (clusterId * 7) % 20;
+        const lightness = 45 + (clusterId * 5) % 15;
+        return this.hslToHex(hue, saturation, lightness);
+    }
+
+    // NUEVO: Detectar tipo de incidencia
+    detectarTipoIncidencia(incidencia) {
+        const descripcion = (incidencia.descripcion || '').toLowerCase();
+        const categoria = (incidencia.tipo_categoria || '').toLowerCase();
+        const tipo = (incidencia.tipo || '').toLowerCase();
+        
+        // Palabras clave para emergencias
+        const emergenciasKeywords = [
+            'emergencia', 'ambulancia', 'bomberos', 'policía', 'serenazgo',
+            '911', '955', '666', '444', '922', 'urgente', 'accidente',
+            'incendio', 'rescate', 'patrulla', 'siniestro'
+        ];
+        
+        // Palabras clave para denuncias
+        const denunciasKeywords = [
+            'denuncia', 'reclamo', 'queja', 'solicitud', 'basura',
+            'ruido', 'bache', 'alumbrado', 'alcantarilla', 'poda',
+            'limpieza', 'pista', 'vereda', 'parque', 'jardín'
+        ];
+        
+        const texto = `${descripcion} ${categoria} ${tipo}`;
+        
+        // Verificar emergencias
+        if (emergenciasKeywords.some(keyword => texto.includes(keyword))) {
+            return 'emergencia';
+        }
+        
+        // Verificar denuncias
+        if (denunciasKeywords.some(keyword => texto.includes(keyword))) {
+            return 'denuncia';
+        }
+        
+        // Por defecto, clasificar según el tipo si existe
+        if (tipo.includes('emerg')) return 'emergencia';
+        if (tipo.includes('denun')) return 'denuncia';
+        
+        return 'denuncia'; // Por defecto
+    }
+
+    async init() {
+        try {
+            this.updateSystemStatus('loading', 'Inicializando...');
+            this.initializeMap();
+            this.setupEventListeners();
+            await this.loadIncidentData();
+        } catch (error) {
+            this.handleError('Error al inicializar', error);
+        }
+    }
+
+    initializeMap() {
+        mapboxgl.accessToken = this.mapConfig.accessToken;
+        
+        this.map = new mapboxgl.Map({
+            container: 'map',
+            style: this.mapConfig.styles.street,
+            center: this.mapConfig.center,
+            zoom: this.mapConfig.zoom,
+            antialias: true
+        });
+
+        this.map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+        this.map.addControl(new mapboxgl.ScaleControl(), 'bottom-left');
+    }
+
+    setupEventListeners() {
+        // Filtros temporales
+        document.querySelectorAll('.time-filters .time-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.time-filters .time-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.filtroTemporal = btn.dataset.filter;
+                this.aplicarFiltros();
+            });
+        });
+
+        // NUEVO: Filtros por tipo
+        document.querySelectorAll('.type-filters .time-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.type-filters .time-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.filtroTipo = btn.dataset.type;
+                this.aplicarFiltros();
+            });
+        });
+
+        // Modal de clusters
+        document.getElementById('clusters-card').addEventListener('click', () => {
+            this.showClusterDetails();
+        });
+
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('cluster-modal').classList.remove('show');
+        });
+
+        document.getElementById('cluster-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'cluster-modal') {
+                document.getElementById('cluster-modal').classList.remove('show');
+            }
+        });
+
+        // Tabs del modal
+        document.querySelectorAll('.cluster-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.cluster-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+            });
+        });
+
+        // Búsqueda en clusters
+        document.getElementById('cluster-search').addEventListener('input', (e) => {
+            this.filterClusters(e.target.value);
+        });
+
+        // Búsqueda en incidencias
+        document.getElementById('incident-search').addEventListener('input', (e) => {
+            this.filterIncidents(e.target.value);
+        });
+
+        // Exportar datos
+        document.getElementById('export-json').addEventListener('click', () => {
+            this.exportJSON();
+        });
+
+        document.getElementById('export-csv').addEventListener('click', () => {
+            this.exportCSV();
+        });
+
+        document.getElementById('heat-intensity').addEventListener('input', (e) => {
+            this.updateHeatmapIntensity(parseFloat(e.target.value));
+            document.getElementById('intensity-value').textContent = e.target.value;
+        });
+
+        document.getElementById('heat-radius').addEventListener('input', (e) => {
+            this.updateHeatmapRadius(parseFloat(e.target.value));
+            document.getElementById('radius-value').textContent = e.target.value;
+        });
+
+        document.getElementById('toggle-heatmap').addEventListener('click', () => {
+            this.toggleLayer('incidencias-heat', 'toggle-heatmap');
+        });
+
+        document.getElementById('toggle-clusters').addEventListener('click', () => {
+            this.toggleLayer('incidencias-clusters', 'toggle-clusters');
+        });
+
+        document.getElementById('toggle-style-btn').addEventListener('click', () => {
+            this.toggleMapStyle();
+        });
+
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            this.toggleFullscreen();
+        });
+
+        document.getElementById('refresh-data').addEventListener('click', () => {
+            this.loadIncidentData();
+        });
+
+        // Agregar después de los event listeners existentes
+        document.getElementById('toggle-grid').addEventListener('click', () => {
+            this.toggleGrid();
+        });
+    }
+
+    // NUEVO: Aplicar todos los filtros
+    aplicarFiltros() {
+        if (this.incidencias.length === 0) return;
+
+        let datosFiltrados = [...this.incidencias];
+
+        // Filtro temporal
+        if (this.filtroTemporal !== 'all') {
+            const ahora = new Date();
+            let fechaLimite;
+
+            switch(this.filtroTemporal) {
+                case 'week':
+                    fechaLimite = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    fechaLimite = new Date(ahora.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'year':
+                    fechaLimite = new Date(ahora.getTime() - 365 * 24 * 60 * 60 * 1000);
+                    break;
+            }
+
+            if (fechaLimite) {
+                datosFiltrados = datosFiltrados.filter(item => {
+                    if (!item.fecha) return true;
+                    try {
+                        const fechaItem = new Date(item.fecha);
+                        return fechaItem >= fechaLimite;
+                    } catch {
+                        return true;
+                    }
+                });
+            }
+        }
+
+        // NUEVO: Filtro por tipo
+        if (this.filtroTipo !== 'all') {
+            datosFiltrados = datosFiltrados.filter(item => {
+                const tipo = this.detectarTipoIncidencia(item);
+                return this.filtroTipo === 'denuncias' ? tipo === 'denuncia' : tipo === 'emergencia';
+            });
+        }
+
+        this.incidenciasFiltradas = datosFiltrados;
+        this.processIncidentData();
+        this.renderMapLayers();
+    }
+
+    showClusterDetails() {
+        const datos = this.incidenciasFiltradas;
+        
+        // Generar contenido para cada tab
+        this.generateOverviewTab(datos);
+        this.generateClustersTab(datos);
+        this.generateIncidentsTab(datos);
+        
+        document.getElementById('cluster-modal').classList.add('show');
+    }
+
+    generateOverviewTab(datos) {
+        const clustersMap = new Map();
+        const categorias = {};
+        let denuncias = 0;
+        let emergencias = 0;
+        
+        datos.forEach(inc => {
+            const clusterId = inc.cluster;
+            if (clusterId !== -1) {
+                if (!clustersMap.has(clusterId)) {
+                    clustersMap.set(clusterId, []);
+                }
+                clustersMap.get(clusterId).push(inc);
+            }
+            
+            // Contar tipos
+            const tipo = this.detectarTipoIncidencia(inc);
+            if (tipo === 'denuncia') denuncias++;
+            else emergencias++;
+            
+            const cat = inc.tipo_categoria || 'Sin categoría';
+            categorias[cat] = (categorias[cat] || 0) + 1;
+        });
+
+        const totalClusters = clustersMap.size;
+        const avgClusterSize = totalClusters > 0 
+            ? Math.round(Array.from(clustersMap.values()).reduce((sum, arr) => sum + arr.length, 0) / totalClusters)
+            : 0;
+        const maxClusterSize = totalClusters > 0
+            ? Math.max(...Array.from(clustersMap.values()).map(arr => arr.length))
+            : 0;
+        const minClusterSize = totalClusters > 0
+            ? Math.min(...Array.from(clustersMap.values()).map(arr => arr.length))
+            : 0;
+
+        // Estadísticas con tipos
+        const statsHTML = `
+            <div class="stat-box">
+                <div class="stat-box-label">Total de Clusters</div>
+                <div class="stat-box-value">${totalClusters}</div>
+            </div>
+            <div class="stat-box blue">
+                <div class="stat-box-label">📋 Denuncias</div>
+                <div class="stat-box-value">${denuncias}</div>
+            </div>
+            <div class="stat-box orange">
+                <div class="stat-box-label">🚨 Emergencias</div>
+                <div class="stat-box-value">${emergencias}</div>
+            </div>
+            <div class="stat-box green">
+                <div class="stat-box-label">Tamaño Promedio</div>
+                <div class="stat-box-value">${avgClusterSize}</div>
+            </div>
+        `;
+        document.getElementById('stats-grid').innerHTML = statsHTML;
+
+        // Distribución por categoría
+        const totalIncidencias = datos.length;
+        const categoriasOrdenadas = Object.entries(categorias)
+            .sort((a, b) => b[1] - a[1]);
+
+        const categoriasHTML = categoriasOrdenadas.map(([cat, count]) => {
+            const percentage = ((count / totalIncidencias) * 100).toFixed(1);
+            return `
+                <div class="category-bar">
+                    <div class="category-bar-header">
+                        <span class="category-bar-label">${cat}</span>
+                        <span class="category-bar-value">${count} (${percentage}%)</span>
+                    </div>
+                    <div class="category-bar-fill-container">
+                        <div class="category-bar-fill" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        document.getElementById('category-distribution').innerHTML = categoriasHTML;
+    }
+
+    generateClustersTab(datos) {
+        const clustersMap = new Map();
+        
+        datos.forEach(inc => {
+            const clusterId = inc.cluster;
+            if (clusterId !== -1) {
+                if (!clustersMap.has(clusterId)) {
+                    clustersMap.set(clusterId, []);
+                }
+                clustersMap.get(clusterId).push(inc);
+            }
+        });
+
+        const sortedClusters = Array.from(clustersMap.entries())
+            .sort((a, b) => b[1].length - a[1].length);
+
+        if (sortedClusters.length === 0) {
+            document.getElementById('cluster-list').innerHTML = 
+                '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay clusters para mostrar</p>';
+            return;
+        }
+
+        const clustersHTML = sortedClusters.map(([clusterId, incidencias]) => {
+            const color = this.generateColorForCluster(clusterId);
+            
+            // Contar tipos en el cluster
+            let denuncias = 0;
+            let emergencias = 0;
+            incidencias.forEach(inc => {
+                const tipo = this.detectarTipoIncidencia(inc);
+                if (tipo === 'denuncia') denuncias++;
+                else emergencias++;
+            });
+            
+            const categorias = {};
+            incidencias.forEach(inc => {
+                const cat = inc.tipo_categoria || 'Sin categoría';
+                categorias[cat] = (categorias[cat] || 0) + 1;
+            });
+            const categoriaComun = Object.keys(categorias).reduce((a, b) => 
+                categorias[a] > categorias[b] ? a : b
+            );
+
+            const primerFecha = incidencias[0].fecha || 'N/A';
+            const ultimaFecha = incidencias[incidencias.length - 1].fecha || 'N/A';
+
+            return `
+                <div class="cluster-item" data-cluster="${clusterId}" onclick="window.incidentSystem.focusOnCluster(${clusterId})">
+                    <div class="cluster-color-box" style="background-color: ${color};">
+                        ${clusterId}
+                    </div>
+                    <div class="cluster-item-info">
+                        <div class="cluster-item-title">Cluster ${clusterId}</div>
+                        <div class="cluster-item-detail">
+                            <i class="fas fa-layer-group"></i> <strong>${incidencias.length}</strong> incidencias 
+                            (📋 ${denuncias} denuncias, 🚨 ${emergencias} emergencias)
+                        </div>
+                        <div class="cluster-item-detail">
+                            <i class="fas fa-tag"></i> Predominante: <strong>${categoriaComun}</strong> (${categorias[categoriaComun]} casos)
+                        </div>
+                        <div class="cluster-item-detail">
+                            <i class="fas fa-calendar"></i> Rango: ${primerFecha} - ${ultimaFecha}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('cluster-list').innerHTML = clustersHTML;
+    }
+
+    generateIncidentsTab(datos) {
+        const clusteredData = datos.filter(inc => inc.cluster !== -1)
+            .sort((a, b) => a.cluster - b.cluster);
+
+        if (clusteredData.length === 0) {
+            document.getElementById('incident-list').innerHTML = 
+                '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay incidencias agrupadas</p>';
+            return;
+        }
+
+        const incidentsHTML = clusteredData.map(inc => {
+            const color = this.generateColorForCluster(inc.cluster);
+            const tipo = this.detectarTipoIncidencia(inc);
+            const tipoIcon = tipo === 'denuncia' ? '📋' : '🚨';
+            const tipoLabel = tipo === 'denuncia' ? 'Denuncia' : 'Emergencia';
+            const tipoColor = tipo === 'denuncia' ? '#4facfe' : '#fa709a';
+            
+            return `
+                <div class="incident-card" style="border-left-color: ${color}">
+                    <div class="incident-card-header">
+                        <span class="incident-id">
+                            <i class="fas fa-hashtag"></i> ${inc.id_incidencia || 'N/A'}
+                        </span>
+                        <span class="incident-date">
+                            <i class="fas fa-clock"></i> ${inc.fecha || 'N/A'}
+                        </span>
+                    </div>
+                    <div class="incident-description">
+                        ${inc.descripcion || 'Sin descripción'}
+                    </div>
+                    <div class="incident-meta">
+                        <span class="incident-badge" style="background-color: ${color}; color: white;">
+                            Cluster ${inc.cluster}
+                        </span>
+                        <span class="incident-badge" style="background-color: ${tipoColor}; color: white;">
+                            ${tipoIcon} ${tipoLabel}
+                        </span>
+                        <span class="incident-badge">
+                            <i class="fas fa-tag"></i> ${inc.tipo_categoria || 'N/A'}
+                        </span>
+                        <span class="incident-badge">
+                            <i class="fas fa-info-circle"></i> ${inc.estado || 'N/A'}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('incident-list').innerHTML = incidentsHTML;
+    }
+
+    filterClusters(searchTerm) {
+        const items = document.querySelectorAll('#cluster-list .cluster-item');
+        const term = searchTerm.toLowerCase();
+
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(term) ? 'flex' : 'none';
+        });
+    }
+
+    filterIncidents(searchTerm) {
+        const items = document.querySelectorAll('#incident-list .incident-card');
+        const term = searchTerm.toLowerCase();
+
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(term) ? 'block' : 'none';
+        });
+    }
+
+    focusOnCluster(clusterId) {
+        const clusterIncidents = this.incidenciasFiltradas.filter(inc => inc.cluster === clusterId);
+        
+        if (clusterIncidents.length === 0) return;
+
+        // Cerrar modal
+        document.getElementById('cluster-modal').classList.remove('show');
+
+        // Centrar mapa en el cluster
+        const bounds = new mapboxgl.LngLatBounds();
+        clusterIncidents.forEach(inc => {
+            bounds.extend([parseFloat(inc.lon), parseFloat(inc.lat)]);
+        });
+
+        this.map.fitBounds(bounds, { padding: 100, maxZoom: 17, duration: 1000 });
+
+        // Resaltar temporalmente
+        setTimeout(() => {
+            if (clusterIncidents.length > 0) {
+                const firstInc = clusterIncidents[0];
+                const color = this.generateColorForCluster(clusterId);
+                
+                new mapboxgl.Popup({
+                    closeButton: true,
+                    closeOnClick: true
+                })
+                .setLngLat([parseFloat(firstInc.lon), parseFloat(firstInc.lat)])
+                .setHTML(`
+                    <div class="popup-header" style="background-color: ${color};">
+                        <i class="fas fa-layer-group"></i> Cluster ${clusterId}
+                    </div>
+                    <div class="popup-content">
+                        <div class="popup-field">
+                            <strong>${clusterIncidents.length} incidencias</strong> en este cluster
+                        </div>
+                    </div>
+                `)
+                .addTo(this.map);
+            }
+        }, 1000);
+    }
+
+    exportJSON() {
+        const datos = this.incidenciasFiltradas;
+        const clustersMap = new Map();
+        
+        datos.forEach(inc => {
+            const clusterId = inc.cluster;
+            if (clusterId !== -1) {
+                if (!clustersMap.has(clusterId)) {
+                    clustersMap.set(clusterId, []);
+                }
+                clustersMap.get(clusterId).push(inc);
+            }
+        });
+
+        const exportData = {
+            metadata: {
+                total_incidencias: datos.length,
+                total_clusters: clustersMap.size,
+                fecha_export: new Date().toISOString(),
+                filtro_temporal: this.filtroTemporal,
+                filtro_tipo: this.filtroTipo
+            },
+            clusters: Array.from(clustersMap.entries()).map(([id, incidencias]) => ({
+                cluster_id: id,
+                size: incidencias.length,
+                color: this.generateColorForCluster(id),
+                incidencias: incidencias
+            })),
+            ruido: datos.filter(inc => inc.cluster === -1)
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `clusters_dbscan_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    exportCSV() {
+        const datos = this.incidenciasFiltradas;
+        
+        const headers = [
+            'id_incidencia', 'cluster', 'tipo', 'lat', 'lon', 'descripcion', 
+            'tipo_categoria', 'fecha', 'hora', 'estado', 'nivel_incidencia'
+        ];
+
+        const csvContent = [
+            headers.join(','),
+            ...datos.map(inc => {
+                const tipo = this.detectarTipoIncidencia(inc);
+                return headers.map(h => {
+                    if (h === 'tipo') return `"${tipo}"`;
+                    const val = inc[h] || '';
+                    return `"${String(val).replace(/"/g, '""')}"`;
+                }).join(',');
+            })
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `clusters_dbscan_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    async loadIncidentData() {
+        if (this.isLoading) return;
+        
+        this.isLoading = true;
+        this.updateSystemStatus('loading', 'Cargando...');
+        this.hideError();
+        
+        try {
+            const response = await fetch('{{ BASE_URL }}/api/modelo/dbscan/procesar');
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data.clusters || !Array.isArray(data.clusters)) {
+                throw new Error('Datos inválidos');
+            }
+
+            this.incidencias = data.clusters.filter(inc => 
+                inc.lat && inc.lon && !isNaN(inc.lat) && !isNaN(inc.lon)
+            );
+
+            this.incidenciasFiltradas = [...this.incidencias];
+            
+            this.clusterColors.clear();
+            const uniqueClusters = new Set(this.incidencias.map(inc => inc.cluster).filter(c => c !== -1));
+            uniqueClusters.forEach(clusterId => {
+                this.generateColorForCluster(clusterId);
+            });
+            
+            this.aplicarFiltros();
+            this.updateSystemStatus('online', 'Operativo');
+            this.retryCount = 0;
+            
+        } catch (error) {
+            this.handleError('Error al cargar', error);
+            
+            if (this.retryCount < this.maxRetries) {
+                this.retryCount++;
+                setTimeout(() => this.loadIncidentData(), this.retryDelay * this.retryCount);
+            }
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    processIncidentData() {
+        const datos = this.incidenciasFiltradas;
+        const total = datos.length;
+        const clusteredIncidents = datos.filter(inc => inc.cluster !== -1);
+        const outliers = datos.filter(inc => inc.cluster === -1);
+        const uniqueClusters = new Set(clusteredIncidents.map(inc => inc.cluster)).size;
+        const coverage = total > 0 ? ((clusteredIncidents.length / total) * 100).toFixed(1) : 0;
+
+        this.updateMetric('total-incidents', total);
+        this.updateMetric('heat-zones', uniqueClusters);
+        this.updateMetric('outliers', outliers.length);
+        this.updateMetric('coverage', `${coverage}%`);
+    }
+
+    renderMapLayers() {
+        if (!this.map || !this.map.isStyleLoaded()) {
+            this.map.once('styledata', () => this.renderMapLayers());
+            return;
+        }
+
+        const datos = this.incidenciasFiltradas;
+        
+        if (datos.length === 0) return;
+
+        const geojsonData = {
+            type: 'FeatureCollection',
+            features: datos.map((inc, index) => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [parseFloat(inc.lon), parseFloat(inc.lat)]
+                },
+                properties: {
+                    id: inc.id_incidencia || index,
+                    descripcion: inc.descripcion || 'Sin descripción',
+                    fecha: inc.fecha || 'N/A',
+                    hora: inc.hora || 'N/A',
+                    estado: inc.estado || 'N/A',
+                    nivel: inc.nivel_incidencia || 'N/A',
+                    cluster: parseInt(inc.cluster) || -1,
+                    tipo_categoria: inc.tipo_categoria || 'N/A',
+                    tipo: this.detectarTipoIncidencia(inc)
+                }
+            }))
+        };
+
+        if (this.map.getSource('incidencias')) {
+            this.map.getSource('incidencias').setData(geojsonData);
+        } else {
+            this.map.addSource('incidencias', {
+                type: 'geojson',
+                data: geojsonData
+            });
+
+            this.addHeatmapLayer();
+            this.addClustersLayer();
+            this.setupMapInteractions();
+        }
+
+        if (datos.length > 0) {
+            const bounds = new mapboxgl.LngLatBounds();
+            datos.forEach(inc => {
+                bounds.extend([parseFloat(inc.lon), parseFloat(inc.lat)]);
+            });
+            this.map.fitBounds(bounds, { padding: 50, maxZoom: 16 });
+        }
+    }
+
+    addHeatmapLayer() {
+        this.map.addLayer({
+            id: 'incidencias-heat',
+            type: 'heatmap',
+            source: 'incidencias',
+            maxzoom: 20,
+            paint: {
+                'heatmap-intensity': [
+                    'interpolate', ['exponential', 1.5], ['zoom'],
+                    0, 1.2,
+                    10, 1.5,
+                    15, 1.8,
+                    20, 2.2
+                ],
+                'heatmap-color': [
+                    'interpolate', ['linear'], ['heatmap-density'],
+                    0, 'rgba(0,0,255,0)',
+                    0.1, 'rgba(0,0,255,0.1)',
+                    0.3, 'rgba(0,255,255,0.3)',
+                    0.5, 'rgba(0,255,0,0.5)',
+                    0.7, 'rgba(255,255,0,0.7)',
+                    1, 'rgba(255,0,0,0.9)'
+                ],
+                'heatmap-radius': [
+                    'interpolate', ['exponential', 1.2], ['zoom'],
+                    0, 8,
+                    10, 25,
+                    15, 40,
+                    20, 80
+                ],
+                'heatmap-opacity': [
+                    'interpolate', ['linear'], ['zoom'],
+                    7, 0.9,
+                    14, 0.7,
+                    18, 0.5
+                ]
+            }
+        });
+    }
+
+    addClustersLayer() {
+        const uniqueClusters = new Set(
+            this.incidenciasFiltradas
+                .map(inc => inc.cluster)
+                .filter(c => c !== -1)
+        );
+
+        const colorExpression = ['match', ['get', 'cluster']];
+        
+        uniqueClusters.forEach(clusterId => {
+            const color = this.getClusterColorHex(clusterId);
+            colorExpression.push(clusterId, color);
+        });
+        
+        colorExpression.push('#FF6B6B');
+
+        this.map.addLayer({
+            id: 'incidencias-clusters',
+            type: 'circle',
+            source: 'incidencias',
+            paint: {
+                'circle-radius': [
+                    'case',
+                    ['==', ['get', 'cluster'], -1], 6,
+                    8
+                ],
+                'circle-color': [
+                    'case',
+                    ['==', ['get', 'cluster'], -1], '#6c757d',
+                    colorExpression
+                ],
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff',
+                'circle-opacity': 0.85,
+                'circle-stroke-opacity': 1
+            }
+        });
+    }
+
+    setupMapInteractions() {
+        this.map.on('mouseenter', 'incidencias-clusters', () => {
+            this.map.getCanvas().style.cursor = 'pointer';
+        });
+
+        this.map.on('mouseleave', 'incidencias-clusters', () => {
+            this.map.getCanvas().style.cursor = '';
+        });
+
+        this.map.on('click', 'incidencias-clusters', (e) => {
+            const props = e.features[0].properties;
+            const coords = e.features[0].geometry.coordinates.slice();
+            this.showIncidentPopup(coords, props);
+        });
+    }
+
+    showIncidentPopup(coordinates, properties) {
+        const clusterId = properties.cluster;
+        const tipo = properties.tipo;
+        const tipoIcon = tipo === 'denuncia' ? '📋' : '🚨';
+        const tipoLabel = tipo === 'denuncia' ? 'Denuncia' : 'Emergencia';
+        const tipoColor = tipo === 'denuncia' ? '#4facfe' : '#fa709a';
+        
+        const color = clusterId === -1 ? '#6c757d' : this.generateColorForCluster(clusterId);
+        const clusterInfo = clusterId === -1 
+            ? '<span style="color: #6c757d; font-weight: 600;">Punto Aislado (Ruido)</span>'
+            : `<span style="color: ${color}; font-weight: 600;">Cluster ${clusterId}</span>`;
+
+        new mapboxgl.Popup({
+            closeButton: true,
+            closeOnClick: true,
+            maxWidth: '320px'
+        })
+        .setLngLat(coordinates)
+        .setHTML(`
+            <div class="popup-header">
+                <i class="fas fa-exclamation-triangle"></i>
+                Incidencia #${properties.id}
+            </div>
+            <div class="popup-content">
+                <div class="popup-field">
+                    <span class="popup-label">Tipo:</span><br>
+                    <span class="popup-value" style="background: ${tipoColor}; color: white; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 4px;">
+                        ${tipoIcon} ${tipoLabel}
+                    </span>
+                </div>
+                <div class="popup-field">
+                    <span class="popup-label">Descripción:</span><br>
+                    <span class="popup-value">${properties.descripcion}</span>
+                </div>
+                <div class="popup-field">
+                    <span class="popup-label">Categoría:</span><br>
+                    <span class="popup-value">${properties.tipo_categoria}</span>
+                </div>
+                <div class="popup-field">
+                    <span class="popup-label">Fecha:</span>
+                    <span class="popup-value">${properties.fecha}</span>
+                </div>
+                <div class="popup-field">
+                    <span class="popup-label">Estado:</span>
+                    <span class="popup-value">${properties.estado}</span>
+                </div>
+                <div class="popup-field">
+                    <span class="popup-label">DBSCAN:</span><br>
+                    ${clusterInfo}
+                </div>
+            </div>
+        `)
+        .addTo(this.map);
+    }
+
+    updateHeatmapIntensity(intensity) {
+        if (!this.map.getLayer('incidencias-heat')) return;
+        this.map.setPaintProperty('incidencias-heat', 'heatmap-intensity', [
+            'interpolate', ['exponential', 1.5], ['zoom'],
+            0, intensity * 0.8,
+            10, intensity * 1.0,
+            15, intensity * 1.2,
+            20, intensity * 1.5
+        ]);
+    }
+
+    updateHeatmapRadius(radius) {
+        if (!this.map.getLayer('incidencias-heat')) return;
+        this.map.setPaintProperty('incidencias-heat', 'heatmap-radius', [
+            'interpolate', ['exponential', 1.2], ['zoom'],
+            0, radius * 0.2,
+            10, radius * 0.6,
+            15, radius,
+            20, radius * 2
+        ]);
+    }
+
+    toggleLayer(layerId, buttonId) {
+        if (!this.map.getLayer(layerId)) return;
+        const button = document.getElementById(buttonId);
+        const visibility = this.map.getLayoutProperty(layerId, 'visibility');
+        
+        if (visibility === 'visible' || visibility === undefined) {
+            this.map.setLayoutProperty(layerId, 'visibility', 'none');
+            button.classList.remove('active');
+        } else {
+            this.map.setLayoutProperty(layerId, 'visibility', 'visible');
+            button.classList.add('active');
+        }
+    }
+
+    toggleMapStyle() {
+        const button = document.getElementById('toggle-style-btn');
+        this.currentStyle = this.currentStyle === 'street' ? 'satellite' : 'street';
+        this.map.setStyle(this.mapConfig.styles[this.currentStyle]);
+        
+        if (this.currentStyle === 'satellite') {
+            button.innerHTML = '<i class="fas fa-road"></i>Calles';
+            button.classList.add('active');
+        } else {
+            button.innerHTML = '<i class="fas fa-satellite"></i>Satélite';
+            button.classList.remove('active');
+        }
+
+        this.map.once('styledata', () => {
+            if (this.incidencias.length > 0) {
+                this.renderMapLayers();
+            }
+        });
+    }
+
+    toggleFullscreen() {
+        const container = document.querySelector('.dashboard-container');
+        const button = document.getElementById('fullscreen-btn');
+        
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().then(() => {
+                button.innerHTML = '<i class="fas fa-compress"></i>Salir';
+                button.classList.add('active');
+            });
+        } else {
+            document.exitFullscreen().then(() => {
+                button.innerHTML = '<i class="fas fa-expand"></i>Pantalla';
+                button.classList.remove('active');
+            });
+        }
+    }
+
+    updateSystemStatus(status, message) {
+        const statusElement = document.getElementById('system-status');
+        const textElement = document.getElementById('status-text');
+        
+        statusElement.className = `status-indicator ${status}`;
+        textElement.textContent = message;
+
+        if (status === 'loading') {
+            textElement.innerHTML = `<div class="loading-spinner"></div>${message}`;
+        }
+    }
+
+    updateMetric(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = value;
+            element.style.opacity = '0.7';
+            setTimeout(() => element.style.opacity = '1', 150);
+        }
+    }
+
+    showError(message) {
+        const errorElement = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        errorText.textContent = message;
+        errorElement.classList.add('show');
+        setTimeout(() => errorElement.classList.remove('show'), 5000);
+    }
+
+    hideError() {
+        document.getElementById('error-message').classList.remove('show');
+    }
+
+    handleError(context, error) {
+        console.error(`${context}:`, error);
+        let errorMessage = error.message || 'Error desconocido';
+        this.updateSystemStatus('offline', 'Error');
+        this.showError(`${context}: ${errorMessage}`);
+        this.updateMetric('total-incidents', 'Error');
+        this.updateMetric('heat-zones', 'Error');
+        this.updateMetric('outliers', 'Error');
+        this.updateMetric('coverage', 'Error');
+    }
+
+
+    async loadCuadrantes() {
+        try {
+            const response = await fetch('{{ BASE_URL }}/api/modelo/espacial/cuadrantes');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data.success || !data.data || !data.data.cuadrantes) {
+                throw new Error('Datos de cuadrantes inválidos');
+            }
+
+            this.cuadrantesData = data.data;
+            console.log('Cuadrantes cargados:', this.cuadrantesData.cuadrantes.length);
+            
+        } catch (error) {
+            console.error('Error al cargar cuadrantes:', error);
+            this.showError('No se pudieron cargar los cuadrantes');
+        }
+    }
+
+    createGridGeoJSONFromAPI() {
+    if (!this.cuadrantesData || !this.cuadrantesData.cuadrantes) {
+        console.error('No hay datos de cuadrantes');
+        return null;
+    }
+
+    const features = this.cuadrantesData.cuadrantes.map((cuadrante, index) => {
+        const { bounds, id, columna, fila, centro, historico } = cuadrante;
+
+        // Generar etiqueta original (A1, A2, etc.) si la quieres conservar
+        const label = String.fromCharCode(65 + fila) + (columna + 1);
+
+        // Nueva etiqueta tipo "#1"
+        const cuadranteLabel = `#${index + 1}`;
+
+        return {
+            type: 'Feature',
+            properties: {
+                id: id,
+                label: cuadranteLabel, // ✅ Aquí el nuevo formato
+                fila: fila,
+                columna: columna,
+                centro_lat: centro.lat,
+                centro_lon: centro.lon,
+                denuncias: historico.denuncias,
+                emergencias: historico.emergencias,
+                total: historico.total,
+                codigo: label // opcional: por si quieres mantener el código tipo A1
+            },
+            geometry: {
+                type: 'Polygon',
+                coordinates: [[
+                    [bounds.lon_min, bounds.lat_min],
+                    [bounds.lon_max, bounds.lat_min],
+                    [bounds.lon_max, bounds.lat_max],
+                    [bounds.lon_min, bounds.lat_max],
+                    [bounds.lon_min, bounds.lat_min]
+                ]]
+            }
+        };
+    });
+
+    return {
+        type: 'FeatureCollection',
+        features: features
+    };
+}
+
+
+    async toggleGrid() {
+        const button = document.getElementById('toggle-grid');
+        const gridInfo = document.getElementById('grid-info');
+        
+        if (!this.gridVisible) {
+            // Cargar cuadrantes si no están cargados
+            if (!this.cuadrantesData) {
+                button.innerHTML = '<div class="loading-spinner"></div> Cargando...';
+                button.disabled = true;
+                await this.loadCuadrantes();
+                button.disabled = false;
+            }
+            
+            if (this.cuadrantesData) {
+                this.showGrid();
+                button.classList.add('active');
+                button.innerHTML = '<i class="fas fa-border-all"></i> Ocultar';
+                gridInfo.style.display = 'block';
+                this.updateGridStats();
+            } else {
+                button.innerHTML = '<i class="fas fa-border-all"></i> Mostrar';
+            }
+        } else {
+            this.hideGrid();
+            button.classList.remove('active');
+            button.innerHTML = '<i class="fas fa-border-all"></i> Mostrar';
+            gridInfo.style.display = 'none';
+        }
+        
+        this.gridVisible = !this.gridVisible;
+    }
+
+    updateGridStats() {
+        if (!this.cuadrantesData) return;
+        
+        const totalDenuncias = this.cuadrantesData.cuadrantes.reduce(
+            (sum, c) => sum + c.historico.denuncias, 0
+        );
+        const totalEmergencias = this.cuadrantesData.cuadrantes.reduce(
+            (sum, c) => sum + c.historico.emergencias, 0
+        );
+        const totalIncidencias = this.cuadrantesData.cuadrantes.reduce(
+            (sum, c) => sum + c.historico.total, 0
+        );
+        
+        const statsHTML = `
+            <div class="quadrant-stat">
+                <span class="quadrant-stat-value">${totalIncidencias.toLocaleString()}</span>
+                <span class="quadrant-stat-label">Total</span>
+            </div>
+            <div class="quadrant-stat">
+                <span class="quadrant-stat-value">${totalDenuncias.toLocaleString()}</span>
+                <span class="quadrant-stat-label">📋 Denuncias</span>
+            </div>
+            <div class="quadrant-stat">
+                <span class="quadrant-stat-value">${totalEmergencias.toLocaleString()}</span>
+                <span class="quadrant-stat-label">🚨 Emergencias</span>
+            </div>
+        `;
+        
+        document.getElementById('quadrant-stats').innerHTML = statsHTML;
+    }
+
+    showGrid() {
+        const gridData = this.createGridGeoJSONFromAPI();
+        
+        if (!gridData) {
+            console.error('No se pudo crear el GeoJSON de la grilla');
+            return;
+        }
+
+        if (!this.map.getSource('grid')) {
+            this.map.addSource('grid', {
+                type: 'geojson',
+                data: gridData
+            });
+            
+            // Relleno con color según densidad
+            this.map.addLayer({
+                id: 'grid-fill',
+                type: 'fill',
+                source: 'grid',
+                paint: {
+                    'fill-color': [
+                        'interpolate',
+                        ['linear'],
+                        ['get', 'total'],
+                        0, 'rgba(255, 255, 255, 0.05)',
+                        500, 'rgba(59, 130, 246, 0.15)',
+                        5000, 'rgba(249, 115, 22, 0.25)',
+                        20000, 'rgba(239, 68, 68, 0.35)',
+                        80000, 'rgba(220, 38, 38, 0.5)'
+                    ],
+                    'fill-opacity': 0.6
+                }
+            });
+            
+            // Líneas de la grilla
+            this.map.addLayer({
+                id: 'grid-lines',
+                type: 'line',
+                source: 'grid',
+                paint: {
+                    'line-color': '#000000',
+                    'line-width': 2,
+                    'line-opacity': 0.7
+                }
+            });
+            
+            // Etiquetas de cuadrantes
+            this.map.addLayer({
+                id: 'grid-labels',
+                type: 'symbol',
+                source: 'grid',
+                layout: {
+                    'text-field': ['get', 'label'],
+                    'text-size': 18,
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold']
+                },
+                paint: {
+                    'text-color': '#000000',
+                    'text-halo-color': '#ffffff',
+                    'text-halo-width': 3,
+                    'text-halo-blur': 1
+                }
+            });
+            
+            // Interacciones
+            this.map.on('click', 'grid-fill', (e) => {
+                const properties = e.features[0].properties;
+                this.showQuadrantInfo(properties, e.lngLat);
+            });
+            
+            this.map.on('mouseenter', 'grid-fill', () => {
+                this.map.getCanvas().style.cursor = 'pointer';
+            });
+            
+            this.map.on('mouseleave', 'grid-fill', () => {
+                this.map.getCanvas().style.cursor = '';
+            });
+            
+        } else {
+            this.map.getSource('grid').setData(gridData);
+            this.map.setLayoutProperty('grid-lines', 'visibility', 'visible');
+            this.map.setLayoutProperty('grid-fill', 'visibility', 'visible');
+            this.map.setLayoutProperty('grid-labels', 'visibility', 'visible');
+        }
+    }
+
+    hideGrid() {
+        if (this.map.getLayer('grid-lines')) {
+            this.map.setLayoutProperty('grid-lines', 'visibility', 'none');
+            this.map.setLayoutProperty('grid-fill', 'visibility', 'none');
+            this.map.setLayoutProperty('grid-labels', 'visibility', 'none');
+        }
+    }
+
+    showQuadrantInfo(properties, lngLat) {
+        // Contar incidencias actuales (filtradas) en este cuadrante
+        const cuadrante = this.cuadrantesData.cuadrantes.find(c => c.id === properties.id);
+        if (!cuadrante) return;
+        
+        const bounds = cuadrante.bounds;
+        const incidenciasActuales = this.incidenciasFiltradas.filter(inc => {
+            const lon = parseFloat(inc.lon);
+            const lat = parseFloat(inc.lat);
+            return lon >= bounds.lon_min && lon <= bounds.lon_max && 
+                lat >= bounds.lat_min && lat <= bounds.lat_max;
+        });
+        
+        const denunciasActuales = incidenciasActuales.filter(inc => 
+            this.detectarTipoIncidencia(inc) === 'denuncia'
+        ).length;
+        
+        const emergenciasActuales = incidenciasActuales.filter(inc => 
+            this.detectarTipoIncidencia(inc) === 'emergencia'
+        ).length;
+        
+        // Calcular color según densidad
+        const densidad = properties.total;
+        let color = '#3b82f6';
+        if (densidad > 50000) color = '#dc2626';
+        else if (densidad > 20000) color = '#ef4444';
+        else if (densidad > 5000) color = '#f97316';
+        
+        new mapboxgl.Popup({ maxWidth: '350px' })
+            .setLngLat(lngLat)
+            .setHTML(`
+                <div class="popup-header" style="background-color: ${color};">
+                    <i class="fas fa-th-large"></i>
+                    Cuadrante ${properties.label}
+                </div>
+                <div class="popup-content">
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary);">
+                        📊 Histórico Total
+                    </h4>
+                    <div class="popup-field">
+                        <span class="popup-label">Total histórico:</span>
+                        <span class="popup-value"><strong>${properties.total.toLocaleString()}</strong> incidencias</span>
+                    </div>
+                    <div class="popup-field">
+                        <span class="popup-label">📋 Denuncias:</span>
+                        <span class="popup-value"><strong>${properties.denuncias.toLocaleString()}</strong></span>
+                    </div>
+                    <div class="popup-field">
+                        <span class="popup-label">🚨 Emergencias:</span>
+                        <span class="popup-value"><strong>${properties.emergencias.toLocaleString()}</strong></span>
+                    </div>
+                    
+                    <hr style="margin: 0.75rem 0; border: none; border-top: 1px solid var(--border-color);">
+                    
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary);">
+                        🔍 Filtro Actual
+                    </h4>
+                    <div class="popup-field">
+                        <span class="popup-label">Total:</span>
+                        <span class="popup-value"><strong>${incidenciasActuales.length}</strong> incidencias</span>
+                    </div>
+                    <div class="popup-field">
+                        <span class="popup-label">📋 Denuncias:</span>
+                        <span class="popup-value"><strong>${denunciasActuales}</strong></span>
+                    </div>
+                    <div class="popup-field">
+                        <span class="popup-label">🚨 Emergencias:</span>
+                        <span class="popup-value"><strong>${emergenciasActuales}</strong></span>
+                    </div>
+                    
+                    <div style="margin-top: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; font-size: 0.75rem; color: var(--text-secondary);">
+                        <i class="fas fa-map-marker-alt"></i> 
+                        Centro: ${properties.centro_lat.toFixed(6)}, ${properties.centro_lon.toFixed(6)}
+                    </div>
+                </div>
+            `)
+            .addTo(this.map);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof mapboxgl === 'undefined') {
+        alert('Error: Mapbox GL JS no cargado');
+        return;
+    }
+    
+    try {
+        window.incidentSystem = new IncidentMonitoringSystem();
+    } catch (error) {
+        console.error('Error crítico:', error);
+        alert('Error: ' + error.message);
+    }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Error no manejado:', event.reason);
+    if (window.incidentSystem) {
+        window.incidentSystem.handleError('Error del sistema', event.reason);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof mapboxgl === 'undefined') {
+        alert('Error: Mapbox GL JS no cargado');
+        return;
+    }
+    
+    try {
+        window.incidentSystem = new IncidentMonitoringSystem();
+    } catch (error) {
+        console.error('Error crítico:', error);
+        alert('Error: ' + error.message);
+    }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Error no manejado:', event.reason);
+    if (window.incidentSystem) {
+        window.incidentSystem.handleError('Error del sistema', event.reason);
+    }
+});
+</script>
+
+{% endblock %}

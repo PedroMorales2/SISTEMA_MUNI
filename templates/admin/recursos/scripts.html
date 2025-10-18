@@ -1,0 +1,163 @@
+<!-- scripts.html - Orquestador de JavaScript -->
+
+<!-- Chart.js para gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- ============================================================================ -->
+<!-- CONFIGURACIÓN GLOBAL -->
+<!-- ============================================================================ -->
+<script>
+    console.log('📋 Cargando configuración global...');
+    
+    // Configurar la URL de la API
+    
+    console.log('✓ API_URL configurado:', API_URL);
+    
+    // Variables globales para controlar carga de datos
+    window.configuracionesCargadas = false;
+    window.historialCargado = false;
+    
+    // Variables globales para datos
+    if (typeof recursosData === 'undefined') {
+        var recursosData = [];
+        var recursosFiltrados = [];
+    }
+    
+    if (typeof configuracionesData === 'undefined') {
+        var configuracionesData = [];
+        var configuracionesFiltradas = [];
+        var subcategoriasDisponibles = new Set();
+    }
+    
+    if (typeof historialData === 'undefined') {
+        var historialData = [];
+        var paginaActual = 1;
+        var registrosPorPagina = 20;
+    }
+    
+    if (typeof chartDistribucion === 'undefined') {
+        var chartDistribucion = null;
+        var chartConfiguraciones = null;
+    }
+    
+    console.log('✓ Variables globales inicializadas');
+</script>
+
+<!-- ============================================================================ -->
+<!-- TABS.JS - Sistema de Tabs -->
+<!-- ============================================================================ -->
+<script>
+console.log('📦 Cargando tabs.js...');
+{% include 'admin/recursos/js/tabs.js' %}
+console.log('✓ tabs.js cargado');
+</script>
+
+<!-- ============================================================================ -->
+<!-- UTILS.JS - Funciones auxiliares compartidas -->
+<!-- ============================================================================ -->
+<script>
+console.log('📦 Cargando utils.js...');
+{% include 'admin/recursos/js/utils.js' %}
+console.log('✓ utils.js cargado');
+</script>
+
+<!-- ============================================================================ -->
+<!-- GESTION_RECURSOS.JS - Gestión del inventario -->
+<!-- ============================================================================ -->
+<script>
+console.log('📦 Cargando gestion_recursos.js...');
+{% include 'admin/recursos/js/gestion_recursos.js' %}
+console.log('✓ gestion_recursos.js cargado');
+</script>
+
+<!-- ============================================================================ -->
+<!-- GESTION_CONFIGURACION.JS - Gestión de configuraciones -->
+<!-- ============================================================================ -->
+<script>
+console.log('📦 Cargando gestion_configuracion.js...');
+{% include 'admin/recursos/js/gestion_configuracion.js' %}
+console.log('✓ gestion_configuracion.js cargado');
+</script>
+
+<!-- ============================================================================ -->
+<!-- GESTION_HISTORIAL.JS - Gestión del historial -->
+<!-- ============================================================================ -->
+<script>
+console.log('📦 Cargando gestion_historial.js...');
+{% include 'admin/recursos/js/gestion_historial.js' %}
+console.log('✓ gestion_historial.js cargado');
+</script>
+
+<!-- ============================================================================ -->
+<!-- GESTION_ESTADISTICAS.JS - Gestión de estadísticas -->
+<!-- ============================================================================ -->
+<script>
+console.log('📦 Cargando gestion_estadisticas.js...');
+{% include 'admin/recursos/js/gestion_estadisticas.js' %}
+console.log('✓ gestion_estadisticas.js cargado');
+</script>
+
+
+<!-- ============================================================================ -->
+<!-- MODALES.JS - Sistema de Modales -->
+<!-- ============================================================================ -->
+<script>
+console.log('📦 Cargando modales.js...');
+{% include 'admin/recursos/js/modales.js' %}
+console.log('✓ modales.js cargado');
+</script>
+
+
+<!-- ============================================================================ -->
+<!-- INICIALIZACIÓN DEL SISTEMA -->
+<!-- ============================================================================ -->
+<script>
+    // Inicializar al cargar la página
+    // Inicializar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Inicializando Sistema de Gestión de Recursos...');
+    
+    // 1. Inicializar sistema de modales
+    try {
+        inicializarModales();
+    } catch (error) {
+        console.error('❌ Error al inicializar modales:', error);
+    }
+    
+    // 2. Inicializar sistema de tabs
+    try {
+        inicializarTabs();
+    } catch (error) {
+        console.error('❌ Error al inicializar tabs:', error);
+    }
+    
+    // 3. Cargar recursos del primer tab (inventario)
+    try {
+        if (typeof cargarRecursos === 'function') {
+            cargarRecursos();
+        } else {
+            console.error('❌ Función cargarRecursos no está definida');
+        }
+    } catch (error) {
+        console.error('❌ Error al cargar recursos:', error);
+    }
+
+    
+
+    console.log('✅ Sistema inicializado correctamente');
+    console.log('💡 Atajos: Alt + ← → navegar tabs | ESC cerrar modal');
+});
+
+    // Manejo de errores global
+    window.addEventListener('error', function(event) {
+        console.error('❌ Error no capturado:', event.error);
+        if (typeof ocultarLoading === 'function') {
+            ocultarLoading();
+        }
+    });
+
+    // Log cuando se cierra la ventana
+    window.addEventListener('beforeunload', function() {
+        console.log('👋 Cerrando Sistema de Gestión de Recursos');
+    });
+</script>

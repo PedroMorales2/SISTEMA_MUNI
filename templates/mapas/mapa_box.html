@@ -1,0 +1,1391 @@
+{% extends "partials/sidebar.html" %}
+{% block title %} Mapa de Incidencias {% endblock %}
+{% block content %}
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body, html {
+    height: 100%;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+  }
+
+  .map-dashboard {
+    display: flex;
+    height: 100vh;
+    position: relative;
+  }
+
+  /* Panel lateral de filtros */
+  .filters-sidebar {
+    width: 320px;
+    background: white;
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .filters-header {
+    background: black;
+    color: white;
+    padding: 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .filters-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .filters-subtitle {
+    font-size: 0.875rem;
+    opacity: 0.9;
+  }
+
+  .filters-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  .filter-section {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .filter-section h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #2c3e50;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .filter-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .filter-btn {
+    padding: 0.75rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .filter-btn:hover {
+    border-color: black;
+    color: black;
+    transform: translateY(-2px);
+  }
+
+  .filter-btn.active {
+    background: black;
+    border-color: black;
+    color: white;
+  }
+
+  .filter-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+    border: 2px solid #e2e8f0;
+  }
+
+  .filter-item:hover {
+    border-color: black;
+    transform: translateX(3px);
+  }
+
+  .filter-item.active {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-color: black;
+  }
+
+  .filter-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: black;
+  }
+
+  .filter-item label {
+    flex: 1;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #495057;
+    font-weight: 500;
+  }
+
+  .filter-item .icon {
+    width: 28px;
+    height: 28px;
+    margin-right: 10px;
+  }
+
+  /* Controles de mapa de calor */
+  .heatmap-controls {
+    margin-top: 1rem;
+  }
+
+  .control-group {
+    margin-bottom: 1rem;
+  }
+
+  .control-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+  }
+
+  .control-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #e2e8f0;
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .control-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: black;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .control-value {
+    font-size: 0.875rem;
+    color: black;
+    font-weight: 600;
+    margin-top: 0.25rem;
+  }
+
+  /* Grid/Cuadrantes */
+  .grid-toggle {
+    width: 100%;
+    padding: 0.875rem;
+    background: black;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .grid-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  }
+
+  .grid-toggle:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .grid-stats {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    display: none;
+  }
+
+  .grid-stats.show {
+    display: block;
+  }
+
+  .grid-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .grid-stat-row:last-child {
+    border-bottom: none;
+  }
+
+  .grid-stat-label {
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .grid-stat-value {
+    color: black;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  /* Botón de refresh */
+  .refresh-btn {
+    width: 100%;
+    padding: 0.875rem;
+    background: white;
+    color: black;
+    border: 2px solid black;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .refresh-btn:hover {
+    background: black;
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  /* Contenedor del mapa */
+  .map-container {
+    flex: 1;
+    position: relative;
+  }
+
+  #map {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Controles superiores del mapa */
+  .map-controls {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+  }
+
+  .control-btn {
+    background: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .control-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  }
+
+  .control-btn.active {
+    background: black;
+    color: white;
+  }
+
+  /* Contador de incidencias */
+  .counter-panel {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 18px;
+    z-index: 10;
+    min-width: 200px;
+  }
+
+  .counter-panel h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .counter-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .counter-item:last-child {
+    border-bottom: none;
+  }
+
+  .counter-label {
+    font-size: 13px;
+    color: #6c757d;
+  }
+
+  .counter-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: black;
+  }
+
+  /* Popup personalizado */
+  .mapboxgl-popup-content {
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    min-width: 250px;
+  }
+
+  .popup-header {
+    font-weight: 700;
+    font-size: 16px;
+    color: #2c3e50;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid black;
+  }
+
+  .popup-row {
+    margin: 10px 0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .popup-label {
+    font-weight: 600;
+    color: #6c757d;
+    display: inline-block;
+  }
+
+  .popup-value {
+    color: #2c3e50;
+    font-weight: 500;
+  }
+
+  /* Loading spinner */
+  .loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    display: none;
+  }
+
+  .loading.show {
+    display: block;
+  }
+
+  .spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid black;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+  }
+
+  .loading-text {
+    text-align: center;
+    margin-top: 15px;
+    color: black;
+    font-weight: 600;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .mini-spinner {
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+  }
+
+  /* Scrollbar personalizado */
+  .filters-content::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .filters-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  .filters-content::-webkit-scrollbar-thumb {
+    background: black;
+    border-radius: 10px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .filters-sidebar {
+      width: 280px;
+    }
+
+    .filter-buttons {
+      grid-template-columns: 1fr;
+    }
+
+    .counter-panel {
+      right: 10px;
+      bottom: 10px;
+    }
+  }
+</style>
+
+<div class="map-dashboard">
+  <!-- Panel lateral de filtros -->
+  <aside class="filters-sidebar">
+    <div class="filters-header">
+      <h2>
+        <i class="fas fa-sliders-h"></i>
+        Filtros y Controles
+      </h2>
+      <p class="filters-subtitle">Configura la visualización del mapa</p>
+    </div>
+    
+    <div class="filters-content">
+      <!-- Filtro temporal -->
+      <div class="filter-section">
+        <h3>
+          <i class="fas fa-calendar-alt"></i>
+          Filtro Temporal
+        </h3>
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-time="all">
+            <i class="fas fa-infinity"></i>
+            Todos
+          </button>
+          <button class="filter-btn" data-time="week">
+            <i class="fas fa-calendar-week"></i>
+            Semana
+          </button>
+          <button class="filter-btn" data-time="month">
+            <i class="fas fa-calendar"></i>
+            Mes
+          </button>
+          <button class="filter-btn" data-time="year">
+            <i class="fas fa-calendar-check"></i>
+            Año
+          </button>
+        </div>
+      </div>
+
+      <!-- Filtro por tipo -->
+      <div class="filter-section">
+        <h3>
+          <i class="fas fa-layer-group"></i>
+          Tipo de Incidencia
+        </h3>
+        <div class="filter-item active">
+          <input type="checkbox" id="toggle-denuncias" checked>
+          <img src="/static/icons/ic_denuncia.png" alt="Denuncia" class="icon">
+          <label for="toggle-denuncias">Denuncias</label>
+        </div>
+        <div class="filter-item active">
+          <input type="checkbox" id="toggle-emergencias" checked>
+          <img src="/static/icons/ic_emergencia.png" alt="Emergencia" class="icon">
+          <label for="toggle-emergencias">Emergencias</label>
+        </div>
+      </div>
+
+      <!-- Capas del mapa -->
+      <div class="filter-section">
+        <h3>
+          <i class="fas fa-layer-group"></i>
+          Capas de Visualización
+        </h3>
+        <div class="filter-buttons">
+          <button class="filter-btn active" id="toggle-points">
+            <i class="fas fa-map-marker-alt"></i>
+            Puntos
+          </button>
+          <button class="filter-btn" id="toggle-heatmap">
+            <i class="fas fa-fire"></i>
+            Calor
+          </button>
+        </div>
+        
+        <div class="heatmap-controls" id="heatmap-controls" style="display: none;">
+          <div class="control-group">
+            <label class="control-label">Intensidad</label>
+            <input type="range" class="control-slider" id="heat-intensity" 
+                   min="0.5" max="3" value="1.5" step="0.1">
+            <div class="control-value">
+              <span id="intensity-value">1.5</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Radio</label>
+            <input type="range" class="control-slider" id="heat-radius" 
+                   min="20" max="100" value="40" step="5">
+            <div class="control-value">
+              <span id="radius-value">40</span>px
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cuadrantes -->
+      <div class="filter-section">
+        <h3>
+          <i class="fas fa-th"></i>
+          Cuadrantes 5x5
+        </h3>
+        <button id="toggle-grid-btn" class="grid-toggle">
+          <i class="fas fa-border-all"></i>
+          <span>Mostrar Grilla</span>
+        </button>
+        
+        <div class="grid-stats" id="grid-stats">
+          <div class="grid-stat-row">
+            <span class="grid-stat-label">Total histórico:</span>
+            <span class="grid-stat-value" id="stat-total">0</span>
+          </div>
+          <div class="grid-stat-row">
+            <span class="grid-stat-label">📋 Denuncias:</span>
+            <span class="grid-stat-value" id="stat-denuncias">0</span>
+          </div>
+          <div class="grid-stat-row">
+            <span class="grid-stat-label">🚨 Emergencias:</span>
+            <span class="grid-stat-value" id="stat-emergencias">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actualizar datos -->
+      <button class="refresh-btn" id="refresh-btn">
+        <i class="fas fa-sync-alt"></i>
+        Actualizar Datos
+      </button>
+    </div>
+  </aside>
+
+  <!-- Contenedor del mapa -->
+  <div class="map-container">
+    <div id="map"></div>
+    
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">Cargando incidencias...</div>
+    </div>
+
+    <!-- Controles superiores -->
+    <div class="map-controls">
+      <button id="locate-btn" class="control-btn">
+        <i class="fas fa-location-arrow"></i>
+        Mi Ubicación
+      </button>
+      <button id="toggle-style-btn" class="control-btn">
+        <i class="fas fa-satellite"></i>
+        Satélite
+      </button>
+    </div>
+
+    <!-- Contador -->
+    <div class="counter-panel">
+      <h3>
+        <i class="fas fa-chart-bar"></i>
+        Estadísticas
+      </h3>
+      <div class="counter-item">
+        <span class="counter-label">Denuncias:</span>
+        <span class="counter-value" id="count-denuncias">0</span>
+      </div>
+      <div class="counter-item">
+        <span class="counter-label">Emergencias:</span>
+        <span class="counter-value" id="count-emergencias">0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script>
+  mapboxgl.accessToken = 'pk.eyJ1IjoicGVkcm8xMjNhYmMiLCJhIjoiY21hcGh0YWRmMGk0ZTJscTc0Yml2djM2MSJ9.RdRrSKRsvzGdhNNCDBxPiA';
+
+  const styleStreet = 'mapbox://styles/mapbox/streets-v12';
+  const styleSatellite = 'mapbox://styles/mapbox/satellite-streets-v12';
+  let isSatellite = false;
+  let userMarker = null;
+
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: styleStreet,
+    center: [-79.818433, -6.865423],
+    zoom: 16
+  });
+
+  const url = "{{ BASE_URL }}";
+  let denunciasData = [];
+  let emergenciasData = [];
+  let cuadrantesData = null;
+  let gridVisible = false;
+  let heatmapVisible = false;
+  let filtroTemporal = 'all';
+
+  // Elementos del DOM
+  const locateBtn = document.getElementById('locate-btn');
+  const toggleStyleBtn = document.getElementById('toggle-style-btn');
+  const loading = document.getElementById('loading');
+  const toggleGridBtn = document.getElementById('toggle-grid-btn');
+  const gridStats = document.getElementById('grid-stats');
+  const heatmapControls = document.getElementById('heatmap-controls');
+
+  // ==================== FILTROS TEMPORALES ====================
+  document.querySelectorAll('.filter-btn[data-time]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn[data-time]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filtroTemporal = btn.dataset.time;
+      aplicarFiltros();
+    });
+  });
+
+  function aplicarFiltros() {
+    // Aquí puedes implementar la lógica de filtrado temporal si lo necesitas
+    console.log('Filtro aplicado:', filtroTemporal);
+  }
+
+  // ==================== LOCALIZACIÓN ====================
+  locateBtn.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      alert('La geolocalización no está soportada por tu navegador.');
+      return;
+    }
+
+    loading.classList.add('show');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        map.flyTo({ center: [lon, lat], zoom: 15, speed: 1.2 });
+
+        if (userMarker) {
+          userMarker.setLngLat([lon, lat]);
+        } else {
+          userMarker = new mapboxgl.Marker({ color: 'black' })
+            .setLngLat([lon, lat])
+            .setPopup(new mapboxgl.Popup().setHTML('<strong>📍 Estás aquí</strong>'))
+            .addTo(map);
+        }
+        loading.classList.remove('show');
+      },
+      (error) => {
+        alert('Error al obtener la ubicación: ' + error.message);
+        loading.classList.remove('show');
+      }
+    );
+  });
+
+  // ==================== CAMBIAR ESTILO DEL MAPA ====================
+  toggleStyleBtn.addEventListener('click', () => {
+    isSatellite = !isSatellite;
+    map.setStyle(isSatellite ? styleSatellite : styleStreet);
+    toggleStyleBtn.innerHTML = isSatellite 
+      ? '<i class="fas fa-road"></i> Normal' 
+      : '<i class="fas fa-satellite"></i> Satélite';
+    
+    if (isSatellite) {
+      toggleStyleBtn.classList.add('active');
+    } else {
+      toggleStyleBtn.classList.remove('active');
+    }
+  });
+
+  // ==================== FILTROS DE CAPAS ====================
+  document.getElementById('toggle-denuncias').addEventListener('change', function(e) {
+    const visibility = e.target.checked ? 'visible' : 'none';
+    const item = this.closest('.filter-item');
+    
+    if (e.target.checked) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+    
+    if (map.getLayer('denuncias-layer')) {
+      map.setLayoutProperty('denuncias-layer', 'visibility', visibility);
+    }
+  });
+
+  document.getElementById('toggle-emergencias').addEventListener('change', function(e) {
+    const visibility = e.target.checked ? 'visible' : 'none';
+    const item = this.closest('.filter-item');
+    
+    if (e.target.checked) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+    
+    if (map.getLayer('emergencias-layer')) {
+      map.setLayoutProperty('emergencias-layer', 'visibility', visibility);
+    }
+  });
+
+  // ==================== TOGGLE PUNTOS ====================
+  document.getElementById('toggle-points').addEventListener('click', function() {
+    this.classList.toggle('active');
+    const visibility = this.classList.contains('active') ? 'visible' : 'none';
+    
+    if (map.getLayer('denuncias-layer') && document.getElementById('toggle-denuncias').checked) {
+      map.setLayoutProperty('denuncias-layer', 'visibility', visibility);
+    }
+    if (map.getLayer('emergencias-layer') && document.getElementById('toggle-emergencias').checked) {
+      map.setLayoutProperty('emergencias-layer', 'visibility', visibility);
+    }
+  });
+
+  // ==================== TOGGLE HEATMAP ====================
+  document.getElementById('toggle-heatmap').addEventListener('click', function() {
+    heatmapVisible = !heatmapVisible;
+    this.classList.toggle('active');
+    
+    if (heatmapVisible) {
+      heatmapControls.style.display = 'block';
+      agregarHeatmap();
+    } else {
+      heatmapControls.style.display = 'none';
+      if (map.getLayer('heatmap-denuncias')) {
+        map.setLayoutProperty('heatmap-denuncias', 'visibility', 'none');
+      }
+      if (map.getLayer('heatmap-emergencias')) {
+        map.setLayoutProperty('heatmap-emergencias', 'visibility', 'none');
+      }
+    }
+  });
+
+  function agregarHeatmap() {
+    if (!map.getSource('denuncias') || !map.getSource('emergencias')) return;
+
+    // Heatmap para denuncias
+    if (!map.getLayer('heatmap-denuncias')) {
+      map.addLayer({
+        id: 'heatmap-denuncias',
+        type: 'heatmap',
+        source: 'denuncias',
+        maxzoom: 20,
+        paint: {
+          'heatmap-intensity': 1.5,
+          'heatmap-color': [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0, 'rgba(0,0,255,0)',
+            0.2, 'rgba(0,255,255,0.3)',
+            0.4, 'rgba(0,255,0,0.5)',
+            0.6, 'rgba(255,255,0,0.7)',
+            1, 'rgba(255,0,0,0.9)'
+          ],
+          'heatmap-radius': 40,
+          'heatmap-opacity': 0.7
+        }
+      }, 'denuncias-layer');
+    } else {
+      map.setLayoutProperty('heatmap-denuncias', 'visibility', 'visible');
+    }
+
+    // Heatmap para emergencias
+    if (!map.getLayer('heatmap-emergencias')) {
+      map.addLayer({
+        id: 'heatmap-emergencias',
+        type: 'heatmap',
+        source: 'emergencias',
+        maxzoom: 20,
+        paint: {
+          'heatmap-intensity': 1.5,
+          'heatmap-color': [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0, 'rgba(255,0,0,0)',
+            0.2, 'rgba(255,69,0,0.3)',
+            0.4, 'rgba(255,140,0,0.5)',
+            0.6, 'rgba(255,215,0,0.7)',
+            1, 'rgba(255,0,0,0.9)'
+          ],
+          'heatmap-radius': 40,
+          'heatmap-opacity': 0.7
+        }
+      }, 'emergencias-layer');
+    } else {
+      map.setLayoutProperty('heatmap-emergencias', 'visibility', 'visible');
+    }
+  }
+
+  // Controles de heatmap
+  document.getElementById('heat-intensity').addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    document.getElementById('intensity-value').textContent = value;
+    
+    if (map.getLayer('heatmap-denuncias')) {
+      map.setPaintProperty('heatmap-denuncias', 'heatmap-intensity', value);
+    }
+    if (map.getLayer('heatmap-emergencias')) {
+      map.setPaintProperty('heatmap-emergencias', 'heatmap-intensity', value);
+    }
+  });
+
+  document.getElementById('heat-radius').addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    document.getElementById('radius-value').textContent = value;
+    
+    if (map.getLayer('heatmap-denuncias')) {
+      map.setPaintProperty('heatmap-denuncias', 'heatmap-radius', value);
+    }
+    if (map.getLayer('heatmap-emergencias')) {
+      map.setPaintProperty('heatmap-emergencias', 'heatmap-radius', value);
+    }
+  });
+
+  // ==================== FUNCIONES DE CUADRANTES ====================
+  
+  async function cargarCuadrantes() {
+    try {
+      const response = await fetch(url + '/api/modelo/espacial/cuadrantes');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success || !data.data || !data.data.cuadrantes) {
+        throw new Error('Datos de cuadrantes inválidos');
+      }
+
+      cuadrantesData = data.data;
+      console.log('Cuadrantes cargados:', cuadrantesData.cuadrantes.length);
+      return true;
+      
+    } catch (error) {
+      console.error('Error al cargar cuadrantes:', error);
+      alert('Error al cargar los cuadrantes');
+      return false;
+    }
+  }
+
+  function crearGeoJSONCuadrantes() {
+    if (!cuadrantesData || !cuadrantesData.cuadrantes) {
+      return null;
+    }
+
+    const features = cuadrantesData.cuadrantes.map(cuadrante => {
+      const { bounds, id, columna, fila, centro, historico } = cuadrante;
+      
+      // Crear etiqueta (A1, A2, B1, etc.)
+      const label = String.fromCharCode(65 + fila) + (columna + 1);
+      
+      return {
+        type: 'Feature',
+        properties: {
+          id: id,
+          label: label,
+          fila: fila,
+          columna: columna,
+          centro_lat: centro.lat,
+          centro_lon: centro.lon,
+          denuncias: historico.denuncias,
+          emergencias: historico.emergencias,
+          total: historico.total
+        },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [bounds.lon_min, bounds.lat_min],
+            [bounds.lon_max, bounds.lat_min],
+            [bounds.lon_max, bounds.lat_max],
+            [bounds.lon_min, bounds.lat_max],
+            [bounds.lon_min, bounds.lat_min]
+          ]]
+        }
+      };
+    });
+
+    return {
+      type: 'FeatureCollection',
+      features: features
+    };
+  }
+
+  function mostrarCuadrantes() {
+    const gridData = crearGeoJSONCuadrantes();
+    
+    if (!gridData) {
+      console.error('No se pudo crear el GeoJSON de la grilla');
+      return;
+    }
+
+    if (!map.getSource('grid')) {
+      map.addSource('grid', {
+        type: 'geojson',
+        data: gridData
+      });
+      
+      // Relleno con color según densidad
+      map.addLayer({
+        id: 'grid-fill',
+        type: 'fill',
+        source: 'grid',
+        paint: {
+          'fill-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'total'],
+            0, 'rgba(255, 255, 255, 0.1)',
+            500, 'rgba(59, 130, 246, 0.2)',
+            5000, 'rgba(249, 115, 22, 0.3)',
+            20000, 'rgba(239, 68, 68, 0.4)',
+            80000, 'rgba(220, 38, 38, 0.5)'
+          ],
+          'fill-opacity': 0.6
+        }
+      });
+      
+      // Líneas de la grilla
+      map.addLayer({
+        id: 'grid-lines',
+        type: 'line',
+        source: 'grid',
+        paint: {
+          'line-color': '#000000',
+          'line-width': 2,
+          'line-opacity': 0.8
+        }
+      });
+      
+      // Etiquetas
+      map.addLayer({
+        id: 'grid-labels',
+        type: 'symbol',
+        source: 'grid',
+        layout: {
+          'text-field': ['get', 'label'],
+          'text-size': 16,
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold']
+        },
+        paint: {
+          'text-color': '#000000',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 3
+        }
+      });
+      
+      // Click en cuadrante
+      map.on('click', 'grid-fill', (e) => {
+        const props = e.features[0].properties;
+        mostrarInfoCuadrante(props, e.lngLat);
+      });
+      
+      map.on('mouseenter', 'grid-fill', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      
+      map.on('mouseleave', 'grid-fill', () => {
+        map.getCanvas().style.cursor = '';
+      });
+      
+    } else {
+      map.getSource('grid').setData(gridData);
+      map.setLayoutProperty('grid-lines', 'visibility', 'visible');
+      map.setLayoutProperty('grid-fill', 'visibility', 'visible');
+      map.setLayoutProperty('grid-labels', 'visibility', 'visible');
+    }
+    
+    actualizarEstadisticasGrilla();
+  }
+
+  function ocultarCuadrantes() {
+    if (map.getLayer('grid-lines')) {
+      map.setLayoutProperty('grid-lines', 'visibility', 'none');
+      map.setLayoutProperty('grid-fill', 'visibility', 'none');
+      map.setLayoutProperty('grid-labels', 'visibility', 'none');
+    }
+  }
+
+  function actualizarEstadisticasGrilla() {
+    if (!cuadrantesData) return;
+    
+    const totalDenuncias = cuadrantesData.cuadrantes.reduce(
+      (sum, c) => sum + c.historico.denuncias, 0
+    );
+    const totalEmergencias = cuadrantesData.cuadrantes.reduce(
+      (sum, c) => sum + c.historico.emergencias, 0
+    );
+    const totalIncidencias = cuadrantesData.cuadrantes.reduce(
+      (sum, c) => sum + c.historico.total, 0
+    );
+    
+    document.getElementById('stat-total').textContent = totalIncidencias.toLocaleString();
+    document.getElementById('stat-denuncias').textContent = totalDenuncias.toLocaleString();
+    document.getElementById('stat-emergencias').textContent = totalEmergencias.toLocaleString();
+  }
+
+  function mostrarInfoCuadrante(props, lngLat) {
+    let color = '#3b82f6';
+    const densidad = props.total;
+    
+    if (densidad > 50000) color = '#dc2626';
+    else if (densidad > 20000) color = '#ef4444';
+    else if (densidad > 5000) color = '#f97316';
+    
+    new mapboxgl.Popup({ maxWidth: '320px' })
+      .setLngLat(lngLat)
+      .setHTML(`
+        <div class="popup-header" style="background: ${color}; color: white; padding: 10px; border-radius: 8px 8px 0 0; margin: -15px -15px 10px -15px;">
+          🗺️ Cuadrante ${props.label}
+        </div>
+        <div style="padding: 5px 0;">
+          <div class="popup-row">
+            <span class="popup-label">Total histórico:</span>
+            <span class="popup-value" style="font-weight: 700; color: ${color};">
+              ${props.total.toLocaleString()}
+            </span>
+          </div>
+          <div class="popup-row">
+            <span class="popup-label">📋 Denuncias:</span>
+            <span class="popup-value">${props.denuncias.toLocaleString()}</span>
+          </div>
+          <div class="popup-row">
+            <span class="popup-label">🚨 Emergencias:</span>
+            <span class="popup-value">${props.emergencias.toLocaleString()}</span>
+          </div>
+          <div class="popup-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e9ecef; font-size: 11px; color: #6c757d;">
+            📍 Centro: ${props.centro_lat.toFixed(5)}, ${props.centro_lon.toFixed(5)}
+          </div>
+        </div>
+      `)
+      .addTo(map);
+  }
+
+  // Toggle cuadrantes
+  toggleGridBtn.addEventListener('click', async () => {
+    if (!gridVisible) {
+      // Mostrar
+      toggleGridBtn.disabled = true;
+      toggleGridBtn.innerHTML = '<span class="mini-spinner"></span> Cargando...';
+      
+      if (!cuadrantesData) {
+        const cargado = await cargarCuadrantes();
+        if (!cargado) {
+          toggleGridBtn.disabled = false;
+          toggleGridBtn.innerHTML = '<i class="fas fa-border-all"></i><span>Mostrar Grilla</span>';
+          return;
+        }
+      }
+      
+      mostrarCuadrantes();
+      gridStats.classList.add('show');
+      toggleGridBtn.innerHTML = '<i class="fas fa-times"></i><span>Ocultar Grilla</span>';
+      toggleGridBtn.disabled = false;
+      gridVisible = true;
+      
+    } else {
+      // Ocultar
+      ocultarCuadrantes();
+      gridStats.classList.remove('show');
+      toggleGridBtn.innerHTML = '<i class="fas fa-border-all"></i><span>Mostrar Grilla</span>';
+      gridVisible = false;
+    }
+  });
+
+  // ==================== CARGAR DENUNCIAS ====================
+  
+  function cargarDenuncias() {
+    loading.classList.add('show');
+    fetch(url + '/api/mapas/denuncias')
+      .then(res => res.json())
+      .then(data => {
+        console.log('Datos de denuncias recibidos:', data);
+        
+        if (!data.denuncias || data.denuncias.length === 0) {
+          console.log('No hay denuncias disponibles');
+          loading.classList.remove('show');
+          return;
+        }
+
+        denunciasData = data.denuncias.map(denuncia => {
+          const lat = parseFloat(denuncia.latitud);
+          const lon = parseFloat(denuncia.longitud);
+          
+          return {
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [lon, lat]
+            },
+            properties: {
+              id: denuncia.id_incidencia,
+              fecha: denuncia.fecha_hora,
+              descripcion: denuncia.descripcion
+            }
+          };
+        });
+
+        document.getElementById('count-denuncias').textContent = denunciasData.length;
+
+        if (map.getSource('denuncias')) {
+          map.getSource('denuncias').setData({
+            type: 'FeatureCollection',
+            features: denunciasData
+          });
+        } else {
+          map.addSource('denuncias', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: denunciasData
+            }
+          });
+
+          map.addLayer({
+            id: 'denuncias-layer',
+            type: 'symbol',
+            source: 'denuncias',
+            layout: {
+              'icon-image': 'custom-pin',
+              'icon-size': 0.1,
+              'icon-allow-overlap': true
+            }
+          });
+
+          map.on('click', 'denuncias-layer', (e) => {
+            const p = e.features[0].properties;
+            
+            new mapboxgl.Popup()
+              .setLngLat(e.lngLat)
+              .setHTML(`
+                <div class="popup-header">📋 Denuncia #${p.id}</div>
+                <div class="popup-row">
+                  <span class="popup-label">📅 Fecha:</span>
+                  <span class="popup-value">${p.fecha}</span>
+                </div>
+                <div class="popup-row">
+                  <span class="popup-label">📝 Descripción:</span><br/>
+                  <span class="popup-value">${p.descripcion}</span>
+                </div>
+              `)
+              .addTo(map);
+          });
+
+          map.on('mouseenter', 'denuncias-layer', () => {
+            map.getCanvas().style.cursor = 'pointer';
+          });
+          map.on('mouseleave', 'denuncias-layer', () => {
+            map.getCanvas().style.cursor = '';
+          });
+        }
+        loading.classList.remove('show');
+      })
+      .catch(err => {
+        console.error('Error al cargar denuncias:', err);
+        loading.classList.remove('show');
+      });
+  }
+
+  // ==================== CARGAR EMERGENCIAS ====================
+  
+  function cargarEmergencias() {
+    loading.classList.add('show');
+    fetch(url + '/api/mapas/emergencias')
+      .then(res => res.json())
+      .then(data => {
+        console.log('Datos de emergencias recibidos:', data);
+        
+        if (!data.emergencias || data.emergencias.length === 0) {
+          console.log('No hay emergencias disponibles');
+          loading.classList.remove('show');
+          return;
+        }
+
+        emergenciasData = data.emergencias.map(emergencia => {
+          const lat = parseFloat(emergencia.latitud);
+          const lon = parseFloat(emergencia.longitud);
+          
+          return {
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [lon, lat]
+            },
+            properties: {
+              id: emergencia.id_incidencia,
+              fecha: emergencia.fecha_hora,
+              descripcion: emergencia.descripcion
+            }
+          };
+        });
+
+        document.getElementById('count-emergencias').textContent = emergenciasData.length;
+
+        if (map.getSource('emergencias')) {
+          map.getSource('emergencias').setData({
+            type: 'FeatureCollection',
+            features: emergenciasData
+          });
+        } else {
+          map.addSource('emergencias', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: emergenciasData
+            }
+          });
+
+          map.addLayer({
+            id: 'emergencias-layer',
+            type: 'symbol',
+            source: 'emergencias',
+            layout: {
+              'icon-image': 'custom-pin-emergencia',
+              'icon-size': 0.1,
+              'icon-allow-overlap': true
+            }
+          });
+
+          map.on('click', 'emergencias-layer', (e) => {
+            const p = e.features[0].properties;
+            
+            new mapboxgl.Popup()
+              .setLngLat(e.lngLat)
+              .setHTML(`
+                <div class="popup-header">🚨 Emergencia #${p.id}</div>
+                <div class="popup-row">
+                  <span class="popup-label">📅 Fecha:</span>
+                  <span class="popup-value">${p.fecha}</span>
+                </div>
+                <div class="popup-row">
+                  <span class="popup-label">🚑 Tipo:</span><br/>
+                  <span class="popup-value">${p.descripcion}</span>
+                </div>
+              `)
+              .addTo(map);
+          });
+
+          map.on('mouseenter', 'emergencias-layer', () => {
+            map.getCanvas().style.cursor = 'pointer';
+          });
+          map.on('mouseleave', 'emergencias-layer', () => {
+            map.getCanvas().style.cursor = '';
+          });
+        }
+        loading.classList.remove('show');
+      })
+      .catch(err => {
+        console.error('Error al cargar emergencias:', err);
+        loading.classList.remove('show');
+      });
+  }
+
+  // ==================== BOTÓN REFRESH ====================
+  
+  document.getElementById('refresh-btn').addEventListener('click', () => {
+    cargarDenuncias();
+    cargarEmergencias();
+  });
+
+  // ==================== INICIALIZACIÓN ====================
+  
+  map.on('style.load', () => {
+    // Cargar ícono de denuncias
+    fetch('/static/icons/ic_denuncia.png')
+      .then(response => response.blob())
+      .then(blob => createImageBitmap(blob))
+      .then(bitmap => {
+        if (!map.hasImage('custom-pin')) {
+          map.addImage('custom-pin', bitmap);
+        }
+        cargarDenuncias();
+      })
+      .catch(err => console.error("Error cargando ícono de denuncia:", err));
+
+    // Cargar ícono de emergencias
+    fetch('/static/icons/ic_emergencia.png')
+      .then(response => response.blob())
+      .then(blob => createImageBitmap(blob))
+      .then(bitmap => {
+        if (!map.hasImage('custom-pin-emergencia')) {
+          map.addImage('custom-pin-emergencia', bitmap);
+        }
+        cargarEmergencias();
+      })
+      .catch(err => console.error("Error cargando ícono de emergencia:", err));
+  });
+
+  // Agregar controles de navegación
+  map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+  map.addControl(new mapboxgl.ScaleControl(), 'bottom-left');
+</script>
+
+{% endblock %}

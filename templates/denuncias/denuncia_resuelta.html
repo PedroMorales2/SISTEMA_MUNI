@@ -1,0 +1,655 @@
+{% extends "partials/sidebar.html" %}
+{% block title %} Denuncias Aceptadas {% endblock %}
+{% block content %}
+
+<div class="content">
+    <h1 id="titulo">Denuncias Aceptadas</h1>
+
+    <!-- FILTROS -->
+    <div class="filtros-container">
+        <div class="filtro-item">
+            <label for="filtroPersona">Persona:</label>
+            <input type="text" id="filtroPersona" placeholder="Buscar persona...">
+        </div>
+        <div class="filtro-item">
+            <label for="filtroFecha">Fecha:</label>
+            <input type="date" id="filtroFecha">
+        </div>
+        <div class="filtro-item">
+            <button id="btnFiltrar" class="btn-filtrar">
+                <span>🔍</span> Aplicar
+            </button>
+            <button id="btnLimpiar" class="btn-limpiar">
+                <span>✖</span> Limpiar
+            </button>
+        </div>
+    </div>
+
+    <!-- TABLA -->
+    <div class="tabla-wrapper">
+        <table id="tablaDenuncias" class="display nowrap" style="width:100%">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Denuncia</th>
+                    <th>Descripción</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Persona</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Fullscreen para motivo -->
+<div id="modal-motivo" class="modal-overlay">
+    <div class="modal-container">
+        <button id="modal-motivo-cerrar" class="modal-close-btn">✕</button>
+        
+        <div class="modal-content-wrapper">
+            <div id="modal-motivo-archivo" class="modal-archivo-section">
+                <div class="archivo-placeholder">
+                    <span class="archivo-icon">📄</span>
+                    <p>Cargando archivo...</p>
+                </div>
+            </div>
+            
+            <div class="modal-descripcion-section">
+                <h2 class="modal-title">Motivo de Aceptación</h2>
+                <div class="descripcion-content">
+                    <p id="modal-motivo-descripcion"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DataTables + jQuery -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+$(document).ready(function () {
+    const tabla = $('#tablaDenuncias').DataTable({
+        ajax: {
+            url: '{{ BASE_URL }}/api/central/denuncias/aceptadas/{{ session["id_usuario"] }}',
+            dataSrc: function (json) {
+                if (!json || !json.denuncias) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sin datos',
+                        text: 'Aún no se encuentran denuncias aceptadas',
+                        confirmButtonText: 'Aceptar',
+                        confirmButtonColor: '#28a745'
+                    });
+                    return [];
+                }
+                return json.denuncias;
+            },
+            error: function (xhr, error, thrown) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Sin datos',
+                    text: 'Aún no se encuentran denuncias aceptadas',
+                    confirmButtonText: 'Aceptar',
+                    confirmButtonColor: '#28a745'
+                });
+                console.error('Error en DataTables:', xhr.responseText);
+            }
+        },
+        columns: [
+            { data: 'id_incidencia' },
+            { data: 'denuncia' },
+            { data: 'descripcion' },
+            { data: 'fecha' },
+            { data: 'hora' },
+            { data: 'persona' },
+            {
+                data: null,
+                render: function(data, type, row) {
+                    return `
+                        <button class="btn-ver" onclick="verDetalle('${row.id_incidencia}')">
+                            <span class="btn-icon">👁️</span> Ver detalle
+                        </button>
+                        <button class="btn-motivo" onclick="verMotivo('${row.id_incidencia}')">
+                            <span class="btn-icon">📋</span> Ver motivo
+                        </button>
+                    `;
+                }
+            }
+        ],
+        order: [[0, 'desc']],
+        responsive: true,
+        dom: 'rtip',
+        language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json',
+            search: "Buscar:",
+            lengthMenu: "Mostrar _MENU_ registros",
+            info: "Mostrando _START_ a _END_ de _TOTAL_ denuncias",
+            infoEmpty: "No hay denuncias disponibles",
+            infoFiltered: "(filtrado de _MAX_ denuncias totales)",
+            zeroRecords: "No se encontraron denuncias",
+            emptyTable: "No hay denuncias aceptadas"
+        }
+    });
+
+    // Filtros personalizados
+    $('#btnFiltrar').on('click', function () {
+        const persona = $('#filtroPersona').val().toLowerCase();
+        const fecha = $('#filtroFecha').val();
+
+        tabla.rows().every(function () {
+            const data = this.data();
+            const matchPersona = !persona || data.persona.toLowerCase().includes(persona);
+            const matchFecha = !fecha || data.fecha === fecha;
+            if (matchPersona && matchFecha) $(this.node()).show();
+            else $(this.node()).hide();
+        });
+    });
+
+    $('#btnLimpiar').on('click', function () {
+        $('#filtroPersona, #filtroFecha').val('');
+        tabla.rows().every(function () { $(this.node()).show(); });
+    });
+});
+
+// Ver motivo en modal
+function verMotivo(id_incidencia) {
+    const modal = document.getElementById('modal-motivo');
+    const archivoCont = document.getElementById('modal-motivo-archivo');
+    const descripcionCont = document.getElementById('modal-motivo-descripcion');
+    const btnCerrar = document.getElementById('modal-motivo-cerrar');
+
+    // Mostrar placeholder
+    archivoCont.innerHTML = `
+        <div class="archivo-placeholder">
+            <span class="archivo-icon">📄</span>
+            <p>Cargando archivo...</p>
+        </div>
+    `;
+    descripcionCont.textContent = 'Cargando...';
+
+    modal.style.display = 'flex';
+
+    fetch(`{{ BASE_URL }}/api/central/motivo/${id_incidencia}`)
+        .then(res => {
+            if (!res.ok) throw new Error('Error al obtener el motivo');
+            return res.json();
+        })
+        .then(data => {
+            const { descripcion, archivo_adjunto } = data.motivo;
+
+            descripcionCont.textContent = descripcion || 'Sin descripción';
+
+            // Limpiar el contenedor de archivo
+            archivoCont.innerHTML = '';
+
+            if (archivo_adjunto) {
+                const ext = archivo_adjunto.split('.').pop().toLowerCase();
+
+                if (ext === 'pdf') {
+                    archivoCont.innerHTML = `
+                        <object data="${archivo_adjunto}" type="application/pdf" class="archivo-viewer">
+                            <p>No se puede mostrar el PDF. <a href="${archivo_adjunto}" target="_blank">Descargar archivo</a></p>
+                        </object>
+                    `;
+                } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
+                    archivoCont.innerHTML = `
+                        <img src="${archivo_adjunto}" class="archivo-imagen" alt="Archivo adjunto">
+                    `;
+                } else if (['doc', 'docx', 'txt'].includes(ext)) {
+                    archivoCont.innerHTML = `
+                        <div class="archivo-documento">
+                            <span class="doc-icon">📄</span>
+                            <h3>Documento adjunto</h3>
+                            <p>Tipo: ${ext.toUpperCase()}</p>
+                            <a href="${archivo_adjunto}" target="_blank" class="btn-descargar">
+                                <span>⬇️</span> Descargar archivo
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    archivoCont.innerHTML = `
+                        <div class="archivo-documento">
+                            <span class="doc-icon">📎</span>
+                            <h3>Archivo adjunto</h3>
+                            <p>Tipo: ${ext.toUpperCase()}</p>
+                            <a href="${archivo_adjunto}" target="_blank" class="btn-descargar">
+                                <span>⬇️</span> Descargar archivo
+                            </a>
+                        </div>
+                    `;
+                }
+            } else {
+                archivoCont.innerHTML = `
+                    <div class="archivo-placeholder">
+                        <span class="archivo-icon">📭</span>
+                        <p>Sin archivo adjunto</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: err.message,
+                confirmButtonColor: '#28a745'
+            });
+            modal.style.display = 'none';
+        });
+
+    // Cerrar modal
+    btnCerrar.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.style.display = 'none';
+    };
+}
+
+// Ver detalle completo
+function verDetalle(id_incidencia) {
+    window.location.href = `/denuncias/detalle/${id_incidencia}`;
+}
+</script>
+
+<style>
+    .content {
+        padding: 20px;
+        background-color: #f5f7fa;
+    }
+
+    #titulo {
+        color: #000000;
+        margin-bottom: 25px;
+        font-size: 28px;
+        font-weight: 600;
+        background: none;
+    }
+
+    /* Filtros */
+    .filtros-container {
+        background: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .filtro-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filtro-item label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .filtro-item input {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        font-size: 14px;
+        transition: all 0.3s;
+        min-width: 180px;
+    }
+
+    .filtro-item input:focus {
+        outline: none;
+        border-color: #28a745;
+        box-shadow: 0 0 0 3px rgba(40,167,69,0.1);
+    }
+
+    .btn-filtrar, .btn-limpiar {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        color: white;
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-filtrar {
+        background-color: #28a745;
+    }
+
+    .btn-filtrar:hover {
+        background-color: #218838;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(40,167,69,0.3);
+    }
+
+    .btn-limpiar {
+        background-color: #6c757d;
+    }
+
+    .btn-limpiar:hover {
+        background-color: #545b62;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(108,117,125,0.3);
+    }
+
+    /* Tabla */
+    .tabla-wrapper {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    #tablaDenuncias {
+        width: 100% !important;
+    }
+
+    #tablaDenuncias thead {
+        background-color: #90EE90;
+        color: #000000;
+    }
+
+    #tablaDenuncias thead th {
+        padding: 15px 10px;
+        font-weight: 600;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    #tablaDenuncias tbody tr {
+        transition: all 0.2s;
+    }
+
+    #tablaDenuncias tbody tr:hover {
+        background-color: #f8f9fa;
+        transform: scale(1.01);
+    }
+
+    #tablaDenuncias tbody td {
+        padding: 12px 10px;
+        vertical-align: middle;
+    }
+
+    /* Botones de acción */
+    .btn-ver, .btn-motivo {
+        border: none;
+        padding: 8px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-right: 6px;
+        color: white;
+    }
+
+    .btn-ver {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    }
+
+    .btn-ver:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(23,162,184,0.4);
+    }
+
+    .btn-motivo {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .btn-motivo:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40,167,69,0.4);
+    }
+
+    .btn-icon {
+        font-size: 14px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.75);
+        z-index: 1500;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-container {
+        background: #fff;
+        width: 90vw;
+        height: 90vh;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        position: relative;
+        animation: modalAppear 0.3s ease-out;
+    }
+
+    @keyframes modalAppear {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .modal-close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border: none;
+        color: #fff;
+        font-size: 1.5rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 10;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 8px rgba(220,53,69,0.3);
+    }
+
+    .modal-close-btn:hover {
+        transform: rotate(90deg) scale(1.1);
+        box-shadow: 0 6px 16px rgba(220,53,69,0.5);
+    }
+
+    .modal-content-wrapper {
+        display: flex;
+        height: 100%;
+    }
+
+    .modal-archivo-section {
+        flex: 3;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        overflow: auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+    }
+
+    .modal-descripcion-section {
+        flex: 1;
+        padding: 2rem;
+        border-left: 2px solid #dee2e6;
+        overflow-y: auto;
+        background: white;
+    }
+
+    .modal-title {
+        color: #28a745;
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #28a745;
+    }
+
+    .descripcion-content {
+        line-height: 1.8;
+    }
+
+    .descripcion-content p {
+        color: #495057;
+        font-size: 15px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    /* Archivo viewer */
+    .archivo-viewer {
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 8px;
+    }
+
+    .archivo-imagen {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .archivo-placeholder {
+        text-align: center;
+        color: #6c757d;
+    }
+
+    .archivo-placeholder .archivo-icon {
+        font-size: 80px;
+        display: block;
+        margin-bottom: 15px;
+    }
+
+    .archivo-placeholder p {
+        font-size: 18px;
+        font-weight: 500;
+    }
+
+    .archivo-documento {
+        text-align: center;
+        padding: 40px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .doc-icon {
+        font-size: 80px;
+        display: block;
+        margin-bottom: 20px;
+    }
+
+    .archivo-documento h3 {
+        color: #2c3e50;
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+
+    .archivo-documento p {
+        color: #6c757d;
+        font-size: 16px;
+        margin-bottom: 25px;
+    }
+
+    .btn-descargar {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s;
+        box-shadow: 0 4px 8px rgba(40,167,69,0.3);
+    }
+
+    .btn-descargar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(40,167,69,0.5);
+    }
+
+    /* Scrollbar personalizado */
+    .modal-descripcion-section::-webkit-scrollbar,
+    .modal-archivo-section::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .modal-descripcion-section::-webkit-scrollbar-track,
+    .modal-archivo-section::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .modal-descripcion-section::-webkit-scrollbar-thumb,
+    .modal-archivo-section::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border-radius: 10px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .modal-container {
+            width: 95vw;
+            height: 95vh;
+        }
+
+        .modal-content-wrapper {
+            flex-direction: column;
+        }
+
+        .modal-archivo-section,
+        .modal-descripcion-section {
+            flex: 1;
+        }
+
+        .modal-descripcion-section {
+            border-left: none;
+            border-top: 2px solid #dee2e6;
+        }
+    }
+</style>
+
+{% endblock %}

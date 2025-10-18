@@ -1,0 +1,39 @@
+<div id="tab-comparacion" class="tab-content">
+  <div class="control-panel">
+    <h3 style="margin-top: 0;">📆 Comparar Predicciones</h3>
+    <div class="control-row" style="margin-bottom: 0;">
+      <div class="control-group">
+        <label>Mes a Comparar</label>
+        <select id="mesComparacion">
+          <option value="1">Enero</option>
+          <option value="2">Febrero</option>
+          <option value="3">Marzo</option>
+          <option value="4">Abril</option>
+          <option value="5">Mayo</option>
+          <option value="6">Junio</option>
+          <option value="7">Julio</option>
+          <option value="8">Agosto</option>
+          <option value="9">Septiembre</option>
+          <option value="10">Octubre</option>
+          <option value="11">Noviembre</option>
+          <option value="12">Diciembre</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="compararAnos()">
+        🔄 Comparar entre Años
+      </button>
+    </div>
+  </div>
+
+  <div id="resultadoComparacion" style="display: none;">
+    <div class="chart-container">
+      <h3>📊 Evolución Temporal - Mismo Mes en Diferentes Años</h3>
+      <canvas id="chartComparacion"></canvas>
+    </div>
+
+    <div class="chart-container">
+      <h3>📋 Tabla Comparativa</h3>
+      <table class="comparison-table" id="tablaComparacion"></table>
+    </div>
+  </div>
+</div>

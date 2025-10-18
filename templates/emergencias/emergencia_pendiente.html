@@ -1,0 +1,956 @@
+{% extends "partials/sidebar.html" %}
+{% block title %} Emergencias Pendientes {% endblock %}
+{% block content %}
+
+<div class="content">
+    <h1 id="titulo">Emergencias Pendientes</h1>
+
+    <!-- FILTROS Y ACCIONES -->
+    <div class="filtros-acciones-container">
+        <div class="filtros-group">
+            <div class="filtro-item">
+                <label for="filtroPersona">Persona:</label>
+                <input type="text" id="filtroPersona" placeholder="Buscar persona...">
+            </div>
+            <div class="filtro-item">
+                <label for="filtroFecha">Fecha:</label>
+                <input type="date" id="filtroFecha">
+            </div>
+            <div class="filtro-item">
+                <label for="filtroEmergencia">Tipo:</label>
+                <select id="filtroEmergencia">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="filtro-item">
+                <button id="btnFiltrar" class="btn-filtrar">
+                    <span>🔍</span> Aplicar
+                </button>
+                <button id="btnLimpiar" class="btn-limpiar">
+                    <span>✖</span> Limpiar
+                </button>
+            </div>
+        </div>
+        
+        <div class="acciones-group">
+            <button id="btnAceptarSeleccion" class="btn-accion btn-aceptar" disabled>
+                <span>✓</span> Aceptar seleccionados
+            </button>
+            <button id="btnRechazarSeleccion" class="btn-accion btn-rechazar" disabled>
+                <span>✗</span> Rechazar seleccionados
+            </button>
+        </div>
+    </div>
+
+    <!-- TABLA -->
+    <div class="tabla-wrapper">
+        <table id="tablaEmergencias" class="display nowrap" style="width:100%">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="checkAll"></th>
+                    <th>ID</th>
+                    <th>Tipo de Emergencia</th>
+                    <th>Persona</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<!-- DataTables + jQuery -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+$(document).ready(function () {
+    const tabla = $('#tablaEmergencias').DataTable({
+        ajax: {
+            url: '{{ BASE_URL }}/api/central/emergencias/pendientes/{{ session["id_usuario"] }}',
+            dataSrc: function (json) {
+                if (!json || !json.emergencias) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sin datos',
+                        text: 'Aún no hay emergencias pendientes',
+                        confirmButtonText: 'Aceptar',
+                        confirmButtonColor: '#dc3545'
+                    });
+                    return [];
+                }
+                
+                // Extraer tipos únicos de emergencias para el filtro
+                const tipos = [...new Set(json.emergencias.map(e => e.nombre_emergencia))];
+                const selectEmergencia = $('#filtroEmergencia');
+                selectEmergencia.find('option:not(:first)').remove();
+                tipos.forEach(tipo => {
+                    selectEmergencia.append(`<option value="${tipo}">${tipo}</option>`);
+                });
+                
+                return json.emergencias;
+            },
+            error: function (xhr, error, thrown) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudieron cargar las emergencias',
+                    confirmButtonText: 'Aceptar',
+                    confirmButtonColor: '#dc3545'
+                });
+                console.error('Error en DataTables:', xhr.responseText);
+            }
+        },
+        columns: [
+            {
+                data: null,
+                render: function (data, type, row) {
+                    return `<input type="checkbox" class="check-item" value="${row.id_incidencia}" data-detalle='${JSON.stringify(row)}'>`;
+                },
+                orderable: false,
+                searchable: false
+            },
+            { data: 'id_incidencia' },
+            { 
+                data: 'nombre_emergencia',
+                render: function(data) {
+                    const iconos = {
+                        'Incendio': '🔥',
+                        'Accidente': '🚑',
+                        'Robo': '🚨',
+                        'Violencia': '⚠️',
+                        'Desastre Natural': '🌪️',
+                        'Médica': '⚕️'
+                    };
+                    const icono = iconos[data] || '🚨';
+                    return `<span class="emergencia-tipo">${icono} ${data}</span>`;
+                }
+            },
+            { data: 'persona' },
+            { data: 'fecha' },
+            { data: 'hora' },
+            {
+                data: null,
+                render: function(data, type, row) {
+                    return `<button class="btn-ver" onclick="verEmergencia('${row.id_incidencia}')">Ver detalle</button>`;
+                }
+            }
+        ],
+        order: [[1, 'desc']],
+        responsive: true,
+        dom : 'rtip',
+        language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json',
+            search: "Buscar:",
+            lengthMenu: "Mostrar _MENU_ registros",
+            info: "Mostrando _START_ a _END_ de _TOTAL_ emergencias",
+            infoEmpty: "No hay emergencias disponibles",
+            infoFiltered: "(filtrado de _MAX_ emergencias totales)",
+            zeroRecords: "No se encontraron emergencias",
+            emptyTable: "No hay emergencias pendientes"
+        }
+    });
+
+    // Filtros personalizados
+    $('#btnFiltrar').on('click', function () {
+        const persona = $('#filtroPersona').val().toLowerCase();
+        const fecha = $('#filtroFecha').val();
+        const tipoEmergencia = $('#filtroEmergencia').val().toLowerCase();
+
+        tabla.rows().every(function () {
+            const data = this.data();
+            const matchPersona = !persona || data.persona.toLowerCase().includes(persona);
+            const matchFecha = !fecha || data.fecha === fecha;
+            const matchTipo = !tipoEmergencia || data.nombre_emergencia.toLowerCase() === tipoEmergencia;
+            
+            if (matchPersona && matchFecha && matchTipo) {
+                $(this.node()).show();
+            } else {
+                $(this.node()).hide();
+            }
+        });
+    });
+
+    $('#btnLimpiar').on('click', function () {
+        $('#filtroPersona, #filtroFecha, #filtroEmergencia').val('');
+        tabla.rows().every(function () { $(this.node()).show(); });
+    });
+
+    // Checkbox general
+    $('#checkAll').on('change', function () {
+        $('.check-item').prop('checked', this.checked);
+        actualizarBotonesAccion();
+    });
+
+    // Actualizar estado de botones cuando se selecciona un checkbox
+    $(document).on('change', '.check-item', function() {
+        actualizarBotonesAccion();
+    });
+
+    function actualizarBotonesAccion() {
+        const seleccionados = $('.check-item:checked').length;
+        $('#btnAceptarSeleccion, #btnRechazarSeleccion').prop('disabled', seleccionados === 0);
+        
+        if (seleccionados > 0) {
+            $('#btnAceptarSeleccion, #btnRechazarSeleccion').addClass('activo');
+        } else {
+            $('#btnAceptarSeleccion, #btnRechazarSeleccion').removeClass('activo');
+        }
+    }
+
+    // Procesar emergencias con modal de dos pasos
+    function procesarSeleccion(accion) {
+        const seleccionados = [];
+        const detalles = [];
+        
+        $('.check-item:checked').each(function() {
+            seleccionados.push($(this).val());
+            try {
+                const detalle = JSON.parse($(this).attr('data-detalle'));
+                detalles.push(detalle);
+            } catch(e) {
+                console.error('Error al parsear detalle:', e);
+            }
+        });
+
+        if (seleccionados.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Atención',
+                text: 'No has seleccionado ninguna emergencia.',
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+
+        // PASO 1: Mostrar detalles de las emergencias
+        let htmlDetalles = '<div class="detalles-container">';
+        detalles.forEach((det, index) => {
+            const iconos = {
+                'Incendio': '🔥',
+                'Accidente': '🚑',
+                'Robo': '🚨',
+                'Violencia': '⚠️',
+                'Desastre Natural': '🌪️',
+                'Médica': '⚕️'
+            };
+            const icono = iconos[det.nombre_emergencia] || '🚨';
+            
+            htmlDetalles += `
+                <div class="detalle-card">
+                    <div class="detalle-header">
+                        <strong>#${det.id_incidencia}</strong>
+                        <span class="detalle-tipo">${icono} ${det.nombre_emergencia}</span>
+                    </div>
+                    <div class="detalle-body">
+                        <p><strong>Persona:</strong> ${det.persona}</p>
+                        <p><strong>Fecha:</strong> ${det.fecha} ${det.hora}</p>
+                    </div>
+                </div>
+            `;
+        });
+        htmlDetalles += '</div>';
+
+        const tituloAccion = accion === 'aceptar' ? 'Aceptar' : 'Rechazar';
+        const colorBoton = accion === 'aceptar' ? '#28a745' : '#dc3545';
+
+        Swal.fire({
+            title: `Revisar ${seleccionados.length} emergencia${seleccionados.length > 1 ? 's' : ''}`,
+            html: htmlDetalles,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Siguiente →',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: colorBoton,
+            cancelButtonColor: '#6c757d',
+            width: '700px',
+            customClass: {
+                popup: 'swal-popup-custom'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                mostrarFormularioMotivos(accion, seleccionados, detalles);
+            }
+        });
+    }
+
+    // PASO 2: Formulario de motivos
+    function mostrarFormularioMotivos(accion, seleccionados, detalles) {
+        const tituloAccion = accion === 'aceptar' ? 'Aceptar' : 'Rechazar';
+        const colorBoton = accion === 'aceptar' ? '#28a745' : '#dc3545';
+
+        // Motivos predefinidos según acción
+        const motivosPredefinidos = accion === 'aceptar'
+            ? ['Emergencia verificada', 'Solicitud válida', 'Confirmación ciudadana', 'Otro motivo']
+            : ['Emergencia inválida', 'Falsa alarma', 'Datos insuficientes', 'Otro motivo'];
+
+        Swal.fire({
+            title: `${tituloAccion} emergencias - Motivo`,
+            html: `
+                <div class="form-motivos">
+                    <div class="form-group">
+                        <label for="motivoCombo">Motivo predefinido: <span class="required">*</span></label>
+                        <select id="motivoCombo" class="swal-select">
+                            <option value="">Seleccione un motivo...</option>
+                            ${motivosPredefinidos.map(m => `<option value="${m}">${m}</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descripcionMotivo">Descripción adicional: <span class="required">*</span></label>
+                        <textarea id="descripcionMotivo" class="swal-textarea" rows="4" 
+                                placeholder="Ingrese detalles adicionales para ${accion} estas emergencias..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="archivoAdjunto">Archivo adjunto (opcional):</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="archivoAdjunto" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="file-input">
+                            <label for="archivoAdjunto" class="file-label">
+                                <span class="file-icon">📎</span>
+                                <span class="file-text">Seleccionar archivo</span>
+                            </label>
+                        </div>
+                        <div id="archivoSeleccionado" class="archivo-preview" style="display:none;">
+                            <span class="archivo-icon">📄</span>
+                            <span class="archivo-nombre"></span>
+                            <button type="button" class="archivo-quitar" onclick="quitarArchivo()">✕</button>
+                        </div>
+                        <small class="form-help">Formatos: PDF, Word, Imágenes (Máx. 10MB)</small>
+                    </div>
+                </div>
+            `,
+            width: '650px',
+            showCancelButton: true,
+            confirmButtonText: `Confirmar y ${accion}`,
+            cancelButtonText: '← Volver',
+            confirmButtonColor: colorBoton,
+            cancelButtonColor: '#6c757d',
+            customClass: {
+                popup: 'swal-popup-custom'
+            },
+            didOpen: () => {
+                // Manejar cambio de archivo
+                document.getElementById('archivoAdjunto').addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        const archivo = this.files[0];
+                        document.querySelector('.archivo-nombre').textContent = archivo.name;
+                        document.getElementById('archivoSeleccionado').style.display = 'flex';
+                        document.querySelector('.file-label .file-text').textContent = 'Cambiar archivo';
+                    }
+                });
+            },
+            preConfirm: () => {
+                const motivoCombo = document.getElementById('motivoCombo').value;
+                const descripcion = document.getElementById('descripcionMotivo').value.trim();
+                const archivo = document.getElementById('archivoAdjunto').files[0];
+
+                if (!motivoCombo) {
+                    Swal.showValidationMessage('Debe seleccionar un motivo predefinido');
+                    return false;
+                }
+
+                if (!descripcion) {
+                    Swal.showValidationMessage('Debe ingresar una descripción adicional');
+                    return false;
+                }
+
+                // Concatenamos el motivo predefinido con la descripción
+                const motivoFinal = `${motivoCombo}: ${descripcion}`;
+
+                return {
+                    descripcion: motivoFinal,
+                    archivo: archivo
+                };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                procesarConMotivos(accion, seleccionados, result.value.descripcion, result.value.archivo);
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                // Volver al paso 1
+                procesarSeleccion(accion);
+            }
+        });
+    }
+
+
+    // Función para procesar las emergencias
+    async function procesarConMotivos(accion, ids, descripcion, archivo) {
+        Swal.fire({
+            title: 'Procesando...',
+            text: 'Por favor espere',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        let exitosos = 0;
+        let fallidos = 0;
+
+        for (const id of ids) {
+            try {
+                const formData = new FormData();
+                formData.append('descripcion', descripcion);
+                formData.append('accion', accion);
+                if (archivo) {
+                    formData.append('archivo', archivo);
+                }
+
+                const response = await fetch(`{{ BASE_URL }}/api/central/incidencia/procesar/${id}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.message) {
+                    exitosos++;
+                } else {
+                    fallidos++;
+                    console.error(`Error en emergencia ${id}:`, data.error);
+                }
+            } catch (error) {
+                fallidos++;
+                console.error(`Error al procesar emergencia ${id}:`, error);
+            }
+        }
+
+        // Mostrar resultado final
+        Swal.fire({
+            icon: fallidos === 0 ? 'success' : 'warning',
+            title: fallidos === 0 ? '¡Proceso completado!' : 'Proceso completado con observaciones',
+            html: `
+                <div class="resultado-proceso">
+                    <p class="resultado-exitoso">✓ ${exitosos} emergencia${exitosos !== 1 ? 's' : ''} ${accion === 'aceptar' ? 'aceptada' : 'rechazada'}${exitosos !== 1 ? 's' : ''} correctamente</p>
+                    ${fallidos > 0 ? `<p class="resultado-fallido">✗ ${fallidos} no pudieron procesarse</p>` : ''}
+                </div>
+            `,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Entendido'
+        });
+        
+        tabla.ajax.reload();
+        $('#checkAll').prop('checked', false);
+        actualizarBotonesAccion();
+    }
+
+    // Función global para quitar archivo
+    window.quitarArchivo = function() {
+        document.getElementById('archivoAdjunto').value = '';
+        document.getElementById('archivoSeleccionado').style.display = 'none';
+        document.querySelector('.file-label .file-text').textContent = 'Seleccionar archivo';
+    }
+
+    $('#btnAceptarSeleccion').on('click', () => procesarSeleccion('aceptar'));
+    $('#btnRechazarSeleccion').on('click', () => procesarSeleccion('rechazar'));
+});
+
+// Ver detalle de emergencia
+function verEmergencia(id_incidencia) {
+    window.location.href = "/emergencias/detalle/" + id_incidencia + "/editar";
+}
+</script>
+
+<style>
+    .content {
+        padding: 20px;
+        background-color: #f5f7fa;
+    }
+
+    #titulo {
+        color: #000000;
+        margin-bottom: 25px;
+        font-size: 28px;
+        font-weight: 600;
+        background: none;
+    }
+
+    /* Filtros y acciones */
+    .filtros-acciones-container {
+        background: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .filtros-group {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+        flex: 1;
+    }
+
+    .filtro-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filtro-item label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .filtro-item input,
+    .filtro-item select {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        font-size: 14px;
+        transition: all 0.3s;
+        min-width: 180px;
+    }
+
+    .filtro-item input:focus,
+    .filtro-item select:focus {
+        outline: none;
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    }
+
+    .btn-filtrar, .btn-limpiar {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        color: white;
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-filtrar {
+        background-color: #dc3545;
+    }
+
+    .btn-filtrar:hover {
+        background-color: #c82333;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+    }
+
+    .btn-limpiar {
+        background-color: #6c757d;
+    }
+
+    .btn-limpiar:hover {
+        background-color: #545b62;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+    }
+
+    .acciones-group {
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn-accion {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        color: white;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        opacity: 0.5;
+    }
+
+    .btn-accion:disabled {
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    .btn-accion.activo {
+        opacity: 1;
+    }
+
+    .btn-aceptar {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .btn-aceptar.activo:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(40,167,69,0.4);
+    }
+
+    .btn-rechazar {
+        background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    }
+
+    .btn-rechazar.activo:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(220,53,69,0.4);
+    }
+
+    /* Tabla */
+    .tabla-wrapper {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    #tablaEmergencias {
+        width: 100% !important;
+    }
+
+    #tablaEmergencias thead {
+        background-color: #ffcdd2;
+        color: #000000;
+    }
+
+    #tablaEmergencias thead th {
+        padding: 15px 10px;
+        font-weight: 600;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    #tablaEmergencias tbody tr {
+        transition: all 0.2s;
+    }
+
+    #tablaEmergencias tbody tr:hover {
+        background-color: #fff3f3;
+        transform: scale(1.01);
+    }
+
+    #tablaEmergencias tbody td {
+        padding: 12px 10px;
+        vertical-align: middle;
+    }
+
+    /* Tipo de emergencia con icono */
+    .emergencia-tipo {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #c62828;
+    }
+
+    /* Botón de acción */
+    .btn-ver {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        transition: all 0.3s;
+    }
+
+    .btn-ver:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+    }
+
+    /* Estilos para el modal de detalles */
+    .detalles-container {
+        max-height: 450px;
+        overflow-y: auto;
+        text-align: left;
+        padding: 10px;
+    }
+
+    .detalle-card {
+        border: 2px solid #e9ecef;
+        padding: 15px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        transition: all 0.3s;
+    }
+
+    .detalle-card:hover {
+        border-color: #dc3545;
+        box-shadow: 0 4px 12px rgba(220,53,69,0.15);
+    }
+
+    .detalle-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .detalle-header strong {
+        color: #dc3545;
+        font-size: 16px;
+    }
+
+    .detalle-tipo {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .detalle-body p {
+        margin: 8px 0;
+        color: #495057;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .detalle-body strong {
+        color: #2c3e50;
+    }
+
+    /* Estilos para el formulario de motivos */
+    .form-motivos {
+        text-align: left;
+        padding: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 14px;
+    }
+
+    .required {
+        color: #dc3545;
+    }
+
+    .swal-textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ced4da;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        resize: vertical;
+        transition: all 0.3s;
+    }
+
+    .swal-textarea:focus {
+        outline: none;
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220,53,69,0.1);
+    }
+
+    .file-input-wrapper {
+        position: relative;
+    }
+
+    .file-input {
+        display: none;
+    }
+
+    .file-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: 2px dashed #ced4da;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .file-label:hover {
+        border-color: #dc3545;
+        background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    }
+
+    .file-icon {
+        font-size: 20px;
+    }
+
+    .file-text {
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .archivo-preview {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+        padding: 10px 15px;
+        background: #ffebee;
+        border: 1px solid #dc3545;
+        border-radius: 8px;
+    }
+
+    .archivo-icon {
+        font-size: 24px;
+    }
+
+    .archivo-nombre {
+        flex: 1;
+        font-size: 14px;
+        color: #2c3e50;
+        font-weight: 500;
+    }
+
+    .archivo-quitar {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+    .archivo-quitar:hover {
+        background: #c82333;
+        transform: scale(1.1);
+    }
+
+    .form-help {
+        display: block;
+        margin-top: 8px;
+        font-size: 12px;
+        color: #6c757d;
+    }
+
+    /* Resultados */
+    .resultado-proceso {
+        text-align: left;
+        padding: 10px;
+    }
+
+    .resultado-exitoso {
+        color: #28a745;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 10px 0;
+    }
+
+    .resultado-fallido {
+        color: #dc3545;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 10px 0;
+    }
+
+    /* Checkbox personalizado */
+    input[type="checkbox"] {
+        cursor: pointer;
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Scrollbar personalizado */
+    .detalles-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .detalles-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .detalles-container::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border-radius: 10px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filtros-acciones-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filtros-group, .acciones-group {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .filtro-item {
+            width: 100%;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filtro-item input,
+        .filtro-item select {
+            width: 100%;
+        }
+
+        .btn-accion {
+            flex: 1;
+        }
+    }
+
+    .swal-select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #fff;
+        font-size: 15px;
+        font-family: 'Segoe UI', sans-serif;
+        color: #333;
+        outline: none;
+        transition: all 0.2s ease;
+        appearance: none; /* Quita estilo nativo */
+        background-image: linear-gradient(45deg, transparent 50%, #999 50%), 
+                        linear-gradient(135deg, #999 50%, transparent 50%);
+        background-position: calc(100% - 20px) calc(1em + 2px), 
+                            calc(100% - 15px) calc(1em + 2px);
+        background-size: 5px 5px, 5px 5px;
+        background-repeat: no-repeat;
+        cursor: pointer;
+    }
+
+    .swal-select:hover {
+        border-color: #888;
+    }
+
+    .swal-select:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+    }
+</style>
+
+{% endblock %}
