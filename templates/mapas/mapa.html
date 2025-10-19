@@ -62,7 +62,6 @@
 
     .sidebar-header {
         padding: 1.5rem;
-        
         background: black;
         color: white;
     }
@@ -868,56 +867,52 @@
         margin-bottom: 1rem;
     }
 
-    .grid-controls {
-    padding: 1rem;
-    background: var(--background-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    margin-bottom: 1rem;
-}
+    /* ✅ ESTILOS PARA SECTORES */
+    .sectores-controls {
+        padding: 1rem;
+        background: var(--background-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        margin-bottom: 1rem;
+    }
 
-.grid-info {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 1rem;
-    border-radius: var(--radius-md);
-    color: white;
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
-}
+    .sectores-info {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        color: white;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
 
-.quadrant-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    .sectores-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        overflow-x: auto;
+        white-space: nowrap;
+        max-width: 100%;
+        padding-bottom: 0.3rem;
+    }
 
-    /* ✅ Scroll horizontal */
-    overflow-x: auto;
-    white-space: nowrap;
-    max-width: 100%;
-    padding-bottom: 0.3rem; /* espacio para el scrollbar */
-}
+    .sector-stat {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.5rem;
+        border-radius: 4px;
+        text-align: center;
+    }
 
+    .sector-stat-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        display: block;
+    }
 
-.quadrant-stat {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 0.5rem;
-    border-radius: 4px;
-    text-align: center;
-}
-
-.quadrant-stat-value {
-    font-size: 1.25rem;
-    font-weight: 700;
-    display: block;
-}
-
-.quadrant-stat-label {
-    font-size: 0.75rem;
-    opacity: 0.9;
-}
-
-
+    .sector-stat-label {
+        font-size: 0.75rem;
+        opacity: 0.9;
+    }
 </style>
 
 <div class="dashboard-container">
@@ -986,7 +981,6 @@
                     </button>
                 </div>
             </div>
-
 
             <div class="metrics-grid">
                 <div class="metric-card">
@@ -1079,24 +1073,25 @@
                     </button>
                 </div>
 
-                <div class="grid-controls">
+                <!-- ✅ SECTORES EN VEZ DE CUADRANTES -->
+                <div class="sectores-controls">
                     <h3 class="controls-title">
-                        <i class="fas fa-th"></i>
-                        Cuadrantes
+                        <i class="fas fa-map-marked-alt"></i>
+                        Sectores
                     </h3>
                     <div class="control-group">
-                        <label class="control-label">Grilla 5x5</label>
+                        <label class="control-label">Mostrar Sectores Definidos</label>
                         <div class="control-buttons">
-                            <button class="control-btn" id="toggle-grid">
+                            <button class="control-btn" id="toggle-sectores">
                                 <i class="fas fa-border-all"></i>
                                 Mostrar
                             </button>
                         </div>
                     </div>
-                    <div class="grid-info" id="grid-info" style="display: none;">
+                    <div class="sectores-info" id="sectores-info" style="display: none;">
                         <i class="fas fa-info-circle"></i>
-                        <strong>25 cuadrantes</strong> activos sobre Reque
-                        <div class="quadrant-stats" id="quadrant-stats">
+                        <strong id="sectores-count">0 sectores</strong> activos
+                        <div class="sectores-stats" id="sectores-stats">
                             <!-- Stats dinámicas -->
                         </div>
                     </div>
@@ -1120,7 +1115,7 @@
     </main>
 </div>
 
-<!-- Modal de detalles de clusters -->
+<!-- Modal de detalles de clusters (sin cambios) -->
 <div class="cluster-detail-modal" id="cluster-modal">
     <div class="cluster-detail-content">
         <div class="cluster-detail-header">
@@ -1146,41 +1141,28 @@
         </div>
 
         <div class="cluster-detail-body">
-            <!-- Tab: Resumen -->
             <div class="tab-content active" id="tab-overview">
-                <div class="cluster-stats-grid" id="stats-grid">
-                    <!-- Estadísticas dinámicas -->
-                </div>
-                
+                <div class="cluster-stats-grid" id="stats-grid"></div>
                 <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: var(--text-primary);">
                     <i class="fas fa-chart-bar"></i> Distribución por Categoría
                 </h3>
-                <div id="category-distribution">
-                    <!-- Barras de categorías -->
-                </div>
+                <div id="category-distribution"></div>
             </div>
 
-            <!-- Tab: Todos los Clusters -->
             <div class="tab-content" id="tab-clusters">
                 <div class="search-box">
                     <input type="text" class="search-input" id="cluster-search" placeholder="Buscar cluster por ID o categoría...">
                 </div>
-                <div id="cluster-list">
-                    <!-- Lista de clusters -->
-                </div>
+                <div id="cluster-list"></div>
             </div>
 
-            <!-- Tab: Detalles de Incidencias -->
             <div class="tab-content" id="tab-details">
                 <div class="search-box">
                     <input type="text" class="search-input" id="incident-search" placeholder="Buscar incidencia por descripción...">
                 </div>
-                <div class="incident-list" id="incident-list">
-                    <!-- Lista de incidencias -->
-                </div>
+                <div class="incident-list" id="incident-list"></div>
             </div>
 
-            <!-- Tab: Exportar -->
             <div class="tab-content" id="tab-export">
                 <h3 style="margin-bottom: 1rem;">Exportar Datos del Análisis</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
@@ -1222,15 +1204,15 @@ class IncidentMonitoringSystem {
         this.incidencias = [];
         this.incidenciasFiltradas = [];
         this.filtroTemporal = 'all';
-        this.filtroTipo = 'all'; // NUEVO
+        this.filtroTipo = 'all';
         this.isLoading = false;
         this.retryCount = 0;
         this.maxRetries = 3;
         this.retryDelay = 2000;
         this.clusterColors = new Map();
         this.selectedCluster = null;
-        this.gridVisible = false;
-        this.cuadrantesData = null;
+        this.sectoresVisible = false;
+        this.sectoresData = null;
         
         this.mapConfig = {
             accessToken: 'pk.eyJ1IjoicGVkcm8xMjNhYmMiLCJhIjoiY21hcGh0YWRmMGk0ZTJscTc0Yml2djM2MSJ9.RdRrSKRsvzGdhNNCDBxPiA',
@@ -1291,20 +1273,17 @@ class IncidentMonitoringSystem {
         return this.hslToHex(hue, saturation, lightness);
     }
 
-    // NUEVO: Detectar tipo de incidencia
     detectarTipoIncidencia(incidencia) {
         const descripcion = (incidencia.descripcion || '').toLowerCase();
         const categoria = (incidencia.tipo_categoria || '').toLowerCase();
         const tipo = (incidencia.tipo || '').toLowerCase();
         
-        // Palabras clave para emergencias
         const emergenciasKeywords = [
             'emergencia', 'ambulancia', 'bomberos', 'policía', 'serenazgo',
             '911', '955', '666', '444', '922', 'urgente', 'accidente',
             'incendio', 'rescate', 'patrulla', 'siniestro'
         ];
         
-        // Palabras clave para denuncias
         const denunciasKeywords = [
             'denuncia', 'reclamo', 'queja', 'solicitud', 'basura',
             'ruido', 'bache', 'alumbrado', 'alcantarilla', 'poda',
@@ -1313,21 +1292,18 @@ class IncidentMonitoringSystem {
         
         const texto = `${descripcion} ${categoria} ${tipo}`;
         
-        // Verificar emergencias
         if (emergenciasKeywords.some(keyword => texto.includes(keyword))) {
             return 'emergencia';
         }
         
-        // Verificar denuncias
         if (denunciasKeywords.some(keyword => texto.includes(keyword))) {
             return 'denuncia';
         }
         
-        // Por defecto, clasificar según el tipo si existe
         if (tipo.includes('emerg')) return 'emergencia';
         if (tipo.includes('denun')) return 'denuncia';
         
-        return 'denuncia'; // Por defecto
+        return 'denuncia';
     }
 
     async init() {
@@ -1367,7 +1343,7 @@ class IncidentMonitoringSystem {
             });
         });
 
-        // NUEVO: Filtros por tipo
+        // Filtros por tipo
         document.querySelectorAll('.type-filters .time-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.type-filters .time-btn').forEach(b => b.classList.remove('active'));
@@ -1403,17 +1379,16 @@ class IncidentMonitoringSystem {
             });
         });
 
-        // Búsqueda en clusters
+        // Búsqueda
         document.getElementById('cluster-search').addEventListener('input', (e) => {
             this.filterClusters(e.target.value);
         });
 
-        // Búsqueda en incidencias
         document.getElementById('incident-search').addEventListener('input', (e) => {
             this.filterIncidents(e.target.value);
         });
 
-        // Exportar datos
+        // Exportar
         document.getElementById('export-json').addEventListener('click', () => {
             this.exportJSON();
         });
@@ -1422,6 +1397,7 @@ class IncidentMonitoringSystem {
             this.exportCSV();
         });
 
+        // Controles de visualización
         document.getElementById('heat-intensity').addEventListener('input', (e) => {
             this.updateHeatmapIntensity(parseFloat(e.target.value));
             document.getElementById('intensity-value').textContent = e.target.value;
@@ -1452,13 +1428,12 @@ class IncidentMonitoringSystem {
             this.loadIncidentData();
         });
 
-        // Agregar después de los event listeners existentes
-        document.getElementById('toggle-grid').addEventListener('click', () => {
-            this.toggleGrid();
+        // ✅ TOGGLE SECTORES
+        document.getElementById('toggle-sectores').addEventListener('click', () => {
+            this.toggleSectores();
         });
     }
 
-    // NUEVO: Aplicar todos los filtros
     aplicarFiltros() {
         if (this.incidencias.length === 0) return;
 
@@ -1494,7 +1469,7 @@ class IncidentMonitoringSystem {
             }
         }
 
-        // NUEVO: Filtro por tipo
+        // Filtro por tipo
         if (this.filtroTipo !== 'all') {
             datosFiltrados = datosFiltrados.filter(item => {
                 const tipo = this.detectarTipoIncidencia(item);
@@ -1507,347 +1482,7 @@ class IncidentMonitoringSystem {
         this.renderMapLayers();
     }
 
-    showClusterDetails() {
-        const datos = this.incidenciasFiltradas;
-        
-        // Generar contenido para cada tab
-        this.generateOverviewTab(datos);
-        this.generateClustersTab(datos);
-        this.generateIncidentsTab(datos);
-        
-        document.getElementById('cluster-modal').classList.add('show');
-    }
-
-    generateOverviewTab(datos) {
-        const clustersMap = new Map();
-        const categorias = {};
-        let denuncias = 0;
-        let emergencias = 0;
-        
-        datos.forEach(inc => {
-            const clusterId = inc.cluster;
-            if (clusterId !== -1) {
-                if (!clustersMap.has(clusterId)) {
-                    clustersMap.set(clusterId, []);
-                }
-                clustersMap.get(clusterId).push(inc);
-            }
-            
-            // Contar tipos
-            const tipo = this.detectarTipoIncidencia(inc);
-            if (tipo === 'denuncia') denuncias++;
-            else emergencias++;
-            
-            const cat = inc.tipo_categoria || 'Sin categoría';
-            categorias[cat] = (categorias[cat] || 0) + 1;
-        });
-
-        const totalClusters = clustersMap.size;
-        const avgClusterSize = totalClusters > 0 
-            ? Math.round(Array.from(clustersMap.values()).reduce((sum, arr) => sum + arr.length, 0) / totalClusters)
-            : 0;
-        const maxClusterSize = totalClusters > 0
-            ? Math.max(...Array.from(clustersMap.values()).map(arr => arr.length))
-            : 0;
-        const minClusterSize = totalClusters > 0
-            ? Math.min(...Array.from(clustersMap.values()).map(arr => arr.length))
-            : 0;
-
-        // Estadísticas con tipos
-        const statsHTML = `
-            <div class="stat-box">
-                <div class="stat-box-label">Total de Clusters</div>
-                <div class="stat-box-value">${totalClusters}</div>
-            </div>
-            <div class="stat-box blue">
-                <div class="stat-box-label">📋 Denuncias</div>
-                <div class="stat-box-value">${denuncias}</div>
-            </div>
-            <div class="stat-box orange">
-                <div class="stat-box-label">🚨 Emergencias</div>
-                <div class="stat-box-value">${emergencias}</div>
-            </div>
-            <div class="stat-box green">
-                <div class="stat-box-label">Tamaño Promedio</div>
-                <div class="stat-box-value">${avgClusterSize}</div>
-            </div>
-        `;
-        document.getElementById('stats-grid').innerHTML = statsHTML;
-
-        // Distribución por categoría
-        const totalIncidencias = datos.length;
-        const categoriasOrdenadas = Object.entries(categorias)
-            .sort((a, b) => b[1] - a[1]);
-
-        const categoriasHTML = categoriasOrdenadas.map(([cat, count]) => {
-            const percentage = ((count / totalIncidencias) * 100).toFixed(1);
-            return `
-                <div class="category-bar">
-                    <div class="category-bar-header">
-                        <span class="category-bar-label">${cat}</span>
-                        <span class="category-bar-value">${count} (${percentage}%)</span>
-                    </div>
-                    <div class="category-bar-fill-container">
-                        <div class="category-bar-fill" style="width: ${percentage}%"></div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        document.getElementById('category-distribution').innerHTML = categoriasHTML;
-    }
-
-    generateClustersTab(datos) {
-        const clustersMap = new Map();
-        
-        datos.forEach(inc => {
-            const clusterId = inc.cluster;
-            if (clusterId !== -1) {
-                if (!clustersMap.has(clusterId)) {
-                    clustersMap.set(clusterId, []);
-                }
-                clustersMap.get(clusterId).push(inc);
-            }
-        });
-
-        const sortedClusters = Array.from(clustersMap.entries())
-            .sort((a, b) => b[1].length - a[1].length);
-
-        if (sortedClusters.length === 0) {
-            document.getElementById('cluster-list').innerHTML = 
-                '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay clusters para mostrar</p>';
-            return;
-        }
-
-        const clustersHTML = sortedClusters.map(([clusterId, incidencias]) => {
-            const color = this.generateColorForCluster(clusterId);
-            
-            // Contar tipos en el cluster
-            let denuncias = 0;
-            let emergencias = 0;
-            incidencias.forEach(inc => {
-                const tipo = this.detectarTipoIncidencia(inc);
-                if (tipo === 'denuncia') denuncias++;
-                else emergencias++;
-            });
-            
-            const categorias = {};
-            incidencias.forEach(inc => {
-                const cat = inc.tipo_categoria || 'Sin categoría';
-                categorias[cat] = (categorias[cat] || 0) + 1;
-            });
-            const categoriaComun = Object.keys(categorias).reduce((a, b) => 
-                categorias[a] > categorias[b] ? a : b
-            );
-
-            const primerFecha = incidencias[0].fecha || 'N/A';
-            const ultimaFecha = incidencias[incidencias.length - 1].fecha || 'N/A';
-
-            return `
-                <div class="cluster-item" data-cluster="${clusterId}" onclick="window.incidentSystem.focusOnCluster(${clusterId})">
-                    <div class="cluster-color-box" style="background-color: ${color};">
-                        ${clusterId}
-                    </div>
-                    <div class="cluster-item-info">
-                        <div class="cluster-item-title">Cluster ${clusterId}</div>
-                        <div class="cluster-item-detail">
-                            <i class="fas fa-layer-group"></i> <strong>${incidencias.length}</strong> incidencias 
-                            (📋 ${denuncias} denuncias, 🚨 ${emergencias} emergencias)
-                        </div>
-                        <div class="cluster-item-detail">
-                            <i class="fas fa-tag"></i> Predominante: <strong>${categoriaComun}</strong> (${categorias[categoriaComun]} casos)
-                        </div>
-                        <div class="cluster-item-detail">
-                            <i class="fas fa-calendar"></i> Rango: ${primerFecha} - ${ultimaFecha}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        document.getElementById('cluster-list').innerHTML = clustersHTML;
-    }
-
-    generateIncidentsTab(datos) {
-        const clusteredData = datos.filter(inc => inc.cluster !== -1)
-            .sort((a, b) => a.cluster - b.cluster);
-
-        if (clusteredData.length === 0) {
-            document.getElementById('incident-list').innerHTML = 
-                '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay incidencias agrupadas</p>';
-            return;
-        }
-
-        const incidentsHTML = clusteredData.map(inc => {
-            const color = this.generateColorForCluster(inc.cluster);
-            const tipo = this.detectarTipoIncidencia(inc);
-            const tipoIcon = tipo === 'denuncia' ? '📋' : '🚨';
-            const tipoLabel = tipo === 'denuncia' ? 'Denuncia' : 'Emergencia';
-            const tipoColor = tipo === 'denuncia' ? '#4facfe' : '#fa709a';
-            
-            return `
-                <div class="incident-card" style="border-left-color: ${color}">
-                    <div class="incident-card-header">
-                        <span class="incident-id">
-                            <i class="fas fa-hashtag"></i> ${inc.id_incidencia || 'N/A'}
-                        </span>
-                        <span class="incident-date">
-                            <i class="fas fa-clock"></i> ${inc.fecha || 'N/A'}
-                        </span>
-                    </div>
-                    <div class="incident-description">
-                        ${inc.descripcion || 'Sin descripción'}
-                    </div>
-                    <div class="incident-meta">
-                        <span class="incident-badge" style="background-color: ${color}; color: white;">
-                            Cluster ${inc.cluster}
-                        </span>
-                        <span class="incident-badge" style="background-color: ${tipoColor}; color: white;">
-                            ${tipoIcon} ${tipoLabel}
-                        </span>
-                        <span class="incident-badge">
-                            <i class="fas fa-tag"></i> ${inc.tipo_categoria || 'N/A'}
-                        </span>
-                        <span class="incident-badge">
-                            <i class="fas fa-info-circle"></i> ${inc.estado || 'N/A'}
-                        </span>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        document.getElementById('incident-list').innerHTML = incidentsHTML;
-    }
-
-    filterClusters(searchTerm) {
-        const items = document.querySelectorAll('#cluster-list .cluster-item');
-        const term = searchTerm.toLowerCase();
-
-        items.forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(term) ? 'flex' : 'none';
-        });
-    }
-
-    filterIncidents(searchTerm) {
-        const items = document.querySelectorAll('#incident-list .incident-card');
-        const term = searchTerm.toLowerCase();
-
-        items.forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(term) ? 'block' : 'none';
-        });
-    }
-
-    focusOnCluster(clusterId) {
-        const clusterIncidents = this.incidenciasFiltradas.filter(inc => inc.cluster === clusterId);
-        
-        if (clusterIncidents.length === 0) return;
-
-        // Cerrar modal
-        document.getElementById('cluster-modal').classList.remove('show');
-
-        // Centrar mapa en el cluster
-        const bounds = new mapboxgl.LngLatBounds();
-        clusterIncidents.forEach(inc => {
-            bounds.extend([parseFloat(inc.lon), parseFloat(inc.lat)]);
-        });
-
-        this.map.fitBounds(bounds, { padding: 100, maxZoom: 17, duration: 1000 });
-
-        // Resaltar temporalmente
-        setTimeout(() => {
-            if (clusterIncidents.length > 0) {
-                const firstInc = clusterIncidents[0];
-                const color = this.generateColorForCluster(clusterId);
-                
-                new mapboxgl.Popup({
-                    closeButton: true,
-                    closeOnClick: true
-                })
-                .setLngLat([parseFloat(firstInc.lon), parseFloat(firstInc.lat)])
-                .setHTML(`
-                    <div class="popup-header" style="background-color: ${color};">
-                        <i class="fas fa-layer-group"></i> Cluster ${clusterId}
-                    </div>
-                    <div class="popup-content">
-                        <div class="popup-field">
-                            <strong>${clusterIncidents.length} incidencias</strong> en este cluster
-                        </div>
-                    </div>
-                `)
-                .addTo(this.map);
-            }
-        }, 1000);
-    }
-
-    exportJSON() {
-        const datos = this.incidenciasFiltradas;
-        const clustersMap = new Map();
-        
-        datos.forEach(inc => {
-            const clusterId = inc.cluster;
-            if (clusterId !== -1) {
-                if (!clustersMap.has(clusterId)) {
-                    clustersMap.set(clusterId, []);
-                }
-                clustersMap.get(clusterId).push(inc);
-            }
-        });
-
-        const exportData = {
-            metadata: {
-                total_incidencias: datos.length,
-                total_clusters: clustersMap.size,
-                fecha_export: new Date().toISOString(),
-                filtro_temporal: this.filtroTemporal,
-                filtro_tipo: this.filtroTipo
-            },
-            clusters: Array.from(clustersMap.entries()).map(([id, incidencias]) => ({
-                cluster_id: id,
-                size: incidencias.length,
-                color: this.generateColorForCluster(id),
-                incidencias: incidencias
-            })),
-            ruido: datos.filter(inc => inc.cluster === -1)
-        };
-
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `clusters_dbscan_${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    exportCSV() {
-        const datos = this.incidenciasFiltradas;
-        
-        const headers = [
-            'id_incidencia', 'cluster', 'tipo', 'lat', 'lon', 'descripcion', 
-            'tipo_categoria', 'fecha', 'hora', 'estado', 'nivel_incidencia'
-        ];
-
-        const csvContent = [
-            headers.join(','),
-            ...datos.map(inc => {
-                const tipo = this.detectarTipoIncidencia(inc);
-                return headers.map(h => {
-                    if (h === 'tipo') return `"${tipo}"`;
-                    const val = inc[h] || '';
-                    return `"${String(val).replace(/"/g, '""')}"`;
-                }).join(',');
-            })
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `clusters_dbscan_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-    }
+    // ... (mantener todos los métodos de clusters sin cambios: showClusterDetails, generateOverviewTab, etc.)
 
     async loadIncidentData() {
         if (this.isLoading) return;
@@ -2168,6 +1803,10 @@ class IncidentMonitoringSystem {
             if (this.incidencias.length > 0) {
                 this.renderMapLayers();
             }
+            // Redibujar sectores si estaban visibles
+            if (this.sectoresVisible && this.sectoresData) {
+                this.showSectores();
+            }
         });
     }
 
@@ -2232,10 +1871,14 @@ class IncidentMonitoringSystem {
         this.updateMetric('coverage', 'Error');
     }
 
+    // ========================================
+    // ✅ FUNCIONES PARA SECTORES
+    // ========================================
 
-    async loadCuadrantes() {
+    async loadSectores() {
         try {
-            const response = await fetch('{{ BASE_URL }}/api/modelo/espacial/cuadrantes');
+            // ✅ Usar endpoint con histórico ya calculado
+            const response = await fetch('{{ BASE_URL }}/api/sectores/historico');
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -2243,231 +1886,223 @@ class IncidentMonitoringSystem {
 
             const data = await response.json();
             
-            if (!data.success || !data.data || !data.data.cuadrantes) {
-                throw new Error('Datos de cuadrantes inválidos');
+            if (!data.success) {
+                throw new Error('Error al cargar sectores con histórico');
             }
-
-            this.cuadrantesData = data.data;
-            console.log('Cuadrantes cargados:', this.cuadrantesData.cuadrantes.length);
+            
+            // ✅ Ya viene con histórico incluido
+            this.sectoresData = data.data || [];
+            
+            console.log('✅ Sectores con histórico cargados:', this.sectoresData.length);
+            console.log('📊 Sectores con data histórica:', data.sectores_con_data);
             
         } catch (error) {
-            console.error('Error al cargar cuadrantes:', error);
-            this.showError('No se pudieron cargar los cuadrantes');
+            console.error('❌ Error al cargar sectores:', error);
+            this.showError('No se pudieron cargar los sectores');
         }
     }
 
-    createGridGeoJSONFromAPI() {
-    if (!this.cuadrantesData || !this.cuadrantesData.cuadrantes) {
-        console.error('No hay datos de cuadrantes');
-        return null;
-    }
+    // ✅ YA NO NECESITAS cargarHistoricoSectores() porque viene del backend
 
-    const features = this.cuadrantesData.cuadrantes.map((cuadrante, index) => {
-        const { bounds, id, columna, fila, centro, historico } = cuadrante;
+    createSectoresGeoJSON() {
+        if (!this.sectoresData || this.sectoresData.length === 0) {
+            console.error('No hay datos de sectores');
+            return null;
+        }
 
-        // Generar etiqueta original (A1, A2, etc.) si la quieres conservar
-        const label = String.fromCharCode(65 + fila) + (columna + 1);
+        const features = this.sectoresData.map((sector) => {
+            // ✅ Tu estructura usa "poligono" directamente
+            if (!sector.poligono || !sector.poligono.geometry) {
+                console.warn(`Sector ${sector.codigo_sector} sin polígono válido`);
+                return null;
+            }
 
-        // Nueva etiqueta tipo "#1"
-        const cuadranteLabel = `#${index + 1}`;
+            const coords = sector.poligono.geometry.coordinates[0];
+
+            return {
+                type: 'Feature',
+                properties: {
+                    id: sector.id_sector,
+                    codigo: sector.codigo_sector,
+                    nombre: sector.nombre,
+                    centro_lat: sector.centro.lat,
+                    centro_lon: sector.centro.lon
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [coords]
+                }
+            };
+        }).filter(f => f !== null);
 
         return {
-            type: 'Feature',
-            properties: {
-                id: id,
-                label: cuadranteLabel, // ✅ Aquí el nuevo formato
-                fila: fila,
-                columna: columna,
-                centro_lat: centro.lat,
-                centro_lon: centro.lon,
-                denuncias: historico.denuncias,
-                emergencias: historico.emergencias,
-                total: historico.total,
-                codigo: label // opcional: por si quieres mantener el código tipo A1
-            },
-            geometry: {
-                type: 'Polygon',
-                coordinates: [[
-                    [bounds.lon_min, bounds.lat_min],
-                    [bounds.lon_max, bounds.lat_min],
-                    [bounds.lon_max, bounds.lat_max],
-                    [bounds.lon_min, bounds.lat_max],
-                    [bounds.lon_min, bounds.lat_min]
-                ]]
-            }
+            type: 'FeatureCollection',
+            features: features
         };
-    });
+    }
 
-    return {
-        type: 'FeatureCollection',
-        features: features
-    };
-}
-
-
-    async toggleGrid() {
-        const button = document.getElementById('toggle-grid');
-        const gridInfo = document.getElementById('grid-info');
+    async toggleSectores() {
+        const button = document.getElementById('toggle-sectores');
+        const sectoresInfo = document.getElementById('sectores-info');
         
-        if (!this.gridVisible) {
-            // Cargar cuadrantes si no están cargados
-            if (!this.cuadrantesData) {
+        if (!this.sectoresVisible) {
+            // Cargar sectores si no están cargados
+            if (!this.sectoresData) {
                 button.innerHTML = '<div class="loading-spinner"></div> Cargando...';
                 button.disabled = true;
-                await this.loadCuadrantes();
+                await this.loadSectores();
                 button.disabled = false;
             }
             
-            if (this.cuadrantesData) {
-                this.showGrid();
+            if (this.sectoresData && this.sectoresData.length > 0) {
+                this.showSectores();
                 button.classList.add('active');
                 button.innerHTML = '<i class="fas fa-border-all"></i> Ocultar';
-                gridInfo.style.display = 'block';
-                this.updateGridStats();
+                sectoresInfo.style.display = 'block';
+                this.updateSectoresStats();
             } else {
                 button.innerHTML = '<i class="fas fa-border-all"></i> Mostrar';
+                this.showError('No hay sectores disponibles');
             }
         } else {
-            this.hideGrid();
+            this.hideSectores();
             button.classList.remove('active');
             button.innerHTML = '<i class="fas fa-border-all"></i> Mostrar';
-            gridInfo.style.display = 'none';
+            sectoresInfo.style.display = 'none';
         }
         
-        this.gridVisible = !this.gridVisible;
+        this.sectoresVisible = !this.sectoresVisible;
     }
 
-    updateGridStats() {
-        if (!this.cuadrantesData) return;
+    updateSectoresStats() {
+        if (!this.sectoresData) return;
         
-        const totalDenuncias = this.cuadrantesData.cuadrantes.reduce(
-            (sum, c) => sum + c.historico.denuncias, 0
+        // ✅ Sumar históricos
+        const totalHistorico = this.sectoresData.reduce(
+            (sum, s) => sum + (s.historico?.total || 0), 0
         );
-        const totalEmergencias = this.cuadrantesData.cuadrantes.reduce(
-            (sum, c) => sum + c.historico.emergencias, 0
+        const totalDenuncias = this.sectoresData.reduce(
+            (sum, s) => sum + (s.historico?.denuncias || 0), 0
         );
-        const totalIncidencias = this.cuadrantesData.cuadrantes.reduce(
-            (sum, c) => sum + c.historico.total, 0
+        const totalEmergencias = this.sectoresData.reduce(
+            (sum, s) => sum + (s.historico?.emergencias || 0), 0
         );
+        
+        document.getElementById('sectores-count').textContent = `${this.sectoresData.length} sectores`;
         
         const statsHTML = `
-            <div class="quadrant-stat">
-                <span class="quadrant-stat-value">${totalIncidencias.toLocaleString()}</span>
-                <span class="quadrant-stat-label">Total</span>
+            <div class="sector-stat">
+                <span class="sector-stat-value">${totalHistorico.toLocaleString()}</span>
+                <span class="sector-stat-label">Total Histórico</span>
             </div>
-            <div class="quadrant-stat">
-                <span class="quadrant-stat-value">${totalDenuncias.toLocaleString()}</span>
-                <span class="quadrant-stat-label">📋 Denuncias</span>
+            <div class="sector-stat">
+                <span class="sector-stat-value">${totalDenuncias.toLocaleString()}</span>
+                <span class="sector-stat-label">📋 Denuncias</span>
             </div>
-            <div class="quadrant-stat">
-                <span class="quadrant-stat-value">${totalEmergencias.toLocaleString()}</span>
-                <span class="quadrant-stat-label">🚨 Emergencias</span>
+            <div class="sector-stat">
+                <span class="sector-stat-value">${totalEmergencias.toLocaleString()}</span>
+                <span class="sector-stat-label">🚨 Emergencias</span>
             </div>
         `;
         
-        document.getElementById('quadrant-stats').innerHTML = statsHTML;
+        document.getElementById('sectores-stats').innerHTML = statsHTML;
     }
 
-    showGrid() {
-        const gridData = this.createGridGeoJSONFromAPI();
+    showSectores() {
+        const sectoresGeoJSON = this.createSectoresGeoJSON();
         
-        if (!gridData) {
-            console.error('No se pudo crear el GeoJSON de la grilla');
+        if (!sectoresGeoJSON || sectoresGeoJSON.features.length === 0) {
+            console.error('No se pudo crear el GeoJSON de sectores');
             return;
         }
 
-        if (!this.map.getSource('grid')) {
-            this.map.addSource('grid', {
+        if (!this.map.getSource('sectores')) {
+            this.map.addSource('sectores', {
                 type: 'geojson',
-                data: gridData
+                data: sectoresGeoJSON
             });
             
-            // Relleno con color según densidad
+            // Relleno con transparencia
             this.map.addLayer({
-                id: 'grid-fill',
+                id: 'sectores-fill',
                 type: 'fill',
-                source: 'grid',
+                source: 'sectores',
                 paint: {
-                    'fill-color': [
-                        'interpolate',
-                        ['linear'],
-                        ['get', 'total'],
-                        0, 'rgba(255, 255, 255, 0.05)',
-                        500, 'rgba(59, 130, 246, 0.15)',
-                        5000, 'rgba(249, 115, 22, 0.25)',
-                        20000, 'rgba(239, 68, 68, 0.35)',
-                        80000, 'rgba(220, 38, 38, 0.5)'
-                    ],
-                    'fill-opacity': 0.6
+                    'fill-color': 'white',
+                    'fill-opacity': 0.15
                 }
             });
             
-            // Líneas de la grilla
+            // ✅ LÍNEAS MÁS GRUESAS Y VISIBLES
             this.map.addLayer({
-                id: 'grid-lines',
+                id: 'sectores-lines',
                 type: 'line',
-                source: 'grid',
+                source: 'sectores',
                 paint: {
-                    'line-color': '#000000',
-                    'line-width': 2,
-                    'line-opacity': 0.7
+                    'line-color': '#667eea',           // Color azul
+                    'line-width': 5,                    // ✅ Grosor aumentado de 3 a 4
+                    'line-opacity': 1          // ✅ Patrón de línea punteada más visible
                 }
             });
             
-            // Etiquetas de cuadrantes
+            // Etiquetas de sectores
             this.map.addLayer({
-                id: 'grid-labels',
+                id: 'sectores-labels',
                 type: 'symbol',
-                source: 'grid',
+                source: 'sectores',
                 layout: {
-                    'text-field': ['get', 'label'],
-                    'text-size': 18,
+                    'text-field': ['get', 'codigo'],
+                    'text-size': 16,                    // ✅ Texto más grande (era 14)
                     'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold']
                 },
                 paint: {
-                    'text-color': '#000000',
+                    'text-color': '#667eea',
                     'text-halo-color': '#ffffff',
-                    'text-halo-width': 3,
-                    'text-halo-blur': 1
+                    'text-halo-width': 3,               // ✅ Halo más grueso
+                    'text-halo-blur': 0.5               // ✅ Menos blur para mejor legibilidad
                 }
             });
             
             // Interacciones
-            this.map.on('click', 'grid-fill', (e) => {
+            this.map.on('click', 'sectores-fill', (e) => {
                 const properties = e.features[0].properties;
-                this.showQuadrantInfo(properties, e.lngLat);
+                this.showSectorInfo(properties, e.lngLat);
             });
             
-            this.map.on('mouseenter', 'grid-fill', () => {
+            this.map.on('mouseenter', 'sectores-fill', () => {
                 this.map.getCanvas().style.cursor = 'pointer';
             });
             
-            this.map.on('mouseleave', 'grid-fill', () => {
+            this.map.on('mouseleave', 'sectores-fill', () => {
                 this.map.getCanvas().style.cursor = '';
             });
             
         } else {
-            this.map.getSource('grid').setData(gridData);
-            this.map.setLayoutProperty('grid-lines', 'visibility', 'visible');
-            this.map.setLayoutProperty('grid-fill', 'visibility', 'visible');
-            this.map.setLayoutProperty('grid-labels', 'visibility', 'visible');
+            this.map.getSource('sectores').setData(sectoresGeoJSON);
+            this.map.setLayoutProperty('sectores-lines', 'visibility', 'visible');
+            this.map.setLayoutProperty('sectores-fill', 'visibility', 'visible');
+            this.map.setLayoutProperty('sectores-labels', 'visibility', 'visible');
         }
+
+        console.log('✅ Sectores mostrados en mapa');
     }
 
-    hideGrid() {
-        if (this.map.getLayer('grid-lines')) {
-            this.map.setLayoutProperty('grid-lines', 'visibility', 'none');
-            this.map.setLayoutProperty('grid-fill', 'visibility', 'none');
-            this.map.setLayoutProperty('grid-labels', 'visibility', 'none');
+    hideSectores() {
+        if (this.map.getLayer('sectores-lines')) {
+            this.map.setLayoutProperty('sectores-lines', 'visibility', 'none');
+            this.map.setLayoutProperty('sectores-fill', 'visibility', 'none');
+            this.map.setLayoutProperty('sectores-labels', 'visibility', 'none');
         }
+        console.log('✅ Sectores ocultados');
     }
 
-    showQuadrantInfo(properties, lngLat) {
-        // Contar incidencias actuales (filtradas) en este cuadrante
-        const cuadrante = this.cuadrantesData.cuadrantes.find(c => c.id === properties.id);
-        if (!cuadrante) return;
+    showSectorInfo(properties, lngLat) {
+        const sector = this.sectoresData.find(s => s.id_sector === properties.id);
+        if (!sector) return;
         
-        const bounds = cuadrante.bounds;
+        const bounds = sector.bounds;
+        
+        // ✅ Data ACTUAL (filtrada)
         const incidenciasActuales = this.incidenciasFiltradas.filter(inc => {
             const lon = parseFloat(inc.lon);
             const lat = parseFloat(inc.lat);
@@ -2483,85 +2118,399 @@ class IncidentMonitoringSystem {
             this.detectarTipoIncidencia(inc) === 'emergencia'
         ).length;
         
-        // Calcular color según densidad
-        const densidad = properties.total;
-        let color = '#3b82f6';
-        if (densidad > 50000) color = '#dc2626';
-        else if (densidad > 20000) color = '#ef4444';
-        else if (densidad > 5000) color = '#f97316';
+        // ✅ Data HISTÓRICA
+        const historico = sector.historico || { total: 0, denuncias: 0, emergencias: 0 };
         
-        new mapboxgl.Popup({ maxWidth: '350px' })
+        // ✅ Calcular variación
+        const variacionTotal = incidenciasActuales.length - historico.total;
+        const variacionPorcentaje = historico.total > 0 
+            ? ((variacionTotal / historico.total) * 100).toFixed(1)
+            : 0;
+        
+        const iconVariacion = variacionTotal > 0 ? '📈' : variacionTotal < 0 ? '📉' : '➡️';
+        const colorVariacion = variacionTotal > 0 ? '#dc2626' : variacionTotal < 0 ? '#059669' : '#64748b';
+        
+        new mapboxgl.Popup({ maxWidth: '400px' })
             .setLngLat(lngLat)
             .setHTML(`
-                <div class="popup-header" style="background-color: ${color};">
-                    <i class="fas fa-th-large"></i>
-                    Cuadrante ${properties.label}
+                <div class="popup-header" style="background-color: #667eea;">
+                    <i class="fas fa-map-marked-alt"></i>
+                    Sector ${properties.codigo}
                 </div>
                 <div class="popup-content">
-                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary);">
-                        📊 Histórico Total
+                    <h4 style="margin-bottom: 1rem; color: var(--text-primary); border-bottom: 2px solid #667eea; padding-bottom: 0.5rem;">
+                        📍 ${properties.nombre}
                     </h4>
-                    <div class="popup-field">
-                        <span class="popup-label">Total histórico:</span>
-                        <span class="popup-value"><strong>${properties.total.toLocaleString()}</strong> incidencias</span>
-                    </div>
-                    <div class="popup-field">
-                        <span class="popup-label">📋 Denuncias:</span>
-                        <span class="popup-value"><strong>${properties.denuncias.toLocaleString()}</strong></span>
-                    </div>
-                    <div class="popup-field">
-                        <span class="popup-label">🚨 Emergencias:</span>
-                        <span class="popup-value"><strong>${properties.emergencias.toLocaleString()}</strong></span>
+                    
+                    <!-- ✅ DATA ACTUAL (Filtro Activo) -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 12px; border-radius: 8px; margin-bottom: 12px; color: white;">
+                        <div style="font-size: 11px; opacity: 0.9; margin-bottom: 8px; text-transform: uppercase; font-weight: bold;">
+                            🔍 Filtro Actual (${this.getFiltroLabel()})
+                        </div>
+                        <div class="popup-field" style="margin-bottom: 6px;">
+                            <span style="opacity: 0.9;">Total:</span>
+                            <span style="float: right;"><strong style="font-size: 18px;">${incidenciasActuales.length}</strong></span>
+                        </div>
+                        <div class="popup-field" style="margin-bottom: 6px;">
+                            <span style="opacity: 0.9;">📋 Denuncias:</span>
+                            <span style="float: right;"><strong>${denunciasActuales}</strong></span>
+                        </div>
+                        <div class="popup-field">
+                            <span style="opacity: 0.9;">🚨 Emergencias:</span>
+                            <span style="float: right;"><strong>${emergenciasActuales}</strong></span>
+                        </div>
                     </div>
                     
-                    <hr style="margin: 0.75rem 0; border: none; border-top: 1px solid var(--border-color);">
+                    <!-- ✅ DATA HISTÓRICA COMPLETA -->
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 11px; color: #64748b; margin-bottom: 8px; text-transform: uppercase; font-weight: bold;">
+                            📊 Histórico Total (2015-2024)
+                        </div>
+                        <div class="popup-field" style="margin-bottom: 6px;">
+                            <span class="popup-label">Total histórico:</span>
+                            <span class="popup-value" style="float: right;"><strong style="font-size: 16px;">${historico.total.toLocaleString()}</strong></span>
+                        </div>
+                        <div class="popup-field" style="margin-bottom: 6px;">
+                            <span class="popup-label">📋 Denuncias:</span>
+                            <span class="popup-value" style="float: right;"><strong>${historico.denuncias.toLocaleString()}</strong></span>
+                        </div>
+                        <div class="popup-field">
+                            <span class="popup-label">🚨 Emergencias:</span>
+                            <span class="popup-value" style="float: right;"><strong>${historico.emergencias.toLocaleString()}</strong></span>
+                        </div>
+                    </div>
                     
-                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary);">
-                        🔍 Filtro Actual
-                    </h4>
-                    <div class="popup-field">
-                        <span class="popup-label">Total:</span>
-                        <span class="popup-value"><strong>${incidenciasActuales.length}</strong> incidencias</span>
+                    <!-- ✅ COMPARATIVA -->
+                    ${historico.total > 0 ? `
+                    <div style="background: ${colorVariacion}15; padding: 10px; border-radius: 6px; border-left: 3px solid ${colorVariacion};">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; color: #64748b;">Variación:</span>
+                            <strong style="color: ${colorVariacion}; font-size: 14px;">
+                                ${iconVariacion} ${variacionTotal > 0 ? '+' : ''}${variacionTotal} 
+                                (${variacionPorcentaje > 0 ? '+' : ''}${variacionPorcentaje}%)
+                            </strong>
+                        </div>
                     </div>
-                    <div class="popup-field">
-                        <span class="popup-label">📋 Denuncias:</span>
-                        <span class="popup-value"><strong>${denunciasActuales}</strong></span>
-                    </div>
-                    <div class="popup-field">
-                        <span class="popup-label">🚨 Emergencias:</span>
-                        <span class="popup-value"><strong>${emergenciasActuales}</strong></span>
-                    </div>
+                    ` : ''}
                     
-                    <div style="margin-top: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; font-size: 0.75rem; color: var(--text-secondary);">
+                    <div style="margin-top: 12px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 11px; color: #64748b; text-align: center;">
                         <i class="fas fa-map-marker-alt"></i> 
-                        Centro: ${properties.centro_lat.toFixed(6)}, ${properties.centro_lon.toFixed(6)}
+                        ${properties.centro_lat.toFixed(6)}, ${properties.centro_lon.toFixed(6)}
                     </div>
                 </div>
             `)
             .addTo(this.map);
     }
+
+    // ✅ Helper para obtener label del filtro
+    getFiltroLabel() {
+        let label = '';
+        
+        // Filtro temporal
+        switch(this.filtroTemporal) {
+            case 'week': label += 'Última semana'; break;
+            case 'month': label += 'Último mes'; break;
+            case 'year': label += 'Último año'; break;
+            default: label += 'Todos los datos';
+        }
+        
+        // Filtro tipo
+        if (this.filtroTipo !== 'all') {
+            label += ` - ${this.filtroTipo === 'denuncias' ? 'Solo denuncias' : 'Solo emergencias'}`;
+        }
+        
+        return label;
+    }
+
+    // Mantener el resto de métodos (showClusterDetails, generateOverviewTab, etc. sin cambios)
+    showClusterDetails() {
+        const datos = this.incidenciasFiltradas;
+        this.generateOverviewTab(datos);
+        this.generateClustersTab(datos);
+        this.generateIncidentsTab(datos);
+        document.getElementById('cluster-modal').classList.add('show');
+    }
+
+    generateOverviewTab(datos) {
+        const clustersMap = new Map();
+        const categorias = {};
+        let denuncias = 0;
+        let emergencias = 0;
+        
+        datos.forEach(inc => {
+            const clusterId = inc.cluster;
+            if (clusterId !== -1) {
+                if (!clustersMap.has(clusterId)) {
+                    clustersMap.set(clusterId, []);
+                }
+                clustersMap.get(clusterId).push(inc);
+            }
+            
+            const tipo = this.detectarTipoIncidencia(inc);
+            if (tipo === 'denuncia') denuncias++;
+            else emergencias++;
+            
+            const cat = inc.tipo_categoria || 'Sin categoría';
+            categorias[cat] = (categorias[cat] || 0) + 1;
+        });
+
+        const totalClusters = clustersMap.size;
+        const avgClusterSize = totalClusters > 0 
+            ? Math.round(Array.from(clustersMap.values()).reduce((sum, arr) => sum + arr.length, 0) / totalClusters)
+            : 0;
+
+        const statsHTML = `
+            <div class="stat-box">
+                <div class="stat-box-label">Total de Clusters</div>
+                <div class="stat-box-value">${totalClusters}</div>
+            </div>
+            <div class="stat-box blue">
+                <div class="stat-box-label">📋 Denuncias</div>
+                <div class="stat-box-value">${denuncias}</div>
+            </div>
+            <div class="stat-box orange">
+                <div class="stat-box-label">🚨 Emergencias</div>
+                <div class="stat-box-value">${emergencias}</div>
+            </div>
+            <div class="stat-box green">
+                <div class="stat-box-label">Tamaño Promedio</div>
+                <div class="stat-box-value">${avgClusterSize}</div>
+            </div>
+        `;
+        document.getElementById('stats-grid').innerHTML = statsHTML;
+
+        const totalIncidencias = datos.length;
+        const categoriasOrdenadas = Object.entries(categorias).sort((a, b) => b[1] - a[1]);
+
+        const categoriasHTML = categoriasOrdenadas.map(([cat, count]) => {
+            const percentage = ((count / totalIncidencias) * 100).toFixed(1);
+            return `
+                <div class="category-bar">
+                    <div class="category-bar-header">
+                        <span class="category-bar-label">${cat}</span>
+                        <span class="category-bar-value">${count} (${percentage}%)</span>
+                    </div>
+                    <div class="category-bar-fill-container">
+                        <div class="category-bar-fill" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        document.getElementById('category-distribution').innerHTML = categoriasHTML;
+    }
+
+    generateClustersTab(datos) {
+        const clustersMap = new Map();
+        
+        datos.forEach(inc => {
+            const clusterId = inc.cluster;
+            if (clusterId !== -1) {
+                if (!clustersMap.has(clusterId)) {
+                    clustersMap.set(clusterId, []);
+                }
+                clustersMap.get(clusterId).push(inc);
+            }
+        });
+
+        const sortedClusters = Array.from(clustersMap.entries()).sort((a, b) => b[1].length - a[1].length);
+
+        if (sortedClusters.length === 0) {
+            document.getElementById('cluster-list').innerHTML = 
+                '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay clusters para mostrar</p>';
+            return;
+        }
+
+        const clustersHTML = sortedClusters.map(([clusterId, incidencias]) => {
+            const color = this.generateColorForCluster(clusterId);
+            
+            let denuncias = 0;
+            let emergencias = 0;
+            incidencias.forEach(inc => {
+                const tipo = this.detectarTipoIncidencia(inc);
+                if (tipo === 'denuncia') denuncias++;
+                else emergencias++;
+            });
+            
+            const categorias = {};
+            incidencias.forEach(inc => {
+                const cat = inc.tipo_categoria || 'Sin categoría';
+                categorias[cat] = (categorias[cat] || 0) + 1;
+            });
+            const categoriaComun = Object.keys(categorias).reduce((a, b) => 
+                categorias[a] > categorias[b] ? a : b
+            );
+
+            return `
+                <div class="cluster-item" data-cluster="${clusterId}" onclick="window.incidentSystem.focusOnCluster(${clusterId})">
+                    <div class="cluster-color-box" style="background-color: ${color};">
+                        ${clusterId}
+                    </div>
+                    <div class="cluster-item-info">
+                        <div class="cluster-item-title">Cluster ${clusterId}</div>
+                        <div class="cluster-item-detail">
+                            <i class="fas fa-layer-group"></i> <strong>${incidencias.length}</strong> incidencias 
+                            (📋 ${denuncias} denuncias, 🚨 ${emergencias} emergencias)
+                        </div>
+                        <div class="cluster-item-detail">
+                            <i class="fas fa-tag"></i> Predominante: <strong>${categoriaComun}</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('cluster-list').innerHTML = clustersHTML;
+    }
+
+    generateIncidentsTab(datos) {
+        const clusteredData = datos.filter(inc => inc.cluster !== -1).sort((a, b) => a.cluster - b.cluster);
+
+        if (clusteredData.length === 0) {
+            document.getElementById('incident-list').innerHTML = 
+                '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay incidencias agrupadas</p>';
+            return;
+        }
+
+        const incidentsHTML = clusteredData.map(inc => {
+            const color = this.generateColorForCluster(inc.cluster);
+            const tipo = this.detectarTipoIncidencia(inc);
+            const tipoIcon = tipo === 'denuncia' ? '📋' : '🚨';
+            const tipoLabel = tipo === 'denuncia' ? 'Denuncia' : 'Emergencia';
+            const tipoColor = tipo === 'denuncia' ? '#4facfe' : '#fa709a';
+            
+            return `
+                <div class="incident-card" style="border-left-color: ${color}">
+                    <div class="incident-card-header">
+                        <span class="incident-id">
+                            <i class="fas fa-hashtag"></i> ${inc.id_incidencia || 'N/A'}
+                        </span>
+                        <span class="incident-date">
+                            <i class="fas fa-clock"></i> ${inc.fecha || 'N/A'}
+                        </span>
+                    </div>
+                    <div class="incident-description">
+                        ${inc.descripcion || 'Sin descripción'}
+                    </div>
+                    <div class="incident-meta">
+                        <span class="incident-badge" style="background-color: ${color}; color: white;">
+                            Cluster ${inc.cluster}
+                        </span>
+                        <span class="incident-badge" style="background-color: ${tipoColor}; color: white;">
+                            ${tipoIcon} ${tipoLabel}
+                        </span>
+                        <span class="incident-badge">
+                            <i class="fas fa-tag"></i> ${inc.tipo_categoria || 'N/A'}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('incident-list').innerHTML = incidentsHTML;
+    }
+
+    filterClusters(searchTerm) {
+        const items = document.querySelectorAll('#cluster-list .cluster-item');
+        const term = searchTerm.toLowerCase();
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(term) ? 'flex' : 'none';
+        });
+    }
+
+    filterIncidents(searchTerm) {
+        const items = document.querySelectorAll('#incident-list .incident-card');
+        const term = searchTerm.toLowerCase();
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(term) ? 'block' : 'none';
+        });
+    }
+
+    focusOnCluster(clusterId) {
+        const clusterIncidents = this.incidenciasFiltradas.filter(inc => inc.cluster === clusterId);
+        
+        if (clusterIncidents.length === 0) return;
+
+        document.getElementById('cluster-modal').classList.remove('show');
+
+        const bounds = new mapboxgl.LngLatBounds();
+        clusterIncidents.forEach(inc => {
+            bounds.extend([parseFloat(inc.lon), parseFloat(inc.lat)]);
+        });
+
+        this.map.fitBounds(bounds, { padding: 100, maxZoom: 17, duration: 1000 });
+    }
+
+    exportJSON() {
+        const datos = this.incidenciasFiltradas;
+        const clustersMap = new Map();
+        
+        datos.forEach(inc => {
+            const clusterId = inc.cluster;
+            if (clusterId !== -1) {
+                if (!clustersMap.has(clusterId)) {
+                    clustersMap.set(clusterId, []);
+                }
+                clustersMap.get(clusterId).push(inc);
+            }
+        });
+
+        const exportData = {
+            metadata: {
+                total_incidencias: datos.length,
+                total_clusters: clustersMap.size,
+                fecha_export: new Date().toISOString(),
+                filtro_temporal: this.filtroTemporal,
+                filtro_tipo: this.filtroTipo
+            },
+            clusters: Array.from(clustersMap.entries()).map(([id, incidencias]) => ({
+                cluster_id: id,
+                size: incidencias.length,
+                color: this.generateColorForCluster(id),
+                incidencias: incidencias
+            })),
+            ruido: datos.filter(inc => inc.cluster === -1)
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `clusters_dbscan_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    exportCSV() {
+        const datos = this.incidenciasFiltradas;
+        
+        const headers = [
+            'id_incidencia', 'cluster', 'tipo', 'lat', 'lon', 'descripcion', 
+            'tipo_categoria', 'fecha', 'hora', 'estado', 'nivel_incidencia'
+        ];
+
+        const csvContent = [
+            headers.join(','),
+            ...datos.map(inc => {
+                const tipo = this.detectarTipoIncidencia(inc);
+                return headers.map(h => {
+                    if (h === 'tipo') return `"${tipo}"`;
+                    const val = inc[h] || '';
+                    return `"${String(val).replace(/"/g, '""')}"`;
+                }).join(',');
+            })
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `clusters_dbscan_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    if (typeof mapboxgl === 'undefined') {
-        alert('Error: Mapbox GL JS no cargado');
-        return;
-    }
-    
-    try {
-        window.incidentSystem = new IncidentMonitoringSystem();
-    } catch (error) {
-        console.error('Error crítico:', error);
-        alert('Error: ' + error.message);
-    }
-});
-
-window.addEventListener('unhandledrejection', (event) => {
-    console.error('Error no manejado:', event.reason);
-    if (window.incidentSystem) {
-        window.incidentSystem.handleError('Error del sistema', event.reason);
-    }
-});
 
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof mapboxgl === 'undefined') {

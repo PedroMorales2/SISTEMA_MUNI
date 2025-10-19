@@ -215,3 +215,56 @@ def eliminar_sector(id_sector):
             "success": False,
             "error": str(e)
         }), HTTP_INTERNAL_ERROR
+        
+@sectores_bp.route('/historico', methods=['GET'])
+def obtener_historico_sectores():
+    """
+    Endpoint para obtener histórico calculado de cada sector
+    """
+    try:
+        from models.modelo_PREDICCION_ESPACIAL import modelo_espacial
+        
+        # Calcular histórico si no existe
+        if not modelo_espacial.estadisticas_historicas:
+            modelo_espacial.calcular_densidad_historica()
+        
+        # Preparar respuesta con sectores + histórico
+        sectores_con_historico = []
+        
+        for sector in modelo_espacial.sectores:
+            id_sector = sector['id_sector']
+            historico = modelo_espacial.estadisticas_historicas.get(id_sector, {
+                'total': 0,
+                'denuncias': 0,
+                'emergencias': 0,
+                'denuncias_por_tipo': {},
+                'emergencias_por_tipo': {},
+                'nivel': 'muy_bajo',
+                'color': '#4caf50'
+            })
+            
+            sectores_con_historico.append({
+                'id_sector': id_sector,
+                'codigo_sector': sector['codigo_sector'],
+                'nombre': sector['nombre'],
+                'bounds': sector['bounds'],
+                'centro': sector['centro'],
+                'poligono': sector['poligono'],
+                'historico': historico
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': sectores_con_historico,
+            'total_sectores': len(sectores_con_historico),
+            'sectores_con_data': len(modelo_espacial.sectores_con_data)
+        })
+        
+    except Exception as e:
+        print(f"❌ Error en /api/sectores/historico: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
