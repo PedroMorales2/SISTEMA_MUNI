@@ -5,6 +5,9 @@ import os
 import pandas as pd
 from shapely.geometry import Point, Polygon
 from config import get_config
+import pickle
+import hashlib
+from datetime import datetime
 
 config = get_config()
 
@@ -23,9 +26,150 @@ class ModeloPrediccionEspacial:
         self.tipos_denuncias = config.DENUNCIAS_MAP  # Desde config
         self.tipos_emergencias = config.EMERGENCIAS_MAP  # Desde config
         self.dataset_path = "data_modelo/dataset_incidencias_reque_2015_2024.csv"
+        
+        # ✅ Configuración de caché
+        self.cache_dir = 'cache_espacial'
+        self.cache_file = os.path.join(self.cache_dir, 'historico_sectores.pkl')
+        self.cache_hash_file = os.path.join(self.cache_dir, 'sectores_hash.txt')
+        
+        # Crear directorio de caché si no existe
+        os.makedirs(self.cache_dir, exist_ok=True)
+        
         self.cargar_sectores()
     
     
+    
+    def _calcular_hash_sectores(self):
+        """
+        Calcula hash único de los sectores actuales para detectar cambios
+        """
+        sectores_str = json.dumps([
+            {
+                'id': s['id_sector'],
+                'codigo': s['codigo_sector'],
+                'bounds': s['bounds']
+            }
+            for s in self.sectores
+        ], sort_keys=True)
+        
+        return hashlib.md5(sectores_str.encode()).hexdigest()
+    
+    
+    def _cache_es_valido(self):
+        """
+        Verifica si el caché es válido comparando hash de sectores
+        """
+        if not os.path.exists(self.cache_file):
+            print("📦 No existe caché previo")
+            return False
+        
+        if not os.path.exists(self.cache_hash_file):
+            print("📦 No existe hash de caché")
+            return False
+        
+        try:
+            # Leer hash guardado
+            with open(self.cache_hash_file, 'r') as f:
+                hash_guardado = f.read().strip()
+            
+            # Calcular hash actual
+            hash_actual = self._calcular_hash_sectores()
+            
+            if hash_guardado != hash_actual:
+                print("📦 Los sectores han cambiado, caché inválido")
+                return False
+            
+            # Verificar antigüedad del caché (opcional: 7 días)
+            cache_mtime = os.path.getmtime(self.cache_file)
+            dias_antiguedad = (datetime.now().timestamp() - cache_mtime) / 86400
+            
+            if dias_antiguedad > 7:
+                print(f"📦 Caché tiene {dias_antiguedad:.1f} días, se recalculará")
+                return False
+            
+            print(f"✅ Caché válido (antigüedad: {dias_antiguedad:.1f} días)")
+            return True
+            
+        except Exception as e:
+            print(f"⚠️ Error verificando caché: {e}")
+            return False
+    
+    
+    def cargar_cache_historico(self):
+        """
+        Carga histórico desde caché si es válido
+        """
+        try:
+            if not self._cache_es_valido():
+                return False
+            
+            print("📦 Cargando histórico desde caché...")
+            
+            with open(self.cache_file, 'rb') as f:
+                cache_data = pickle.load(f)
+            
+            self.densidad_historica = cache_data['densidad_historica']
+            self.sectores_con_data = cache_data['sectores_con_data']
+            self.estadisticas_historicas = cache_data['estadisticas_historicas']
+            
+            print(f"✅ Caché cargado: {len(self.sectores_con_data)} sectores con data")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error cargando caché: {e}")
+            return False
+    
+    
+    def guardar_cache_historico(self):
+        """
+        Guarda histórico en caché
+        """
+        try:
+            print("\n💾 Guardando histórico en caché...")
+            
+            cache_data = {
+                'densidad_historica': self.densidad_historica,
+                'sectores_con_data': self.sectores_con_data,
+                'estadisticas_historicas': self.estadisticas_historicas,
+                'fecha_calculo': datetime.now().isoformat()
+            }
+            
+            # Guardar datos
+            with open(self.cache_file, 'wb') as f:
+                pickle.dump(cache_data, f)
+            
+            # Guardar hash
+            hash_actual = self._calcular_hash_sectores()
+            with open(self.cache_hash_file, 'w') as f:
+                f.write(hash_actual)
+            
+            size_mb = os.path.getsize(self.cache_file) / 1024 / 1024
+            print(f"✅ Caché guardado ({size_mb:.2f} MB)")
+            
+        except Exception as e:
+            print(f"❌ Error guardando caché: {e}")
+    
+    
+    def invalidar_cache(self):
+        """
+        Elimina el caché para forzar recalculo
+        """
+        try:
+            if os.path.exists(self.cache_file):
+                os.remove(self.cache_file)
+                print("🗑️ Caché eliminado")
+            
+            if os.path.exists(self.cache_hash_file):
+                os.remove(self.cache_hash_file)
+                print("🗑️ Hash de caché eliminado")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error eliminando caché: {e}")
+            return False
+        
+        
     def cargar_sectores(self):
         """Carga sectores activos desde BD"""
         try:
@@ -90,10 +234,16 @@ class ModeloPrediccionEspacial:
             self.sectores = []
     
     
-    def calcular_densidad_historica(self):
+    def calcular_densidad_historica(self, forzar_recalculo=False):
         """
-        Calcula densidad y estadísticas históricas POR TIPO
+        Calcula densidad histórica con sistema de caché inteligente
         """
+        # ✅ Intentar cargar desde caché
+        if not forzar_recalculo:
+            if self.cargar_cache_historico():
+                return self.densidad_historica
+        
+        # Si no hay caché válido, calcular desde cero
         try:
             if not self.sectores:
                 print("⚠️ No hay sectores definidos")
@@ -193,7 +343,7 @@ class ModeloPrediccionEspacial:
                     self.sectores_con_data.append(sector['id_sector'])
                     total_incidencias += count_sector
                     
-                    print(f"✅ {sector['codigo_sector']}: {count_sector} incidencias ({total_denuncias} den, {total_emergencias} emer)")
+                    print(f"✅ {sector['codigo_sector']}: {count_sector} incidencias históricas ({total_denuncias} den, {total_emergencias} emer)")
                 else:
                     densidad[sector['id_sector']] = 0
                     self._inicializar_estadisticas_vacias(sector['id_sector'])
@@ -211,6 +361,9 @@ class ModeloPrediccionEspacial:
             self.densidad_historica = densidad
             
             print(f"\n✅ Análisis completo: {len(self.sectores_con_data)}/{len(self.sectores)} sectores con data")
+            
+            # ✅ Guardar en caché
+            self.guardar_cache_historico()
             
             return densidad
             

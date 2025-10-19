@@ -125,10 +125,11 @@ function mostrarSectoresEnMapa(sectores, filtro = 'todos') {
         );
 
         const poligono = L.polygon(coords, {
-          color: sector.color,
+          color: '#667eea',
           fillColor: sector.color,
           fillOpacity: filtro === 'todos' ? 0.4 : 0.5,
-          weight: 3
+          weight: 4,
+          lineOpacity: 1
         });
 
         // Popup con tipos detallados
@@ -137,10 +138,10 @@ function mostrarSectoresEnMapa(sectores, filtro = 'todos') {
 
         // Tooltip
         const tooltipText = filtro === 'todos' 
-          ? `<strong>${sector.nombre}</strong><br>${sector.prediccion.total.toFixed(0)} incidencias`
+          ? `<strong>${sector.codigo_sector}</strong><br>${sector.prediccion.total.toFixed(0)} incidencias`
           : filtro === 'denuncias'
-            ? `<strong>${sector.nombre}</strong><br>${sector.prediccion.denuncias.toFixed(0)} denuncias`
-            : `<strong>${sector.nombre}</strong><br>${sector.prediccion.emergencias.toFixed(0)} emergencias`;
+            ? `<strong>${sector.codigo_sector}</strong><br>${sector.prediccion.denuncias.toFixed(0)} denuncias`
+            : `<strong>${sector.codigo_sector}</strong><br>${sector.prediccion.emergencias.toFixed(0)} emergencias`;
         
         poligono.bindTooltip(tooltipText, {
           permanent: false,
@@ -183,7 +184,7 @@ function crearPopupSector(sector, filtro) {
   return `
     <div style="min-width: 320px; max-height: 500px; overflow-y: auto; font-family: 'Segoe UI', sans-serif;">
       <h4 style="margin: 0 0 12px 0; color: ${sector.color}; border-bottom: 2px solid ${sector.color}; padding-bottom: 8px;">
-        📍 ${sector.nombre}
+        📍 ${sector.codigo_sector}
       </h4>
       
       <!-- Predicción -->
@@ -196,7 +197,7 @@ function crearPopupSector(sector, filtro) {
         <div style="margin-bottom: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
             <strong style="color: #1976d2;">📋 Denuncias:</strong>
-            <strong style="color: #1976d2; font-size: 16px;">${pred.denuncias.toFixed(1)}</strong>
+            <strong style="color: #1976d2; font-size: 16px;">${pred.denuncias.toFixed(0)}</strong>
           </div>
           ${Object.keys(pred.denuncias_por_tipo || {}).length > 0 ? `
           <div style="font-size: 12px; padding-left: 10px; color: #666;">
@@ -206,7 +207,7 @@ function crearPopupSector(sector, filtro) {
               .map(([tipo, data]) => `
                 <div style="display: flex; justify-content: space-between; padding: 2px 0;">
                   <span>• ${tipo}</span>
-                  <span style="font-weight: bold;">${data.cantidad.toFixed(1)}</span>
+                  <span style="font-weight: bold;">${data.cantidad.toFixed(0)}</span>
                 </div>
               `).join('')}
             ${Object.keys(pred.denuncias_por_tipo).length > 5 ? `<div style="color: #999; font-style: italic;">+ ${Object.keys(pred.denuncias_por_tipo).length - 5} más...</div>` : ''}
@@ -219,7 +220,7 @@ function crearPopupSector(sector, filtro) {
         <div style="margin-bottom: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
             <strong style="color: #d32f2f;">🚨 Emergencias:</strong>
-            <strong style="color: #d32f2f; font-size: 16px;">${pred.emergencias.toFixed(1)}</strong>
+            <strong style="color: #d32f2f; font-size: 16px;">${pred.emergencias.toFixed(0)}</strong>
           </div>
           ${Object.keys(pred.emergencias_por_tipo || {}).length > 0 ? `
           <div style="font-size: 12px; padding-left: 10px; color: #666;">
@@ -229,7 +230,7 @@ function crearPopupSector(sector, filtro) {
               .map(([tipo, data]) => `
                 <div style="display: flex; justify-content: space-between; padding: 2px 0;">
                   <span>• ${tipo}</span>
-                  <span style="font-weight: bold;">${data.cantidad.toFixed(1)}</span>
+                  <span style="font-weight: bold;">${data.cantidad.toFixed(0)}</span>
                 </div>
               `).join('')}
             ${Object.keys(pred.emergencias_por_tipo).length > 5 ? `<div style="color: #999; font-style: italic;">+ ${Object.keys(pred.emergencias_por_tipo).length - 5} más...</div>` : ''}
@@ -242,7 +243,7 @@ function crearPopupSector(sector, filtro) {
         <div style="border-top: 1px solid ${sector.color}40; padding-top: 8px; margin-top: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <strong>TOTAL:</strong>
-            <strong style="color: ${sector.color}; font-size: 18px;">${pred.total.toFixed(1)}</strong>
+            <strong style="color: ${sector.color}; font-size: 18px;">${pred.total.toFixed(0)}</strong>
           </div>
         </div>
         ` : ''}
@@ -415,8 +416,8 @@ function mostrarResumenEspacial(resumen, year, month) {
              onmouseout="this.style.transform='translateX(0)'">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <strong style="font-size: 15px;">#${i + 1} ${s.nombre}</strong><br>
-              <small style="color: #666;">${s.codigo}</small>
+              <strong style="font-size: 15px;">#${i + 1} ${s.codigo}</strong><br>
+              <small style="color: #666;">${s.nombre}</small>
             </div>
             <div style="text-align: right;">
               <div style="font-size: 28px; font-weight: bold; color: ${getColorNivel(s.nivel)};">
