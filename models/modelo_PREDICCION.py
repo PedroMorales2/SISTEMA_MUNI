@@ -236,15 +236,40 @@ class ModeloPrediccionIncidencias:
         print("\n✅ Modelos entrenados y guardados exitosamente")
     
     def guardar_modelos(self):
-        """Guarda modelos y datos en disco"""
-        # Guardar modelos de keras
+        """Guarda modelos y datos en disco - VERSIÓN MEJORADA"""
+        print("\n💾 Guardando modelos en disco...")
+        
+        # Guardar modelos de keras DENUNCIAS
         for tipo_id, info in self.models_den.items():
+            # Guardar modelo
             info['model'].save(f'{MODEL_DIR}/den_tipo_{tipo_id}.keras')
+            
+            # Guardar scalers individuales (para compatibilidad con producción)
+            with open(f'{MODEL_DIR}/den_tipo_{tipo_id}_scalers.pkl', 'wb') as f:
+                pickle.dump(info['scalers'], f)
+            
+            # Guardar métricas individuales
+            with open(f'{MODEL_DIR}/den_tipo_{tipo_id}_metrics.pkl', 'wb') as f:
+                pickle.dump(info['metrics'], f)
+            
+            print(f"  ✅ Denuncia tipo {tipo_id} guardado")
         
+        # Guardar modelos de keras EMERGENCIAS
         for tipo_id, info in self.models_eme.items():
+            # Guardar modelo
             info['model'].save(f'{MODEL_DIR}/eme_tipo_{tipo_id}.keras')
+            
+            # Guardar scalers individuales
+            with open(f'{MODEL_DIR}/eme_tipo_{tipo_id}_scalers.pkl', 'wb') as f:
+                pickle.dump(info['scalers'], f)
+            
+            # Guardar métricas individuales
+            with open(f'{MODEL_DIR}/eme_tipo_{tipo_id}_metrics.pkl', 'wb') as f:
+                pickle.dump(info['metrics'], f)
+            
+            print(f"  ✅ Emergencia tipo {tipo_id} guardado")
         
-        # Guardar scalers y metadata
+        # Guardar metadata completo (backup)
         metadata = {
             'den_scalers': {t: info['scalers'] for t, info in self.models_den.items()},
             'eme_scalers': {t: info['scalers'] for t, info in self.models_eme.items()},
@@ -258,8 +283,13 @@ class ModeloPrediccionIncidencias:
             pickle.dump(metadata, f)
         
         # Guardar datos mensuales
-        self.den_monthly.to_pickle(f'{DATA_DIR}/den_monthly.pkl')
-        self.eme_monthly.to_pickle(f'{DATA_DIR}/eme_monthly.pkl')
+        with open(f'{DATA_DIR}/denuncias_monthly.pkl', 'wb') as f:
+            pickle.dump(self.den_monthly, f)
+        
+        with open(f'{DATA_DIR}/emergencias_monthly.pkl', 'wb') as f:
+            pickle.dump(self.eme_monthly, f)
+        
+        print("✅ Todos los archivos guardados exitosamente")
     
     def cargar_modelos(self):
         """Carga modelos desde disco"""
