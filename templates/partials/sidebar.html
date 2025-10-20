@@ -55,7 +55,7 @@
         </li>
         {% if session['id_usuario'] not in [8, 9, 10, 11] %}
         {% if session['id_usuario'] == 4 %}
-        <li class="nav-item">
+        <!-- <li class="nav-item">
           <a href="/admin/recursos" class="nav-link">
             <span class="material-symbols-rounded">local_library</span>
             <span class="nav-label">Recursos</span>
@@ -63,7 +63,28 @@
           <ul class="dropdown-menu">
             <li class="nav-item"><a class="nav-link dropdown-title">Recursos</a></li>
           </ul>
+        </li> -->
+
+
+        <li class="nav-item dropdown-container">
+          <a href="#" class="nav-link dropdown-toggle">
+            <span class="material-symbols-rounded">lab_profile</span>
+            <span class="nav-label">Recursos</span>
+            <span class="dropdown-icon material-symbols-rounded">keyboard_arrow_down</span>
+          </a>
+          <!-- Dropdown Menu -->
+          <ul class="dropdown-menu">
+            <li class="nav-item"><a class="nav-link dropdown-title">Recursos</a></li>
+            <li class="nav-item"><a href="/admin/recursos" class="nav-link dropdown-link">Unidades de control</a></li>
+            <li class="nav-item"><a href="/admin/trazabilidad" class="nav-link dropdown-link">Trazabilidad de sectores</a></li>
+
+            <!-- <li class="nav-item"><a href="/documento_derivado" class="nav-link dropdown-link">Documentos derivados</a></li> -->
+            <!-- <li class="nav-item"><a href="#" class="nav-link dropdown-link">Mobile Apps</a></li> -->
+          </ul>
         </li>
+
+
+
         {% endif %}
         
         <!-- <li class="nav-item">
@@ -156,7 +177,7 @@
           <!-- Dropdown Menu -->
           <ul class="dropdown-menu">
             <li class="nav-item"><a class="nav-link dropdown-title">Gestionar usuario</a></li>
-            <li class="nav-item"><a href="/admin/usuarios" class="nav-link dropdown-link">Ver usuarios</a></li>
+            <li class="nav-item"><a href="/admin/usuarios" class="nav-link dropdown-link">Cambiar contraseña</a></li>
             <li class="nav-item"><a href="/admin/usuarios/agregar" class="nav-link dropdown-link">Agregar usuario</a></li>
 
             <!-- <li class="nav-item"><a href="/documento_derivado" class="nav-link dropdown-link">Documentos derivados</a></li> -->

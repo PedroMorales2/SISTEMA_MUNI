@@ -88,17 +88,27 @@ function mostrarToast(mensaje, tipo = 'info') {
 /**
  * Formatea una fecha
  */
+/**
+ * Formatea una fecha de manera segura
+ */
 function formatearFecha(fecha) {
-    if (!fecha) return '-';
-    const date = new Date(fecha);
-    const opciones = { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    };
-    return date.toLocaleDateString('es-PE', opciones);
+    try {
+        if (!fecha) return 'N/A';
+        const d = new Date(fecha);
+        if (isNaN(d.getTime())) return fecha; // Si no es válida, devolver original
+        
+        const opciones = {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return d.toLocaleString('es-ES', opciones);
+    } catch (error) {
+        console.error('Error formateando fecha:', fecha, error);
+        return fecha || 'N/A';
+    }
 }
 
 /**

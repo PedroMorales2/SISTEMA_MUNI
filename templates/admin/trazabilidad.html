@@ -23,6 +23,9 @@
                 <button class="btn btn-outline" onclick="cargarSectoresExistentes()">
                     <i class="fas fa-sync-alt"></i> Actualizar
                 </button>
+                <button class="btn btn-success" onclick="verHistoricoSectores()">
+                    <i class="fas fa-chart-area"></i> Histórico
+                </button>
             </div>
         </div>
     </div>
@@ -84,6 +87,21 @@
             <div class="map-info">
                 <i class="fas fa-info-circle"></i>
                 <span id="mapStatus">Listo para dibujar</span>
+            </div>
+            
+            <!-- Leyenda flotante -->
+            <div class="map-legend">
+                <div class="legend-title">
+                    <i class="fas fa-layer-group"></i> Leyenda
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #27ae60;"></span>
+                    <span>Sectores Guardados</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #3498db;"></span>
+                    <span>Sector en Edición</span>
+                </div>
             </div>
         </div>
 
@@ -171,6 +189,33 @@
     </div>
 </div>
 
+<!-- Modal para Histórico de Sectores -->
+<div class="modal" id="modalHistorico">
+    <div class="modal-overlay" onclick="cerrarModalHistorico()"></div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-chart-area"></i> Histórico de Incidencias por Sector
+                </h5>
+                <button type="button" class="btn-close" onclick="cerrarModalHistorico()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="contenidoHistorico">
+                    <div class="text-center py-5">
+                        <div class="spinner-border">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                        <p class="mt-3">Cargando datos históricos...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
@@ -185,21 +230,24 @@
         height: 100vh;
         display: flex;
         flex-direction: column;
-        background: #f5f6fa;
+        background: #f5f7fa;
     }
 
     /* ========== HEADER ========== */
     .page-header {
         background: white;
-        border-bottom: 1px solid #e1e8ed;
+        color: #2c3e50;
         padding: 20px 30px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        border-bottom: 3px solid #667eea;
     }
 
     .header-content {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        max-width: 1800px;
+        margin: 0 auto;
     }
 
     .header-title {
@@ -208,56 +256,117 @@
         gap: 15px;
     }
 
-    .header-title > i {
-        font-size: 32px;
-        color: #3498db;
+    .header-title i {
+        font-size: 40px;
+        color: #667eea;
     }
 
     .header-title h1 {
         margin: 0;
-        font-size: 24px;
-        color: #2c3e50;
+        font-size: 28px;
         font-weight: 600;
+        color: #2c3e50;
     }
 
     .header-title p {
         margin: 5px 0 0 0;
-        color: #7f8c8d;
         font-size: 14px;
+        color: #7f8c8d;
     }
 
     .header-actions {
         display: flex;
-        gap: 10px;
+        gap: 12px;
     }
 
-    /* ========== MAIN CONTAINER ========== */
+    /* ========== BOTONES ========== */
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        font-size: 14px;
+    }
+
+    .btn-outline {
+        background: white;
+        border: 2px solid #667eea;
+        color: #667eea;
+    }
+
+    .btn-outline:hover {
+        background: #667eea;
+        color: white;
+    }
+
+    .btn-success {
+        background: #27ae60;
+        color: white;
+        border: 2px solid #27ae60;
+    }
+
+    .btn-success:hover {
+        background: #229954;
+        border-color: #229954;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+    }
+
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+    }
+
+    .btn-primary:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .btn-block {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* ========== CONTENEDOR PRINCIPAL ========== */
     .main-container {
-        display: grid;
-        grid-template-columns: 320px 1fr 350px;
-        gap: 0;
         flex: 1;
+        display: grid;
+        grid-template-columns: 320px 1fr 380px;
+        gap: 20px;
+        padding: 20px;
+        max-width: 1800px;
+        margin: 0 auto;
+        width: 100%;
         overflow: hidden;
     }
 
     /* ========== PANELES LATERALES ========== */
     .left-panel,
     .right-panel {
-        background: white;
-        border-right: 1px solid #e1e8ed;
         display: flex;
         flex-direction: column;
+        gap: 20px;
         overflow-y: auto;
-    }
-
-    .right-panel {
-        border-right: none;
-        border-left: 1px solid #e1e8ed;
+        padding-right: 5px;
     }
 
     .panel-section {
+        background: white;
+        border-radius: 12px;
         padding: 20px;
-        border-bottom: 1px solid #e1e8ed;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
     .section-header {
@@ -265,18 +374,20 @@
         align-items: center;
         gap: 10px;
         margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
     }
 
     .section-header i {
-        color: #3498db;
-        font-size: 18px;
+        color: #667eea;
+        font-size: 20px;
     }
 
     .section-header h3 {
         margin: 0;
         font-size: 16px;
-        color: #2c3e50;
         font-weight: 600;
+        color: #2c3e50;
         flex: 1;
     }
 
@@ -294,30 +405,30 @@
         gap: 8px;
         padding: 15px;
         background: #f8f9fa;
-        border: 2px solid #e1e8ed;
-        border-radius: 8px;
+        border: 2px solid transparent;
+        border-radius: 10px;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.3s ease;
         font-size: 13px;
-        color: #2c3e50;
+        font-weight: 500;
+        color: #495057;
     }
 
     .tool-btn i {
         font-size: 24px;
-        color: #3498db;
+        color: #667eea;
     }
 
     .tool-btn:hover {
-        background: #e8f4f8;
-        border-color: #3498db;
+        background: #e7eaf6;
+        border-color: #667eea;
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);
     }
 
     .tool-btn.active {
-        background: #3498db;
-        border-color: #3498db;
+        background: #667eea;
         color: white;
+        border-color: #667eea;
     }
 
     .tool-btn.active i {
@@ -335,50 +446,61 @@
         left: 12px;
         top: 50%;
         transform: translateY(-50%);
-        color: #95a5a6;
+        color: #7f8c8d;
     }
 
     .search-box input {
         width: 100%;
         padding: 10px 10px 10px 35px;
-        border: 1px solid #e1e8ed;
-        border-radius: 6px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
         font-size: 14px;
-        transition: border-color 0.2s;
+        transition: all 0.3s ease;
     }
 
     .search-box input:focus {
         outline: none;
-        border-color: #3498db;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
     /* ========== LISTA DE SECTORES ========== */
     .sectores-list {
-        max-height: calc(100vh - 450px);
+        max-height: 400px;
         overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    .sectores-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .sectores-list::-webkit-scrollbar-thumb {
+        background: #cbd5e0;
+        border-radius: 3px;
     }
 
     .sector-item {
-        background: #f8f9fa;
         padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
         margin-bottom: 8px;
-        border-radius: 6px;
-        border-left: 4px solid #3498db;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.3s ease;
+        border-left: 4px solid #27ae60;
     }
 
     .sector-item:hover {
-        background: #e8f4f8;
-        transform: translateX(4px);
+        background: #e7eaf6;
+        transform: translateX(5px);
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .sector-item strong {
         display: block;
         color: #2c3e50;
-        margin-bottom: 4px;
         font-size: 14px;
+        margin-bottom: 4px;
     }
 
     .sector-item small {
@@ -386,14 +508,85 @@
         font-size: 12px;
     }
 
-    .sector-item .badge {
-        margin-top: 6px;
-    }
-
     .loading {
         text-align: center;
         padding: 30px;
-        color: #95a5a6;
+        color: #7f8c8d;
+    }
+
+    /* ========== MAPA ========== */
+    .map-wrapper {
+        position: relative;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    #map {
+        width: 100%;
+        height: 100%;
+        min-height: 600px;
+    }
+
+    .map-info {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 12px 20px;
+        border-radius: 25px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 1000;
+        font-size: 14px;
+        font-weight: 500;
+        color: #2c3e50;
+    }
+
+    .map-info i {
+        color: #667eea;
+    }
+
+    .map-legend {
+        position: absolute;
+        bottom: 30px;
+        right: 20px;
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        min-width: 200px;
+    }
+
+    .legend-title {
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: #2c3e50;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 8px 0;
+        font-size: 13px;
+        color: #495057;
+    }
+
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        border: 2px solid rgba(0,0,0,0.1);
     }
 
     /* ========== FORMULARIO ========== */
@@ -402,35 +595,37 @@
     }
 
     .form-group label {
-        display: block;
-        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
         font-weight: 600;
-        font-size: 13px;
         color: #2c3e50;
+        margin-bottom: 8px;
+        font-size: 14px;
     }
 
     .form-group label i {
-        margin-right: 5px;
-        color: #3498db;
+        color: #667eea;
     }
 
     .form-control {
         width: 100%;
         padding: 10px 12px;
-        border: 1px solid #e1e8ed;
-        border-radius: 6px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
         font-size: 14px;
-        transition: all 0.2s;
+        transition: all 0.3s ease;
     }
 
     .form-control:focus {
         outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
     textarea.form-control {
         resize: vertical;
+        min-height: 80px;
         font-family: inherit;
     }
 
@@ -438,20 +633,22 @@
         display: block;
         margin-top: 5px;
         font-size: 12px;
-        color: #95a5a6;
+        color: #7f8c8d;
     }
 
+    /* ========== ESTADO DEL POLÍGONO ========== */
     .polygon-status {
+        padding: 12px;
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 8px;
+        margin-bottom: 15px;
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 12px;
-        background: #fff3cd;
-        border: 1px solid #ffc107;
-        border-radius: 6px;
-        margin-bottom: 15px;
         font-size: 13px;
         color: #856404;
+        transition: all 0.3s ease;
     }
 
     .polygon-status.success {
@@ -460,147 +657,8 @@
         color: #155724;
     }
 
-    .polygon-status.success i {
-        color: #28a745;
-    }
-
-    /* ========== BOTONES ========== */
-    .btn {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 600;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .btn-primary {
-        background: #3498db;
-        color: white;
-    }
-
-    .btn-primary:hover:not(:disabled) {
-        background: #2980b9;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-    }
-
-    .btn-primary:disabled {
-        background: #bdc3c7;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
-
-    .btn-outline {
-        background: white;
-        color: #3498db;
-        border: 2px solid #3498db;
-    }
-
-    .btn-outline:hover {
-        background: #3498db;
-        color: white;
-    }
-
-    .btn-block {
-        width: 100%;
-        justify-content: center;
-    }
-
-    /* ========== BADGES ========== */
-    .badge {
-        display: inline-block;
-        padding: 4px 10px;
-        font-size: 11px;
-        font-weight: 600;
-        border-radius: 12px;
-    }
-
-    .badge-success {
-        background: #28a745;
-        color: white;
-    }
-
-    .badge-info {
-        background: #3498db;
-        color: white;
-    }
-
-    /* ========== ALERTAS ========== */
-    .alert {
-        padding: 12px 15px;
-        border-radius: 6px;
-        margin-top: 15px;
-        font-size: 13px;
-        animation: slideIn 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .alert-success {
-        background: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
-
-    .alert-error {
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-    }
-
-    .alert-warning {
-        background: #fff3cd;
-        color: #856404;
-        border: 1px solid #ffeaa7;
-    }
-
-    /* ========== MAPA ========== */
-    .map-wrapper {
-        position: relative;
-        background: #ecf0f1;
-    }
-
-    #map {
-        height: 100%;
-        width: 100%;
-    }
-
-    .map-info {
-        position: absolute;
-        bottom: 20px;
-        left: 20px;
-        background: white;
-        padding: 10px 15px;
-        border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 13px;
-        color: #2c3e50;
-    }
-
-    .map-info i {
-        color: #3498db;
+    .polygon-status i {
+        font-size: 18px;
     }
 
     /* ========== ESTADÍSTICAS ========== */
@@ -615,130 +673,424 @@
         align-items: center;
         gap: 15px;
         padding: 15px;
-        background: #f8f9fa;
-        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        color: white;
     }
 
     .stat-item i {
-        font-size: 24px;
-        color: #3498db;
+        font-size: 28px;
+        opacity: 0.9;
     }
 
     .stat-value {
         display: block;
-        font-size: 20px;
+        font-size: 24px;
         font-weight: 700;
-        color: #2c3e50;
+        line-height: 1;
+        margin-bottom: 5px;
     }
 
     .stat-label {
         display: block;
         font-size: 12px;
-        color: #7f8c8d;
-        margin-top: 2px;
+        opacity: 0.9;
     }
 
-    /* ========== SCROLLBAR ========== */
-    .sectores-list::-webkit-scrollbar,
+    /* ========== BADGES ========== */
+    .badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .badge-info {
+        background: #3498db;
+        color: white;
+    }
+
+    .badge-success {
+        background: #27ae60;
+        color: white;
+    }
+
+    /* ========== ALERTAS ========== */
+    .alert {
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+
+    .alert-warning {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 1400px) {
+        .main-container {
+            grid-template-columns: 280px 1fr 340px;
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .main-container {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto 1fr auto;
+        }
+
+        .left-panel,
+        .right-panel {
+            flex-direction: row;
+            overflow-x: auto;
+        }
+
+        .panel-section {
+            min-width: 300px;
+        }
+    }
+
+    /* ========== SCROLLBAR PERSONALIZADO ========== */
     .left-panel::-webkit-scrollbar,
     .right-panel::-webkit-scrollbar {
         width: 6px;
     }
 
-    .sectores-list::-webkit-scrollbar-track,
-    .left-panel::-webkit-scrollbar-track,
-    .right-panel::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-
-    .sectores-list::-webkit-scrollbar-thumb,
     .left-panel::-webkit-scrollbar-thumb,
     .right-panel::-webkit-scrollbar-thumb {
-        background: #bdc3c7;
-        border-radius: 10px;
+        background: #cbd5e0;
+        border-radius: 3px;
     }
 
-    .sectores-list::-webkit-scrollbar-thumb:hover,
-    .left-panel::-webkit-scrollbar-thumb:hover,
-    .right-panel::-webkit-scrollbar-thumb:hover {
-        background: #95a5a6;
+    /* ========== MODAL HISTÓRICO ========== */
+    .historico-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .historico-card {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .historico-card:hover {
+        border-color: #667eea;
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .historico-card h5 {
+        margin: 0 0 15px 0;
+        color: #2c3e50;
+        font-size: 16px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .historico-stat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .historico-stat:last-child {
+        border-bottom: none;
+    }
+
+    .historico-stat span:first-child {
+        font-size: 13px;
+        color: #7f8c8d;
+    }
+
+    .historico-stat span:last-child {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .nivel-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-top: 10px;
+    }
+
+    /* ========== MODAL PERSONALIZADO (SIN BOOTSTRAP) ========== */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10000;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .modal.show {
+        display: block;
+    }
+
+    .modal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(2px);
+    }
+
+    .modal-dialog {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 1200px;
+        max-height: 90vh;
+        animation: slideDown 0.3s ease;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        max-height: 90vh;
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-close {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        font-size: 16px;
+    }
+
+    .btn-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: rotate(90deg);
+    }
+
+    .modal-body {
+        padding: 25px;
+        overflow-y: auto;
+        max-height: calc(90vh - 80px);
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .py-5 {
+        padding: 3rem 0;
+    }
+
+    .mt-3 {
+        margin-top: 1rem;
+    }
+
+    .spinner-border {
+        display: inline-block;
+        font-size: 48px;
+        color: #667eea;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -55%);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+        }
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 </style>
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 
 <script>
-    // ========================================================================
-    // CONFIGURACIÓN
-    // ========================================================================
-    
     const API_URL = '{{ BASE_URL }}';
+    
+    // ========================================================================
+    // VARIABLES GLOBALES
+    // ========================================================================
     
     let map;
     let drawnItems;
     let sectoresLayer;
-    let drawControl;
     let currentPolygon = null;
-    let currentDrawMode = null;
+    let drawControl;
     
     // ========================================================================
     // INICIALIZACIÓN DEL MAPA
     // ========================================================================
     
     function initMap() {
-        map = L.map('map').setView([-6.8650, -79.8145], 13);
+        // Crear mapa centrado en Arequipa, Perú
+        map = L.map('map').setView([-6.864829, -79.818440], 15);
         
+        // Capa base de OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
+            maxZoom: 200,
+            attribution: '© OpenStreetMap contributors'
         }).addTo(map);
         
+        // Capa para polígonos dibujados
         drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
         
+        // Capa para sectores guardados
         sectoresLayer = new L.FeatureGroup();
         map.addLayer(sectoresLayer);
         
-        // Configurar control de dibujo (oculto por defecto)
+        // Configurar controles de dibujo
         drawControl = new L.Control.Draw({
-            draw: false,
+            position: 'topright',
+            draw: {
+                polyline: false,
+                marker: false,
+                circle: false,
+                circlemarker: false,
+                polygon: {
+                    allowIntersection: false,
+                    showArea: true,
+                    metric: true,
+                    shapeOptions: {
+                        color: '#3498db',
+                        weight: 3,
+                        fillOpacity: 0.3
+                    }
+                },
+                rectangle: {
+                    shapeOptions: {
+                        color: '#3498db',
+                        weight: 3,
+                        fillOpacity: 0.3
+                    }
+                }
+            },
             edit: {
                 featureGroup: drawnItems,
-                edit: false,
-                remove: false
+                remove: true
             }
         });
         
-        setupMapEvents();
-    }
-    
-    // ========================================================================
-    // EVENTOS DEL MAPA
-    // ========================================================================
-    
-    function setupMapEvents() {
-        map.on(L.Draw.Event.CREATED, function (event) {
-            drawnItems.clearLayers();
+        map.addControl(drawControl);
+        
+        // Eventos de dibujo
+        map.on(L.Draw.Event.CREATED, function(event) {
             const layer = event.layer;
+            
+            // Limpiar polígonos anteriores
+            drawnItems.clearLayers();
+            
+            // Agregar nuevo polígono
             drawnItems.addLayer(layer);
-            currentPolygon = layer.toGeoJSON();
+            currentPolygon = layer;
             
+            // Calcular área
             calcularAreaPoligono(layer);
-            actualizarEstadoPoligono(true);
-            desactivarDibujo();
             
-            updateMapStatus('Polígono dibujado correctamente');
+            // Actualizar estado
+            actualizarEstadoPoligono(true);
+            updateMapStatus('Polígono dibujado - Completa el formulario');
         });
         
-        map.on(L.Draw.Event.DRAWSTART, function () {
+        map.on(L.Draw.Event.EDITED, function(event) {
+            const layers = event.layers;
+            layers.eachLayer(function(layer) {
+                currentPolygon = layer;
+                calcularAreaPoligono(layer);
+            });
+            updateMapStatus('Polígono editado');
+        });
+        
+        map.on(L.Draw.Event.DELETED, function() {
+            currentPolygon = null;
+            actualizarEstadoPoligono(false);
+            updateMapStatus('Polígono eliminado');
+        });
+        
+        map.on(L.Draw.Event.DRAWSTART, function() {
             updateMapStatus('Dibujando...');
         });
         
-        map.on(L.Draw.Event.DRAWSTOP, function () {
-            desactivarDibujo();
-        });
+        console.log('✓ Mapa inicializado correctamente');
     }
     
     // ========================================================================
@@ -746,68 +1098,41 @@
     // ========================================================================
     
     function activarDibujo(tipo) {
-        desactivarDibujo();
-        
-        currentDrawMode = tipo;
-        
-        // Activar botón
+        // Remover clase active de todos los botones
         document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(tipo === 'polygon' ? 'drawPolygon' : 'drawRectangle').classList.add('active');
         
         if (tipo === 'polygon') {
-            new L.Draw.Polygon(map, {
-                shapeOptions: {
-                    color: '#3498db',
-                    weight: 3,
-                    fillOpacity: 0.3
-                }
-            }).enable();
+            document.getElementById('drawPolygon').classList.add('active');
+            new L.Draw.Polygon(map, drawControl.options.draw.polygon).enable();
+            updateMapStatus('Haz clic en el mapa para dibujar un polígono');
         } else if (tipo === 'rectangle') {
-            new L.Draw.Rectangle(map, {
-                shapeOptions: {
-                    color: '#3498db',
-                    weight: 3,
-                    fillOpacity: 0.3
-                }
-            }).enable();
+            document.getElementById('drawRectangle').classList.add('active');
+            new L.Draw.Rectangle(map, drawControl.options.draw.rectangle).enable();
+            updateMapStatus('Arrastra para dibujar un rectángulo');
         }
-        
-        updateMapStatus('Haz clic en el mapa para dibujar');
-    }
-    
-    function desactivarDibujo() {
-        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-        currentDrawMode = null;
     }
     
     function activarEdicion() {
-        if (!currentPolygon) {
-            mostrarMensaje('⚠️ No hay polígono para editar', 'warning');
-            return;
+        if (currentPolygon) {
+            document.getElementById('editShape').classList.add('active');
+            new L.EditToolbar.Edit(map, {
+                featureGroup: drawnItems
+            }).enable();
+            updateMapStatus('Modo edición activado - Arrastra los vértices');
+        } else {
+            mostrarMensaje('Primero dibuja un polígono', 'warning');
         }
-        
-        drawnItems.eachLayer(function (layer) {
-            layer.editing.enable();
-        });
-        
-        document.getElementById('editShape').classList.add('active');
-        updateMapStatus('Modo edición activado');
-        
-        mostrarMensaje('✏️ Arrastra los puntos para editar', 'warning');
     }
     
     function eliminarForma() {
-        if (!currentPolygon) {
-            mostrarMensaje('⚠️ No hay polígono para eliminar', 'warning');
-            return;
-        }
-        
-        if (confirm('¿Estás seguro de eliminar este polígono?')) {
+        if (currentPolygon) {
             drawnItems.clearLayers();
             currentPolygon = null;
             actualizarEstadoPoligono(false);
             updateMapStatus('Polígono eliminado');
-            mostrarMensaje('🗑️ Polígono eliminado', 'warning');
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+        } else {
+            mostrarMensaje('No hay ningún polígono para eliminar', 'warning');
         }
     }
     
@@ -816,16 +1141,18 @@
         currentPolygon = null;
         actualizarEstadoPoligono(false);
         limpiarFormulario();
-        updateMapStatus('Mapa limpio');
+        updateMapStatus('Mapa limpiado - Listo para dibujar');
+        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+        mostrarMensaje('', '');
     }
     
     // ========================================================================
-    // GESTIÓN DE SECTORES
+    // GUARDAR SECTOR
     // ========================================================================
     
     async function guardarSector() {
         if (!currentPolygon) {
-            mostrarMensaje('⚠️ Dibuja un polígono primero', 'error');
+            mostrarMensaje('Debes dibujar un polígono primero', 'error');
             return;
         }
         
@@ -834,40 +1161,65 @@
         const descripcion = document.getElementById('descripcionSector').value.trim();
         
         if (!codigo || !nombre) {
-            mostrarMensaje('⚠️ Código y Nombre son obligatorios', 'error');
+            mostrarMensaje('Completa todos los campos requeridos', 'error');
             return;
         }
         
-        const sectorData = {
+        // Obtener coordenadas del polígono
+        const latlngs = currentPolygon.getLatLngs()[0];
+        const coordinates = latlngs.map(ll => [ll.lng, ll.lat]);
+        coordinates.push(coordinates[0]); // Cerrar el polígono
+        
+        // Crear GeoJSON
+        const geojson = {
+            type: 'Polygon',
+            coordinates: [coordinates]
+        };
+        
+        // Calcular bounds
+        const bounds = currentPolygon.getBounds();
+        
+        // Preparar datos
+        const data = {
             codigo_sector: codigo,
             nombre: nombre,
-            descripcion: descripcion,
-            poligono_geojson: currentPolygon,
-            usuario_creacion: 'admin'
+            descripcion: descripcion || null,
+            poligono_geojson: geojson,
+            usuario_creacion: 'admin' // Cambiar por usuario real
         };
         
         try {
+            updateMapStatus('Guardando sector...');
+            
             const response = await fetch(`${API_URL}/api/sectores/crear`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(sectorData)
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
             });
             
             const result = await response.json();
             
             if (result.success) {
-                mostrarMensaje('✅ Sector guardado correctamente', 'success');
-                limpiarFormulario();
+                mostrarMensaje('Sector guardado exitosamente', 'success');
                 limpiarMapa();
                 cargarSectoresExistentes();
+                updateMapStatus('Sector guardado correctamente');
             } else {
-                mostrarMensaje('❌ Error: ' + result.error, 'error');
+                mostrarMensaje(`Error: ${result.error}`, 'error');
+                updateMapStatus('Error al guardar');
             }
         } catch (error) {
-            mostrarMensaje('❌ Error de conexión: ' + error.message, 'error');
             console.error('Error:', error);
+            mostrarMensaje('Error de conexión al guardar el sector', 'error');
+            updateMapStatus('Error de conexión');
         }
     }
+    
+    // ========================================================================
+    // CARGAR SECTORES
+    // ========================================================================
     
     async function cargarSectoresExistentes() {
         try {
@@ -959,13 +1311,100 @@
     }
     
     // ========================================================================
+    // HISTÓRICO DE SECTORES
+    // ========================================================================
+    
+    function verHistoricoSectores() {
+        const modal = document.getElementById('modalHistorico');
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden'; // Prevenir scroll del body
+        
+        cargarHistoricoSectores();
+    }
+    
+    function cerrarModalHistorico() {
+        const modal = document.getElementById('modalHistorico');
+        modal.classList.remove('show');
+        document.body.style.overflow = ''; // Restaurar scroll del body
+    }
+    
+    async function cargarHistoricoSectores() {
+        try {
+            const response = await fetch(`${API_URL}/api/sectores/historico`);
+            const data = await response.json();
+            
+            if (data.success && data.data.length > 0) {
+                let html = '<div class="historico-grid">';
+                
+                data.data.forEach(sector => {
+                    const historico = sector.historico;
+                    const color = historico.color || '#e0e0e0';
+                    
+                    html += `
+                        <div class="historico-card" style="border-left: 4px solid ${color}">
+                            <h5>
+                                <i class="fas fa-map-marker-alt" style="color: ${color}"></i>
+                                ${sector.nombre}
+                            </h5>
+                            <div class="historico-stat">
+                                <span>Total Incidencias:</span>
+                                <span>${historico.total || 0}</span>
+                            </div>
+                            <div class="historico-stat">
+                                <span>Denuncias:</span>
+                                <span>${historico.denuncias || 0}</span>
+                            </div>
+                            <div class="historico-stat">
+                                <span>Emergencias:</span>
+                                <span>${historico.emergencias || 0}</span>
+                            </div>
+                            <span class="nivel-badge" style="background: ${color}; color: white;">
+                                Nivel: ${(historico.nivel || 'sin_datos').replace('_', ' ').toUpperCase()}
+                            </span>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                document.getElementById('contenidoHistorico').innerHTML = html;
+            } else {
+                document.getElementById('contenidoHistorico').innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-area" style="font-size: 64px; color: #e0e0e0;"></i>
+                        <p class="mt-3" style="color: #7f8c8d;">No hay datos históricos disponibles</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('contenidoHistorico').innerHTML = `
+                <div class="alert alert-error">
+                    <i class="fas fa-times-circle"></i>
+                    Error al cargar datos históricos
+                </div>
+            `;
+        }
+    }
+    
+    // ========================================================================
     // UTILIDADES
     // ========================================================================
     
     function calcularAreaPoligono(layer) {
-        const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
-        const areaKm2 = (area / 1000000).toFixed(4);
-        document.getElementById('statArea').textContent = `${areaKm2} km²`;
+        try {
+            const latlngs = layer.getLatLngs()[0];
+            const coords = latlngs.map(ll => [ll.lng, ll.lat]);
+            coords.push(coords[0]);
+            
+            const polygon = turf.polygon([coords]);
+            const area = turf.area(polygon);
+            const areaKm2 = (area / 1000000).toFixed(4);
+            
+            document.getElementById('statArea').textContent = `${areaKm2} km²`;
+        } catch (error) {
+            console.error('Error calculando área:', error);
+            document.getElementById('statArea').textContent = '0 km²';
+        }
     }
     
     function actualizarEstadoPoligono(dibujado) {
@@ -1044,9 +1483,18 @@
     // ========================================================================
     
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Inicializando Módulo de Trazabilidad...');
         initMap();
         cargarSectoresExistentes();
         updateMapStatus('Listo para dibujar');
+        console.log('✓ Módulo de Trazabilidad cargado correctamente');
+    });
+    
+    // Cerrar modal con tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            cerrarModalHistorico();
+        }
     });
 </script>
 
