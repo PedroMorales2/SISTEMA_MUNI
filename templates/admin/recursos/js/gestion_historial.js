@@ -23,16 +23,19 @@ if (typeof registrosPorPagina === 'undefined') {
  * Carga el historial desde el servidor
  */
 async function cargarHistorial() {
+    console.log('🔍 Iniciando cargarHistorial()...');
+    
     try {
         const tipo = document.getElementById('filtroTipoHistorial').value;
         const limite = document.getElementById('limiteHistorial').value;
+        
+        console.log('📊 Filtros:', { tipo, limite });
         
         mostrarLoading('Cargando historial...');
         
         let url = `${API_URL}/api/recursos/historial?limit=${limite}`;
         
         if (tipo) {
-            // Si es CONFIGURACION, usar el endpoint de configuración
             if (tipo === 'CONFIGURACION') {
                 url = `${API_URL}/api/configuracion/historial?limit=${limite}`;
             } else {
@@ -40,25 +43,29 @@ async function cargarHistorial() {
             }
         }
         
+        console.log('🌐 URL:', url);
+        
         const response = await realizarPeticion(url, 'GET');
+        
+        console.log('📥 Respuesta del servidor:', response);
         
         ocultarLoading();
 
         if (response.success && response.data) {
             historialData = response.data;
+            console.log('✅ Datos cargados:', historialData.length, 'registros');
             paginaActual = 1;
             mostrarTablaHistorial();
             generarPaginacion();
-            
-            console.log(`✓ ${response.total} registros de historial cargados`);
         } else {
+            console.error('❌ Error en respuesta:', response);
             mostrarToast('Error al cargar historial', 'error');
             historialData = [];
             mostrarTablaHistorial();
         }
     } catch (error) {
+        console.error('💥 Error en cargarHistorial():', error);
         ocultarLoading();
-        console.error('Error cargando historial:', error);
         mostrarToast('Error de conexión al cargar historial', 'error');
         historialData = [];
         mostrarTablaHistorial();
@@ -70,6 +77,8 @@ async function cargarHistorial() {
  */
 function mostrarTablaHistorial() {
     const tbody = document.getElementById('bodyTablaHistorial');
+    
+    console.log('🎨 Mostrando tabla con', historialData?.length || 0, 'registros');
     
     if (!historialData || historialData.length === 0) {
         tbody.innerHTML = `
@@ -88,8 +97,13 @@ function mostrarTablaHistorial() {
     const fin = inicio + registrosPorPagina;
     const registrosPagina = historialData.slice(inicio, fin);
 
+    console.log('📄 Mostrando página', paginaActual, '- Registros:', registrosPagina.length);
+
     tbody.innerHTML = registrosPagina.map(item => {
-        const tipoBadge = item.tipo_registro === 'RECURSO' 
+        // ✅ SOLUCIÓN: Verificar si existe tipo_registro, si no, usar "RECURSO" por defecto
+        const tipoRegistro = item.tipo_registro || 'RECURSO';
+        
+        const tipoBadge = tipoRegistro === 'RECURSO' 
             ? '<span class="badge bg-primary">RECURSO</span>'
             : '<span class="badge bg-info">CONFIGURACIÓN</span>';
         
@@ -99,7 +113,7 @@ function mostrarTablaHistorial() {
         
         const valorNuevo = item.valor_nuevo === 'ELIMINADO'
             ? '<span style="color: #f44336; font-weight: 600;">ELIMINADO</span>'
-            : `<span style="color: #4caf50; font-weight: 600;">${truncarTexto(item.valor_nuevo, 30)}</span>`;
+            : `<span style="color: #4caf50; font-weight: 600;">${truncarTexto(item.valor_nuevo || 'N/A', 30)}</span>`;
 
         return `
             <tr style="border-bottom: 1px solid #e0e0e0;">
@@ -126,6 +140,8 @@ function mostrarTablaHistorial() {
             </tr>
         `;
     }).join('');
+    
+    console.log('✅ Tabla actualizada correctamente');
 }
 
 /**

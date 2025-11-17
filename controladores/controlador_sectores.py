@@ -2,6 +2,7 @@
 
 from utils.database import obtenerconexion as obtener_conexion
 import json
+from datetime import datetime
 
 # ============================================================================
 # CRUD DE SECTORES
@@ -124,7 +125,6 @@ def crear_sector(datos_sector):
         print(f"❌ Error al crear sector: {str(e)}")
         return None
 
-
 def actualizar_sector(id_sector, datos_actualizacion):
     """Actualiza un sector"""
     conexion = obtener_conexion()
@@ -192,8 +192,8 @@ def eliminar_sector(id_sector):
     """Elimina lógicamente un sector"""
     conexion = obtener_conexion()
     cursor = conexion.cursor()
-    
-    sql = "UPDATE sectores SET activo = FALSE WHERE id_sector = %s"
+    sql = "DELETE FROM sectores WHERE id_sector = %s"
+    # sql = "UPDATE sectores SET activo = FALSE WHERE id_sector = %s"
     cursor.execute(sql, (id_sector,))
     conexion.commit()
     

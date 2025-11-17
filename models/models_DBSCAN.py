@@ -75,19 +75,7 @@ def calcular_eps_optimo(coords_rad, percentil=90):
 
 def dbscan_incidencias_mejorado(datos, eps_m=None, min_samples=3, auto_eps=True, 
                                incluir_temporal=False, peso_temporal=0.1):
-    """
-    Aplica DBSCAN espacial (y opcionalmente temporal) a incidencias.
-    
-    Parámetros:
-    -----------
-    datos: DataFrame o lista con los datos
-    eps_m: radio de vecindad en metros (se calcula automáticamente si es None)
-    min_samples: vecinos mínimos para ser núcleo
-    auto_eps: si True, calcula eps automáticamente
-    incluir_temporal: si incluir dimensión temporal
-    peso_temporal: peso de la dimensión temporal (0-1)
-    """
-    
+
     # Convertir a DataFrame si es necesario
     if isinstance(datos, list):
         df = pd.DataFrame(datos)

@@ -142,12 +142,12 @@ class FileService:
         # Determinar base URL según entorno
         try:
             if current_app.config.get('ENV') == 'production':
-                base_url = 'http://10.0.0.36:5000/'
+                base_url = 'https://munireque.pythonanywhere.com/'
             else:
-                base_url = 'http://10.0.0.36:5000/'
+                base_url = 'https://munireque.pythonanywhere.com/'
         except RuntimeError:
             # No hay contexto de Flask, usar producción por defecto
-            base_url = 'http://10.0.0.36:5000/'
+            base_url = 'https://munireque.pythonanywhere.com/'
         
         # Si la ruta ya incluye 'static/', usar directamente
         if 'static/' in ruta_norm:
