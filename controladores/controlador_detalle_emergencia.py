@@ -38,7 +38,7 @@ def obtener_destinatarios_emergencia(id_numero_emergencia):
     sql = """SELECT co.id_correo, co.correo, co.nombre_area 
              FROM emergencia_correo ec
              INNER JOIN correo_institucional co ON co.id_correo = ec.id_correo
-             WHERE ec.id_numero_emergencia = %s"""
+             WHERE ec.id_numero_emergencia = %s AND co.id_correo <> 4"""
     cursor.execute(sql, (id_numero_emergencia,))
     destinatarios = cursor.fetchall()
     cursor.close()

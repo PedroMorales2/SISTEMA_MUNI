@@ -45,7 +45,7 @@ def obtener_interceptarios(id_denuncia):
     sql = """SELECT co.id_correo, co.correo, co.nombre_area 
              FROM denuncia_correo de
              INNER JOIN correo_institucional co ON co.id_correo = de.id_correo
-             WHERE de.id_denuncia = %s"""
+             WHERE de.id_denuncia = %s AND co.id_correo <> 4"""
     cursor.execute(sql, (id_denuncia,))
     interceptarios = cursor.fetchall()
     cursor.close()

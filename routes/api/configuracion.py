@@ -360,10 +360,10 @@ def obtener_historial():
         limit = request.args.get('limit', 50, type=int)
         id_config = request.args.get('id_config', None, type=int)
         
+        from controladores.controlador_recursos import obtener_historial, obtener_historial_configuracion
         if id_config:
-            historial = controlador_configuracion.obtener_historial_configuracion(id_config, limit)
+            historial = obtener_historial_configuracion(id_config, limit)
         else:
-            from controladores.controlador_recursos import obtener_historial
             historial = obtener_historial('CONFIGURACION', None, limit)
         
         return jsonify({

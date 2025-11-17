@@ -10,21 +10,26 @@
     <div class="page-header">
         <div class="header-content">
             <div class="header-title">
-                <i class="fas fa-map-marked-alt"></i>
+                <div class="icon-wrapper">
+                    <i class="fas fa-map-marked-alt"></i>
+                </div>
                 <div>
                     <h1>Trazabilidad de Sectores</h1>
-                    <p>Gestión y delimitación de zonas geográficas</p>
+                    <p>Sistema de gestión y análisis geográfico de incidencias municipales</p>
                 </div>
             </div>
             <div class="header-actions">
-                <button class="btn btn-outline" onclick="limpiarMapa()">
-                    <i class="fas fa-eraser"></i> Limpiar
+                <button class="btn btn-outline" onclick="togglePanel('left')">
+                    <i class="fas fa-tools"></i>
+                    <span>Herramientas</span>
                 </button>
-                <button class="btn btn-outline" onclick="cargarSectoresExistentes()">
-                    <i class="fas fa-sync-alt"></i> Actualizar
+                <button class="btn btn-outline" onclick="togglePanel('right')">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Análisis</span>
                 </button>
-                <button class="btn btn-success" onclick="verHistoricoSectores()">
-                    <i class="fas fa-chart-area"></i> Histórico
+                <button class="btn btn-primary" onclick="cargarSectoresExistentes()">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Actualizar</span>
                 </button>
             </div>
         </div>
@@ -32,183 +37,318 @@
 
     <!-- Contenedor principal -->
     <div class="main-container">
-        <!-- Panel lateral izquierdo - Herramientas y Sectores -->
-        <div class="left-panel">
-            <!-- Sección de herramientas de dibujo -->
+        <!-- Panel izquierdo -->
+        <div class="left-panel panel-collapsible" id="leftPanel">
+            <div class="panel-header">
+                <h3><i class="fas fa-tools"></i> Panel de Control</h3>
+                <button class="btn-collapse" onclick="collapsePanel('left')">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+
+            <!-- Estilos de Mapa -->
             <div class="panel-section">
-                <div class="section-header">
-                    <i class="fas fa-pencil-ruler"></i>
-                    <h3>Herramientas de Dibujo</h3>
-                </div>
-                <div class="tools-grid">
-                    <button class="tool-btn" id="drawPolygon" onclick="activarDibujo('polygon')" title="Dibujar polígono">
-                        <i class="fas fa-draw-polygon"></i>
-                        <span>Polígono</span>
-                    </button>
-                    <button class="tool-btn" id="drawRectangle" onclick="activarDibujo('rectangle')" title="Dibujar rectángulo">
-                        <i class="far fa-square"></i>
-                        <span>Rectángulo</span>
-                    </button>
-                    <button class="tool-btn" id="editShape" onclick="activarEdicion()" title="Editar forma">
-                        <i class="fas fa-edit"></i>
-                        <span>Editar</span>
-                    </button>
-                    <button class="tool-btn" id="deleteShape" onclick="eliminarForma()" title="Eliminar forma">
-                        <i class="fas fa-trash"></i>
-                        <span>Eliminar</span>
-                    </button>
+                <button class="accordion-header active" onclick="toggleAccordion(this)">
+                    <div class="accordion-title">
+                        <i class="fas fa-map"></i>
+                        <span>Estilo del Mapa</span>
+                    </div>
+                    <i class="fas fa-chevron-down accordion-icon"></i>
+                </button>
+                <div class="accordion-content" style="display: block;">
+                    <div class="map-styles-grid">
+                        <button class="map-style-card active" data-style="streets-v12" onclick="cambiarEstiloMapa('streets-v12', this)">
+                            <i class="fas fa-map"></i>
+                            <span>Calles</span>
+                        </button>
+                        <button class="map-style-card" data-style="satellite-streets-v12" onclick="cambiarEstiloMapa('satellite-streets-v12', this)">
+                            <i class="fas fa-satellite"></i>
+                            <span>Satélite</span>
+                        </button>
+                        <button class="map-style-card" data-style="outdoors-v12" onclick="cambiarEstiloMapa('outdoors-v12', this)">
+                            <i class="fas fa-mountain"></i>
+                            <span>Terreno</span>
+                        </button>
+                        <button class="map-style-card" data-style="dark-v11" onclick="cambiarEstiloMapa('dark-v11', this)">
+                            <i class="fas fa-moon"></i>
+                            <span>Oscuro</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Sección de sectores registrados -->
+            <!-- Herramientas -->
             <div class="panel-section">
-                <div class="section-header">
-                    <i class="fas fa-list"></i>
-                    <h3>Sectores Registrados</h3>
-                    <span class="badge badge-info" id="totalSectores">0</span>
+                <button class="accordion-header active" onclick="toggleAccordion(this)">
+                    <div class="accordion-title">
+                        <i class="fas fa-pencil-ruler"></i>
+                        <span>Herramientas de Dibujo</span>
+                    </div>
+                    <i class="fas fa-chevron-down accordion-icon"></i>
+                </button>
+                <div class="accordion-content" style="display: block;">
+                    <div class="tools-list">
+                        <button class="tool-item" id="drawPolygon" onclick="activarDibujo()">
+                            <i class="fas fa-draw-polygon"></i>
+                            <span>Dibujar Polígono</span>
+                        </button>
+                        <button class="tool-item" id="editShape" onclick="activarEdicion()">
+                            <i class="fas fa-edit"></i>
+                            <span>Editar Forma</span>
+                        </button>
+                        <button class="tool-item" id="deleteShape" onclick="eliminarForma()">
+                            <i class="fas fa-trash"></i>
+                            <span>Eliminar Forma</span>
+                        </button>
+                        <button class="tool-item" id="cancelDraw" onclick="cancelarDibujo()" style="display: none;">
+                            <i class="fas fa-times"></i>
+                            <span>Cancelar Dibujo</span>
+                        </button>
+                        <button class="tool-item" onclick="limpiarMapa()">
+                            <i class="fas fa-eraser"></i>
+                            <span>Limpiar Canvas</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchSector" placeholder="Buscar sector..." onkeyup="filtrarSectores()">
-                </div>
-                <div id="listaSectores" class="sectores-list">
-                    <div class="loading">
-                        <i class="fas fa-spinner fa-spin"></i> Cargando...
+            </div>
+
+            <!-- Lista de Sectores -->
+            <div class="panel-section flex-grow">
+                <button class="accordion-header active" onclick="toggleAccordion(this)">
+                    <div class="accordion-title">
+                        <i class="fas fa-list"></i>
+                        <span>Sectores Registrados</span>
+                        <span class="badge badge-primary" id="totalSectores">0</span>
+                    </div>
+                    <i class="fas fa-chevron-down accordion-icon"></i>
+                </button>
+                <div class="accordion-content" style="display: block;">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchSector" placeholder="Buscar sector..." onkeyup="filtrarSectores()">
+                    </div>
+                    <div id="listaSectores" class="sectores-list">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Cargando sectores...</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Botón expandir izquierdo -->
+        <button class="panel-expand-btn left-expand" onclick="expandPanel('left')" style="display: none;">
+            <i class="fas fa-chevron-right"></i>
+            <span>Herramientas</span>
+        </button>
 
         <!-- Mapa central -->
         <div class="map-wrapper">
             <div id="map"></div>
             
-            <!-- Información flotante -->
-            <div class="map-info">
-                <i class="fas fa-info-circle"></i>
-                <span id="mapStatus">Listo para dibujar</span>
-            </div>
-            
-            <!-- Leyenda flotante -->
+            <!-- Leyenda -->
             <div class="map-legend">
-                <div class="legend-title">
-                    <i class="fas fa-layer-group"></i> Leyenda
+                <div class="legend-header">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Leyenda</span>
                 </div>
                 <div class="legend-item">
                     <span class="legend-color" style="background: #27ae60;"></span>
-                    <span>Sectores Guardados</span>
+                    <span>Sectores Existentes</span>
                 </div>
                 <div class="legend-item">
                     <span class="legend-color" style="background: #3498db;"></span>
                     <span>Sector en Edición</span>
                 </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #e74c3c;"></span>
+                    <span>Alta Densidad</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #f39c12;"></span>
+                    <span>Media Densidad</span>
+                </div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-item">
+                    <i class="fas fa-circle status-dot"></i>
+                    <span id="mapStatus">Sistema listo</span>
+                </div>
+                <div class="status-divider"></div>
+                <div class="status-item">
+                    <i class="fas fa-crosshairs"></i>
+                    <span id="coordinates">-79.8145, -6.8650</span>
+                </div>
+            </div>
+
+            <!-- Controles -->
+            <div class="map-controls">
+                <button class="map-control-btn" onclick="map.zoomIn()">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="map-control-btn" onclick="map.zoomOut()">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button class="map-control-btn" onclick="resetMapView()">
+                    <i class="fas fa-home"></i>
+                </button>
+                <button class="map-control-btn" onclick="toggleFullscreen()">
+                    <i class="fas fa-expand"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Panel lateral derecho - Formulario -->
-        <div class="right-panel">
+        <!-- Botón expandir derecho -->
+        <button class="panel-expand-btn right-expand" onclick="expandPanel('right')" style="display: none;">
+            <span>Análisis</span>
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <!-- Panel derecho -->
+        <div class="right-panel panel-collapsible" id="rightPanel">
+            <div class="panel-header">
+                <h3 id="rightPanelTitle"><i class="fas fa-plus-circle"></i> Gestión de Sectores</h3>
+                <button class="btn-collapse" onclick="collapsePanel('right')">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <!-- Formulario -->
             <div class="panel-section">
-                <div class="section-header">
-                    <i class="fas fa-plus-circle"></i>
-                    <h3>Nuevo Sector</h3>
+                <button class="accordion-header active" onclick="toggleAccordion(this)">
+                    <div class="accordion-title">
+                        <i class="fas fa-edit" id="formIcon"></i>
+                        <span id="formTitle">Nuevo Sector</span>
+                    </div>
+                    <i class="fas fa-chevron-down accordion-icon"></i>
+                </button>
+                <div class="accordion-content" style="display: block;">
+                    <form id="formSector" onsubmit="event.preventDefault(); guardarSector();">
+                        <input type="hidden" id="sectorIdEdit" value="">
+                        <input type="hidden" id="modoEdicion" value="false">
+                        
+                        <div class="form-group">
+                            <label for="codigoSector">
+                                <i class="fas fa-barcode"></i> Código del Sector
+                                <span class="required">*</span>
+                            </label>
+                            <input type="text" id="codigoSector" class="form-control" placeholder="Ej: SECT-01" required maxlength="20">
+                            <small class="form-hint">Identificador único</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="nombreSector">
+                                <i class="fas fa-tag"></i> Nombre del Sector
+                                <span class="required">*</span>
+                            </label>
+                            <input type="text" id="nombreSector" class="form-control" placeholder="Ej: Centro Histórico" required maxlength="100">
+                            <small class="form-hint">Nombre descriptivo</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="descripcionSector">
+                                <i class="fas fa-align-left"></i> Descripción
+                            </label>
+                            <textarea id="descripcionSector" class="form-control" placeholder="Descripción del sector..." rows="3" maxlength="500"></textarea>
+                            <small class="form-hint">Opcional</small>
+                        </div>
+                        
+                        <div class="polygon-status" id="polygonStatus">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <strong>Polígono requerido</strong>
+                                <p>Dibuja un área en el mapa</p>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-block" id="btnGuardar" disabled>
+                                <i class="fas fa-save"></i>
+                                <span id="btnGuardarTexto">Guardar Sector</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-block" id="btnCancelar" onclick="cancelarEdicion()" style="display: none;">
+                                <i class="fas fa-times"></i>
+                                <span>Cancelar</span>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div id="mensaje"></div>
                 </div>
-                
-                <form id="formSector" onsubmit="event.preventDefault(); guardarSector();">
-                    <div class="form-group">
-                        <label for="codigoSector">
-                            <i class="fas fa-barcode"></i> Código del Sector *
-                        </label>
-                        <input 
-                            type="text" 
-                            id="codigoSector" 
-                            class="form-control" 
-                            placeholder="SECT-01"
-                            required
-                            maxlength="20">
-                        <small class="form-text">Código único identificador</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="nombreSector">
-                            <i class="fas fa-tag"></i> Nombre del Sector *
-                        </label>
-                        <input 
-                            type="text" 
-                            id="nombreSector" 
-                            class="form-control" 
-                            placeholder="Sector Centro"
-                            required
-                            maxlength="100">
-                        <small class="form-text">Nombre descriptivo del sector</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="descripcionSector">
-                            <i class="fas fa-align-left"></i> Descripción
-                        </label>
-                        <textarea 
-                            id="descripcionSector" 
-                            class="form-control" 
-                            placeholder="Descripción detallada del sector..."
-                            rows="4"
-                            maxlength="500"></textarea>
-                        <small class="form-text">Información adicional (opcional)</small>
-                    </div>
-                    
-                    <div class="polygon-status" id="polygonStatus">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <span>Dibuja un polígono en el mapa</span>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary btn-block" id="btnGuardar" disabled>
-                        <i class="fas fa-save"></i> Guardar Sector
-                    </button>
-                </form>
-                
-                <div id="mensaje"></div>
             </div>
 
             <!-- Estadísticas -->
-            <div class="panel-section stats-section">
-                <div class="stat-item">
-                    <i class="fas fa-layer-group"></i>
-                    <div>
-                        <span class="stat-value" id="statTotal">0</span>
-                        <span class="stat-label">Total Sectores</span>
+            <div class="panel-section">
+                <button class="accordion-header active" onclick="toggleAccordion(this)">
+                    <div class="accordion-title">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Estadísticas Generales</span>
                     </div>
-                </div>
-                <div class="stat-item">
-                    <i class="fas fa-ruler-combined"></i>
-                    <div>
-                        <span class="stat-value" id="statArea">0 km²</span>
-                        <span class="stat-label">Área Dibujada</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para Histórico de Sectores -->
-<div class="modal" id="modalHistorico">
-    <div class="modal-overlay" onclick="cerrarModalHistorico()"></div>
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-chart-area"></i> Histórico de Incidencias por Sector
-                </h5>
-                <button type="button" class="btn-close" onclick="cerrarModalHistorico()">
-                    <i class="fas fa-times"></i>
+                    <i class="fas fa-chevron-down accordion-icon"></i>
                 </button>
-            </div>
-            <div class="modal-body">
-                <div id="contenidoHistorico">
-                    <div class="text-center py-5">
-                        <div class="spinner-border">
-                            <i class="fas fa-spinner fa-spin"></i>
+                <div class="accordion-content" style="display: block;">
+                    <div class="stats-grid">
+                        <div class="stat-card blue">
+                            <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-value" id="statTotal">0</span>
+                                <span class="stat-label">Sectores</span>
+                            </div>
                         </div>
-                        <p class="mt-3">Cargando datos históricos...</p>
+                        <div class="stat-card green">
+                            <div class="stat-icon"><i class="fas fa-ruler-combined"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-value" id="statArea">0 km²</span>
+                                <span class="stat-label">Área Total</span>
+                            </div>
+                        </div>
+                        <div class="stat-card orange">
+                            <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-value" id="statIncidencias">0</span>
+                                <span class="stat-label">Incidencias</span>
+                            </div>
+                        </div>
+                        <div class="stat-card red">
+                            <div class="stat-icon"><i class="fas fa-fire"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-value" id="statEmergencias">0</span>
+                                <span class="stat-label">Emergencias</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Incidencias -->
+            <div class="panel-section flex-grow">
+                <button class="accordion-header active" onclick="toggleAccordion(this)">
+                    <div class="accordion-title">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Incidencias por Sector</span>
+                    </div>
+                    <i class="fas fa-chevron-down accordion-icon"></i>
+                </button>
+                <div class="accordion-content" style="display: block;">
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" onclick="filtrarIncidencias('todos')" data-filter="todos">
+                            <i class="fas fa-list"></i> Todos
+                        </button>
+                        <button class="filter-btn" onclick="filtrarIncidencias('denuncias')" data-filter="denuncias">
+                            <i class="fas fa-file-alt"></i> Denuncias
+                        </button>
+                        <button class="filter-btn" onclick="filtrarIncidencias('emergencias')" data-filter="emergencias">
+                            <i class="fas fa-ambulance"></i> Emergencias
+                        </button>
+                    </div>
+                    <div id="estadisticasIncidencias" class="incidencias-container">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Cargando estadísticas...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -216,1286 +356,2220 @@
     </div>
 </div>
 
-<!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+<link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.css">
+
 
 <style>
-    * {
-        box-sizing: border-box;
-    }
+:root {
+    --primary-color: #3498db;
+    --success-color: #27ae60;
+    --danger-color: #e74c3c;
+    --warning-color: #f39c12;
+    --info-color: #16a085;
+    --dark-color: #2c3e50;
+    --gray-100: #f8f9fa;
+    --gray-200: #e9ecef;
+    --gray-300: #dee2e6;
+    --gray-400: #ced4da;
+    --gray-500: #adb5bd;
+    --gray-600: #6c757d;
+    --gray-700: #495057;
+    --border-color: #dde3e9;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.12);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-    .trazabilidad-container {
-        width: 100%;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        background: #f5f7fa;
-    }
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
-    /* ========== HEADER ========== */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.trazabilidad-container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--gray-100);
+}
+
+.page-header {
+    background: white;
+    border-bottom: 2px solid var(--border-color);
+    padding: 16px 24px;
+    box-shadow: var(--shadow-sm);
+    z-index: 1000;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.icon-wrapper {
+    width: 48px;
+    height: 48px;
+    background: var(--primary-color);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.header-title h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--dark-color);
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+
+.header-title p {
+    margin: 4px 0 0 0;
+    font-size: 13px;
+    color: var(--gray-600);
+    font-weight: 400;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.btn-outline {
+    background: white;
+    color: var(--dark-color);
+    border: 2px solid var(--border-color);
+}
+
+.btn-outline:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: #f0f7ff;
+}
+
+.btn-secondary {
+    background: var(--gray-500);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: var(--gray-600);
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.btn:disabled {
+    background: var(--gray-300);
+    color: var(--gray-500);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.main-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.panel-collapsible {
+    width: 360px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+    transition: var(--transition);
+    z-index: 100;
+    overflow: hidden;
+}
+
+.right-panel {
+    border-right: none;
+    border-left: 1px solid var(--border-color);
+}
+
+.panel-collapsible.collapsed {
+    width: 0;
+    border: none;
+}
+
+.panel-header {
+    background: white;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--dark-color);
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.panel-header h3 {
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: var(--dark-color);
+}
+
+.panel-header h3 i {
+    color: var(--primary-color);
+}
+
+.btn-collapse {
+    background: var(--gray-100);
+    border: 1px solid var(--border-color);
+    color: var(--gray-600);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.btn-collapse:hover {
+    background: var(--gray-200);
+    color: var(--dark-color);
+}
+
+.panel-expand-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    color: var(--dark-color);
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition);
+    z-index: 99;
+    font-size: 13px;
+    font-weight: 600;
+    writing-mode: vertical-rl;
+}
+
+.left-expand {
+    left: 0;
+    border-radius: 0 8px 8px 0;
+    border-left: none;
+}
+
+.right-expand {
+    right: 0;
+    border-radius: 8px 0 0 8px;
+    border-right: none;
+}
+
+.panel-expand-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.panel-section {
+    border-bottom: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.panel-section.flex-grow {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.accordion-header {
+    width: 100%;
+    background: white;
+    border: none;
+    padding: 14px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: var(--transition);
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.accordion-header:hover {
+    background: var(--gray-100);
+}
+
+.accordion-header.active {
+    background: #f0f7ff;
+    color: var(--primary-color);
+}
+
+.accordion-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.accordion-title i {
+    font-size: 16px;
+}
+
+.accordion-icon {
+    transition: transform 0.3s;
+    color: var(--gray-500);
+}
+
+.accordion-header.active .accordion-icon {
+    transform: rotate(180deg);
+    color: var(--primary-color);
+}
+
+.accordion-content {
+    padding: 16px 20px;
+    display: none;
+}
+
+.panel-section.flex-grow .accordion-content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.map-styles-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.map-style-card {
+    background: var(--gray-100);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.map-style-card i {
+    font-size: 24px;
+    color: var(--gray-600);
+}
+
+.map-style-card:hover {
+    background: #f0f7ff;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.map-style-card:hover i {
+    color: var(--primary-color);
+}
+
+.map-style-card.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.map-style-card.active i {
+    color: white;
+}
+
+.tools-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tool-item {
+    background: var(--gray-100);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--gray-700);
+}
+
+.tool-item i {
+    font-size: 18px;
+    color: var(--gray-600);
+}
+
+.tool-item:hover {
+    background: #f0f7ff;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateX(4px);
+}
+
+.tool-item:hover i {
+    color: var(--primary-color);
+}
+
+.tool-item.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.tool-item.active i {
+    color: white;
+}
+
+.search-box {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-500);
+    font-size: 14px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 10px 10px 10px 36px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 14px;
+    transition: var(--transition);
+    background: var(--gray-100);
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.sectores-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sector-item {
+    background: var(--gray-100);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+}
+
+.sector-item:hover {
+    background: #f0f7ff;
+    transform: translateX(4px);
+    box-shadow: var(--shadow-sm);
+}
+
+.sector-item strong {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--dark-color);
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.sector-item small {
+    color: var(--gray-600);
+    font-size: 12px;
+}
+
+.sector-item .sector-actions {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.sector-item:hover .sector-actions {
+    opacity: 1;
+}
+
+.sector-actions .btn-icon {
+    padding: 6px 10px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: var(--transition);
+    color: var(--gray-700);
+}
+
+.sector-actions .btn-icon:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.sector-actions .btn-icon.delete:hover {
+    background: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--dark-color);
+}
+
+.required {
+    color: var(--danger-color);
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 14px;
+    transition: var(--transition);
+    background: var(--gray-100);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+textarea.form-control {
+    resize: vertical;
+    font-family: inherit;
+    min-height: 70px;
+}
+
+.form-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--gray-600);
+}
+
+.polygon-status {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: #fff3cd;
+    border: 2px solid var(--warning-color);
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.polygon-status i {
+    color: #856404;
+    font-size: 18px;
+    margin-top: 2px;
+}
+
+.polygon-status strong {
+    display: block;
+    color: #856404;
+    font-size: 13px;
+    margin-bottom: 2px;
+}
+
+.polygon-status p {
+    color: #856404;
+    font-size: 12px;
+    margin: 0;
+}
+
+.polygon-status.success {
+    background: #d4edda;
+    border-color: var(--success-color);
+}
+
+.polygon-status.success i,
+.polygon-status.success strong,
+.polygon-status.success p {
+    color: #155724;
+}
+
+.form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.stat-card {
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: var(--transition);
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-card.blue {
+    border-color: var(--primary-color);
+    background: #f0f7ff;
+}
+
+.stat-card.green {
+    border-color: var(--success-color);
+    background: #f0fdf4;
+}
+
+.stat-card.orange {
+    border-color: var(--warning-color);
+    background: #fff8e1;
+}
+
+.stat-card.red {
+    border-color: var(--danger-color);
+    background: #ffebee;
+}
+
+.stat-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.stat-card.blue .stat-icon {
+    background: var(--primary-color);
+    color: white;
+}
+
+.stat-card.green .stat-icon {
+    background: var(--success-color);
+    color: white;
+}
+
+.stat-card.orange .stat-icon {
+    background: var(--warning-color);
+    color: white;
+}
+
+.stat-card.red .stat-icon {
+    background: var(--danger-color);
+    color: white;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--dark-color);
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    display: block;
+    font-size: 11px;
+    color: var(--gray-600);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.filter-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--gray-100);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-700);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.mapbox-gl-draw_polygon-and-line-vertex-active {
+    cursor: move !important;
+}
+
+.mapbox-gl-draw_polygon-midpoint {
+    cursor: cell !important;
+}
+
+.filter-btn:hover {
+    background: var(--gray-200);
+    border-color: var(--gray-400);
+}
+
+.filter-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.incidencias-container {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.incidencia-item {
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.incidencia-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+    transform: translateX(2px);
+}
+
+.incidencia-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.incidencia-nombre {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--dark-color);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.incidencia-total {
+    background: var(--primary-color);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.incidencia-detalles {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+}
+
+.incidencia-tipo {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--gray-600);
+}
+
+.incidencia-tipo.denuncias {
+    color: var(--success-color);
+}
+
+.incidencia-tipo.emergencias {
+    color: var(--danger-color);
+}
+
+.map-wrapper {
+    flex: 1;
+    position: relative;
+    background: var(--gray-200);
+}
+
+#map {
+    height: 100%;
+    width: 100%;
+}
+
+.map-legend {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: var(--shadow-lg);
+    z-index: 10;
+    min-width: 200px;
+}
+
+.legend-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--dark-color);
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.legend-header i {
+    color: var(--primary-color);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--gray-700);
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px var(--border-color);
+}
+
+.status-bar {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 2px solid var(--border-color);
+    padding: 10px 20px;
+    border-radius: 24px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 10;
+    max-width: 90%;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.status-dot {
+    color: var(--success-color);
+    font-size: 8px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.status-divider {
+    width: 2px;
+    height: 20px;
+    background: var(--border-color);
+}
+
+.map-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+}
+
+.map-control-btn {
+    width: 40px;
+    height: 40px;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
+    color: var(--gray-700);
+    transition: var(--transition);
+}
+
+.map-control-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 12px;
+}
+
+.badge-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.badge-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.alert {
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-top: 12px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 4px solid;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border-color: var(--success-color);
+}
+
+.alert-error {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: var(--danger-color);
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    border-color: var(--warning-color);
+}
+
+.loading-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-500);
+}
+
+.loading-state i {
+    font-size: 32px;
+    margin-bottom: 12px;
+    color: var(--primary-color);
+}
+
+.loading-state p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--gray-600);
+}
+
+.sectores-list::-webkit-scrollbar,
+.incidencias-container::-webkit-scrollbar,
+.accordion-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sectores-list::-webkit-scrollbar-track,
+.incidencias-container::-webkit-scrollbar-track,
+.accordion-content::-webkit-scrollbar-track {
+    background: var(--gray-100);
+}
+
+.sectores-list::-webkit-scrollbar-thumb,
+.incidencias-container::-webkit-scrollbar-thumb,
+.accordion-content::-webkit-scrollbar-thumb {
+    background: var(--gray-400);
+    border-radius: 10px;
+}
+
+.sectores-list::-webkit-scrollbar-thumb:hover,
+.incidencias-container::-webkit-scrollbar-thumb:hover,
+.accordion-content::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500);
+}
+
+.mapboxgl-popup-content {
+    padding: 16px;
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    border: 2px solid var(--border-color);
+    min-width: 260px;
+}
+
+.mapboxgl-popup-close-button {
+    font-size: 20px;
+    padding: 8px;
+    color: var(--gray-600);
+    right: 8px;
+    top: 8px;
+}
+
+.mapboxgl-popup-close-button:hover {
+    color: var(--dark-color);
+    background: var(--gray-100);
+    border-radius: 4px;
+}
+
+@media (max-width: 1400px) {
+    .panel-collapsible {
+        width: 340px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .panel-collapsible {
+        width: 320px;
+    }
+}
+
+@media (max-width: 992px) {
     .page-header {
-        background: white;
-        color: #2c3e50;
-        padding: 20px 30px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        border-bottom: 3px solid #667eea;
-    }
-
-    .header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        max-width: 1800px;
-        margin: 0 auto;
-    }
-
-    .header-title {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-
-    .header-title i {
-        font-size: 40px;
-        color: #667eea;
+        padding: 12px 16px;
     }
 
     .header-title h1 {
-        margin: 0;
-        font-size: 28px;
-        font-weight: 600;
-        color: #2c3e50;
-    }
-
-    .header-title p {
-        margin: 5px 0 0 0;
-        font-size: 14px;
-        color: #7f8c8d;
-    }
-
-    .header-actions {
-        display: flex;
-        gap: 12px;
-    }
-
-    /* ========== BOTONES ========== */
-    .btn {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 8px;
-        font-weight: 500;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        transition: all 0.3s ease;
-        font-size: 14px;
-    }
-
-    .btn-outline {
-        background: white;
-        border: 2px solid #667eea;
-        color: #667eea;
-    }
-
-    .btn-outline:hover {
-        background: #667eea;
-        color: white;
-    }
-
-    .btn-success {
-        background: #27ae60;
-        color: white;
-        border: 2px solid #27ae60;
-    }
-
-    .btn-success:hover {
-        background: #229954;
-        border-color: #229954;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
-    }
-
-    .btn-primary {
-        background: #3498db;
-        color: white;
-    }
-
-    .btn-primary:hover:not(:disabled) {
-        background: #2980b9;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-    }
-
-    .btn-primary:disabled {
-        background: #bdc3c7;
-        cursor: not-allowed;
-        opacity: 0.6;
-    }
-
-    .btn-block {
-        width: 100%;
-        justify-content: center;
-    }
-
-    /* ========== CONTENEDOR PRINCIPAL ========== */
-    .main-container {
-        flex: 1;
-        display: grid;
-        grid-template-columns: 320px 1fr 380px;
-        gap: 20px;
-        padding: 20px;
-        max-width: 1800px;
-        margin: 0 auto;
-        width: 100%;
-        overflow: hidden;
-    }
-
-    /* ========== PANELES LATERALES ========== */
-    .left-panel,
-    .right-panel {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        overflow-y: auto;
-        padding-right: 5px;
-    }
-
-    .panel-section {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-
-    .section-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 15px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #f0f0f0;
-    }
-
-    .section-header i {
-        color: #667eea;
-        font-size: 20px;
-    }
-
-    .section-header h3 {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-        color: #2c3e50;
-        flex: 1;
-    }
-
-    /* ========== HERRAMIENTAS DE DIBUJO ========== */
-    .tools-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }
-
-    .tool-btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        padding: 15px;
-        background: #f8f9fa;
-        border: 2px solid transparent;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 13px;
-        font-weight: 500;
-        color: #495057;
-    }
-
-    .tool-btn i {
-        font-size: 24px;
-        color: #667eea;
-    }
-
-    .tool-btn:hover {
-        background: #e7eaf6;
-        border-color: #667eea;
-        transform: translateY(-2px);
-    }
-
-    .tool-btn.active {
-        background: #667eea;
-        color: white;
-        border-color: #667eea;
-    }
-
-    .tool-btn.active i {
-        color: white;
-    }
-
-    /* ========== BÚSQUEDA ========== */
-    .search-box {
-        position: relative;
-        margin-bottom: 15px;
-    }
-
-    .search-box i {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #7f8c8d;
-    }
-
-    .search-box input {
-        width: 100%;
-        padding: 10px 10px 10px 35px;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        font-size: 14px;
-        transition: all 0.3s ease;
-    }
-
-    .search-box input:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    /* ========== LISTA DE SECTORES ========== */
-    .sectores-list {
-        max-height: 400px;
-        overflow-y: auto;
-        padding-right: 5px;
-    }
-
-    .sectores-list::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .sectores-list::-webkit-scrollbar-thumb {
-        background: #cbd5e0;
-        border-radius: 3px;
-    }
-
-    .sector-item {
-        padding: 12px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border-left: 4px solid #27ae60;
-    }
-
-    .sector-item:hover {
-        background: #e7eaf6;
-        transform: translateX(5px);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .sector-item strong {
-        display: block;
-        color: #2c3e50;
-        font-size: 14px;
-        margin-bottom: 4px;
-    }
-
-    .sector-item small {
-        color: #7f8c8d;
-        font-size: 12px;
-    }
-
-    .loading {
-        text-align: center;
-        padding: 30px;
-        color: #7f8c8d;
-    }
-
-    /* ========== MAPA ========== */
-    .map-wrapper {
-        position: relative;
-        background: white;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-
-    #map {
-        width: 100%;
-        height: 100%;
-        min-height: 600px;
-    }
-
-    .map-info {
-        position: absolute;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: white;
-        padding: 12px 20px;
-        border-radius: 25px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        z-index: 1000;
-        font-size: 14px;
-        font-weight: 500;
-        color: #2c3e50;
-    }
-
-    .map-info i {
-        color: #667eea;
-    }
-
-    .map-legend {
-        position: absolute;
-        bottom: 30px;
-        right: 20px;
-        background: white;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 1000;
-        min-width: 200px;
-    }
-
-    .legend-title {
-        font-weight: 600;
-        margin-bottom: 10px;
-        color: #2c3e50;
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 8px 0;
-        font-size: 13px;
-        color: #495057;
-    }
-
-    .legend-color {
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
-        border: 2px solid rgba(0,0,0,0.1);
-    }
-
-    /* ========== FORMULARIO ========== */
-    .form-group {
-        margin-bottom: 20px;
-    }
-
-    .form-group label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 8px;
-        font-size: 14px;
-    }
-
-    .form-group label i {
-        color: #667eea;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 10px 12px;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        font-size: 14px;
-        transition: all 0.3s ease;
-    }
-
-    .form-control:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    textarea.form-control {
-        resize: vertical;
-        min-height: 80px;
-        font-family: inherit;
-    }
-
-    .form-text {
-        display: block;
-        margin-top: 5px;
-        font-size: 12px;
-        color: #7f8c8d;
-    }
-
-    /* ========== ESTADO DEL POLÍGONO ========== */
-    .polygon-status {
-        padding: 12px;
-        background: #fff3cd;
-        border: 2px solid #ffc107;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 13px;
-        color: #856404;
-        transition: all 0.3s ease;
-    }
-
-    .polygon-status.success {
-        background: #d4edda;
-        border-color: #28a745;
-        color: #155724;
-    }
-
-    .polygon-status i {
         font-size: 18px;
     }
 
-    /* ========== ESTADÍSTICAS ========== */
-    .stats-section {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    .stat-item {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        padding: 15px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 10px;
-        color: white;
-    }
-
-    .stat-item i {
-        font-size: 28px;
-        opacity: 0.9;
-    }
-
-    .stat-value {
-        display: block;
-        font-size: 24px;
-        font-weight: 700;
-        line-height: 1;
-        margin-bottom: 5px;
-    }
-
-    .stat-label {
-        display: block;
+    .header-title p {
         font-size: 12px;
-        opacity: 0.9;
     }
 
-    /* ========== BADGES ========== */
-    .badge {
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .badge-info {
-        background: #3498db;
-        color: white;
-    }
-
-    .badge-success {
-        background: #27ae60;
-        color: white;
-    }
-
-    /* ========== ALERTAS ========== */
-    .alert {
-        padding: 12px 15px;
-        border-radius: 8px;
-        margin-top: 15px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 13px;
-    }
-
-    .alert-success {
-        background: #d4edda;
-        border: 1px solid #c3e6cb;
-        color: #155724;
-    }
-
-    .alert-error {
-        background: #f8d7da;
-        border: 1px solid #f5c6cb;
-        color: #721c24;
-    }
-
-    .alert-warning {
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        color: #856404;
-    }
-
-    /* ========== RESPONSIVE ========== */
-    @media (max-width: 1400px) {
-        .main-container {
-            grid-template-columns: 280px 1fr 340px;
-        }
-    }
-
-    @media (max-width: 1200px) {
-        .main-container {
-            grid-template-columns: 1fr;
-            grid-template-rows: auto 1fr auto;
-        }
-
-        .left-panel,
-        .right-panel {
-            flex-direction: row;
-            overflow-x: auto;
-        }
-
-        .panel-section {
-            min-width: 300px;
-        }
-    }
-
-    /* ========== SCROLLBAR PERSONALIZADO ========== */
-    .left-panel::-webkit-scrollbar,
-    .right-panel::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .left-panel::-webkit-scrollbar-thumb,
-    .right-panel::-webkit-scrollbar-thumb {
-        background: #cbd5e0;
-        border-radius: 3px;
-    }
-
-    /* ========== MODAL HISTÓRICO ========== */
-    .historico-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 15px;
-        margin-top: 20px;
-    }
-
-    .historico-card {
-        background: white;
-        border: 2px solid #e0e0e0;
-        border-radius: 10px;
-        padding: 20px;
-        transition: all 0.3s ease;
-    }
-
-    .historico-card:hover {
-        border-color: #667eea;
-        transform: translateY(-3px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    .historico-card h5 {
-        margin: 0 0 15px 0;
-        color: #2c3e50;
-        font-size: 16px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .historico-stat {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px solid #f0f0f0;
-    }
-
-    .historico-stat:last-child {
-        border-bottom: none;
-    }
-
-    .historico-stat span:first-child {
-        font-size: 13px;
-        color: #7f8c8d;
-    }
-
-    .historico-stat span:last-child {
-        font-weight: 600;
-        color: #2c3e50;
-    }
-
-    .nivel-badge {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        margin-top: 10px;
-    }
-
-    /* ========== MODAL PERSONALIZADO (SIN BOOTSTRAP) ========== */
-    .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 10000;
-        animation: fadeIn 0.3s ease;
-    }
-
-    .modal.show {
-        display: block;
-    }
-
-    .modal-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(2px);
-    }
-
-    .modal-dialog {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 90%;
-        max-width: 1200px;
-        max-height: 90vh;
-        animation: slideDown 0.3s ease;
-    }
-
-    .modal-content {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        max-height: 90vh;
-    }
-
-    .modal-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 20px 25px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .modal-title {
-        margin: 0;
+    .icon-wrapper {
+        width: 42px;
+        height: 42px;
         font-size: 20px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
     }
 
-    .btn-close {
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
-        color: white;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
-        font-size: 16px;
+    .panel-collapsible {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 340px;
+        max-width: 85vw;
+        z-index: 200;
+        transform: translateX(-100%);
     }
 
-    .btn-close:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: rotate(90deg);
+    .right-panel {
+        right: 0;
+        left: auto;
+        transform: translateX(100%);
     }
 
-    .modal-body {
-        padding: 25px;
-        overflow-y: auto;
-        max-height: calc(90vh - 80px);
+    .panel-collapsible.active {
+        transform: translateX(0);
     }
 
-    .text-center {
-        text-align: center;
+    .panel-expand-btn {
+        display: none !important;
     }
 
-    .py-5 {
-        padding: 3rem 0;
+    .map-legend {
+        top: 10px;
+        left: 10px;
+        min-width: 160px;
+        padding: 10px;
     }
 
-    .mt-3 {
-        margin-top: 1rem;
+    .status-bar {
+        bottom: 80px;
+        padding: 8px 16px;
     }
 
-    .spinner-border {
-        display: inline-block;
-        font-size: 48px;
-        color: #667eea;
-        animation: spin 1s linear infinite;
+    .map-controls {
+        top: 10px;
+        right: 10px;
     }
 
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+    .btn span {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
     }
 
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translate(-50%, -55%);
-        }
-        to {
-            opacity: 1;
-            transform: translate(-50%, -50%);
-        }
+    .map-styles-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .panel-collapsible {
+        width: 100%;
+        max-width: 100%;
     }
 
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+    .header-actions {
+        width: 100%;
+        justify-content: flex-end;
     }
+
+    .map-legend {
+        font-size: 11px;
+    }
+
+    .legend-color {
+        width: 16px;
+        height: 16px;
+    }
+}
 </style>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.js"></script>
+<script src='https://unpkg.com/@turf/turf@6/turf.min.js'></script>
 
 <script>
-    const API_URL = '{{ BASE_URL }}';
+const API_URL = '{{ BASE_URL }}';
+const MAPBOX_TOKEN = 'pk.eyJ1IjoicGVkcm8xMjNhYmMiLCJhIjoiY21hcGh0YWRmMGk0ZTJscTc0Yml2djM2MSJ9.RdRrSKRsvzGdhNNCDBxPiA';
+
+mapboxgl.accessToken = MAPBOX_TOKEN;
+
+let map;
+let draw;
+let sectoresData = {};
+let incidenciasData = [];
+let currentPolygonId = null;
+let modoEdicion = false;
+let sectorEnEdicion = null;
+let sectoresSourceAdded = false;
+let estaDibujando = false;
+let filtroActual = 'todos';
+let mapaListo = false;
+
+function initMap() {
+    console.log('🚀 Inicializando mapa...');
     
-    // ========================================================================
-    // VARIABLES GLOBALES
-    // ========================================================================
+    map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [-79.8145, -6.8650],
+        zoom: 13
+    });
     
-    let map;
-    let drawnItems;
-    let sectoresLayer;
-    let currentPolygon = null;
-    let drawControl;
-    
-    // ========================================================================
-    // INICIALIZACIÓN DEL MAPA
-    // ========================================================================
-    
-    function initMap() {
-        // Crear mapa centrado en Arequipa, Perú
-        map = L.map('map').setView([-6.864829, -79.818440], 15);
-        
-        // Capa base de OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 200,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-        
-        // Capa para polígonos dibujados
-        drawnItems = new L.FeatureGroup();
-        map.addLayer(drawnItems);
-        
-        // Capa para sectores guardados
-        sectoresLayer = new L.FeatureGroup();
-        map.addLayer(sectoresLayer);
-        
-        // Configurar controles de dibujo
-        drawControl = new L.Control.Draw({
-            position: 'topright',
-            draw: {
-                polyline: false,
-                marker: false,
-                circle: false,
-                circlemarker: false,
-                polygon: {
-                    allowIntersection: false,
-                    showArea: true,
-                    metric: true,
-                    shapeOptions: {
-                        color: '#3498db',
-                        weight: 3,
-                        fillOpacity: 0.3
-                    }
-                },
-                rectangle: {
-                    shapeOptions: {
-                        color: '#3498db',
-                        weight: 3,
-                        fillOpacity: 0.3
-                    }
+    draw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {},
+        defaultMode: 'simple_select',
+        styles: [
+            {
+                'id': 'gl-draw-polygon-fill',
+                'type': 'fill',
+                'filter': ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+                'paint': {
+                    'fill-color': '#3498db',
+                    'fill-opacity': 0.3
                 }
             },
-            edit: {
-                featureGroup: drawnItems,
-                remove: true
+            {
+                'id': 'gl-draw-polygon-stroke-active',
+                'type': 'line',
+                'filter': ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+                'paint': {
+                    'line-color': '#3498db',
+                    'line-dasharray': [2, 2],
+                    'line-width': 3
+                }
+            },
+            // ⭐ PUNTOS GRANDES DE VÉRTICES (8px - blancos con borde azul)
+            {
+                'id': 'gl-draw-polygon-and-line-vertex-active',
+                'type': 'circle',
+                'filter': ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point']],
+                'paint': {
+                    'circle-radius': 8,
+                    'circle-color': '#fff',
+                    'circle-stroke-width': 3,
+                    'circle-stroke-color': '#3498db'
+                }
+            },
+            // ⭐ PUNTOS INTERMEDIOS (5px - para agregar vértices)
+            {
+                'id': 'gl-draw-polygon-midpoint',
+                'type': 'circle',
+                'filter': ['all', ['==', 'meta', 'midpoint'], ['==', '$type', 'Point']],
+                'paint': {
+                    'circle-radius': 5,
+                    'circle-color': '#fff',
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#3498db',
+                    'circle-opacity': 0.8
+                }
             }
-        });
-        
-        map.addControl(drawControl);
-        
-        // Eventos de dibujo
-        map.on(L.Draw.Event.CREATED, function(event) {
-            const layer = event.layer;
-            
-            // Limpiar polígonos anteriores
-            drawnItems.clearLayers();
-            
-            // Agregar nuevo polígono
-            drawnItems.addLayer(layer);
-            currentPolygon = layer;
-            
-            // Calcular área
-            calcularAreaPoligono(layer);
-            
-            // Actualizar estado
-            actualizarEstadoPoligono(true);
-            updateMapStatus('Polígono dibujado - Completa el formulario');
-        });
-        
-        map.on(L.Draw.Event.EDITED, function(event) {
-            const layers = event.layers;
-            layers.eachLayer(function(layer) {
-                currentPolygon = layer;
-                calcularAreaPoligono(layer);
-            });
-            updateMapStatus('Polígono editado');
-        });
-        
-        map.on(L.Draw.Event.DELETED, function() {
-            currentPolygon = null;
-            actualizarEstadoPoligono(false);
-            updateMapStatus('Polígono eliminado');
-        });
-        
-        map.on(L.Draw.Event.DRAWSTART, function() {
-            updateMapStatus('Dibujando...');
-        });
-        
-        console.log('✓ Mapa inicializado correctamente');
-    }
+        ]
+    });
     
-    // ========================================================================
-    // FUNCIONES DE DIBUJO
-    // ========================================================================
+    map.addControl(draw);
     
-    function activarDibujo(tipo) {
-        // Remover clase active de todos los botones
-        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-        
-        if (tipo === 'polygon') {
-            document.getElementById('drawPolygon').classList.add('active');
-            new L.Draw.Polygon(map, drawControl.options.draw.polygon).enable();
-            updateMapStatus('Haz clic en el mapa para dibujar un polígono');
-        } else if (tipo === 'rectangle') {
-            document.getElementById('drawRectangle').classList.add('active');
-            new L.Draw.Rectangle(map, drawControl.options.draw.rectangle).enable();
-            updateMapStatus('Arrastra para dibujar un rectángulo');
-        }
-    }
+    map.on('load', function() {
+        console.log('✅ Mapa cargado completamente');
+        mapaListo = true;
+        cargarSectoresExistentes();
+        cargarEstadisticasIncidencias();
+        updateStatus('Sistema listo');
+    });
     
-    function activarEdicion() {
-        if (currentPolygon) {
-            document.getElementById('editShape').classList.add('active');
-            new L.EditToolbar.Edit(map, {
-                featureGroup: drawnItems
-            }).enable();
-            updateMapStatus('Modo edición activado - Arrastra los vértices');
-        } else {
-            mostrarMensaje('Primero dibuja un polígono', 'warning');
-        }
-    }
+    map.on('mousemove', function(e) {
+        document.getElementById('coordinates').textContent = 
+            `${e.lngLat.lng.toFixed(4)}, ${e.lngLat.lat.toFixed(4)}`;
+    });
     
-    function eliminarForma() {
-        if (currentPolygon) {
-            drawnItems.clearLayers();
-            currentPolygon = null;
-            actualizarEstadoPoligono(false);
-            updateMapStatus('Polígono eliminado');
-            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-        } else {
-            mostrarMensaje('No hay ningún polígono para eliminar', 'warning');
-        }
-    }
-    
-    function limpiarMapa() {
-        drawnItems.clearLayers();
-        currentPolygon = null;
-        actualizarEstadoPoligono(false);
-        limpiarFormulario();
-        updateMapStatus('Mapa limpiado - Listo para dibujar');
-        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-        mostrarMensaje('', '');
-    }
-    
-    // ========================================================================
-    // GUARDAR SECTOR
-    // ========================================================================
-    
-    async function guardarSector() {
-        if (!currentPolygon) {
-            mostrarMensaje('Debes dibujar un polígono primero', 'error');
-            return;
-        }
+    setupMapEvents();
+}
+
+function setupMapEvents() {
+    map.on('draw.create', function(e) {
+        console.log('✅ Polígono creado exitosamente');
+        estaDibujando = false;
         
-        const codigo = document.getElementById('codigoSector').value.trim();
-        const nombre = document.getElementById('nombreSector').value.trim();
-        const descripcion = document.getElementById('descripcionSector').value.trim();
+        const feature = e.features[0];
+        currentPolygonId = feature.id;
         
-        if (!codigo || !nombre) {
-            mostrarMensaje('Completa todos los campos requeridos', 'error');
-            return;
-        }
+        calcularAreaPoligono(feature);
+        actualizarEstadoPoligono(true);
         
-        // Obtener coordenadas del polígono
-        const latlngs = currentPolygon.getLatLngs()[0];
-        const coordinates = latlngs.map(ll => [ll.lng, ll.lat]);
-        coordinates.push(coordinates[0]); // Cerrar el polígono
-        
-        // Crear GeoJSON
-        const geojson = {
-            type: 'Polygon',
-            coordinates: [coordinates]
-        };
-        
-        // Calcular bounds
-        const bounds = currentPolygon.getBounds();
-        
-        // Preparar datos
-        const data = {
-            codigo_sector: codigo,
-            nombre: nombre,
-            descripcion: descripcion || null,
-            poligono_geojson: geojson,
-            usuario_creacion: 'admin' // Cambiar por usuario real
-        };
-        
-        try {
-            updateMapStatus('Guardando sector...');
-            
-            const response = await fetch(`${API_URL}/api/sectores/crear`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                mostrarMensaje('Sector guardado exitosamente', 'success');
-                limpiarMapa();
-                cargarSectoresExistentes();
-                updateMapStatus('Sector guardado correctamente');
-            } else {
-                mostrarMensaje(`Error: ${result.error}`, 'error');
-                updateMapStatus('Error al guardar');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            mostrarMensaje('Error de conexión al guardar el sector', 'error');
-            updateMapStatus('Error de conexión');
-        }
-    }
-    
-    // ========================================================================
-    // CARGAR SECTORES
-    // ========================================================================
-    
-    async function cargarSectoresExistentes() {
-        try {
-            const response = await fetch(`${API_URL}/api/sectores/listar`);
-            const data = await response.json();
-            
-            if (data.success) {
-                sectoresLayer.clearLayers();
+        setTimeout(() => {
+            try {
+                draw.changeMode('simple_select');
+                document.getElementById('cancelDraw').style.display = 'none';
+                document.querySelectorAll('.tool-item').forEach(btn => btn.classList.remove('active'));
                 
-                const listaSectores = document.getElementById('listaSectores');
-                
-                if (data.data.length === 0) {
-                    listaSectores.innerHTML = '<div class="loading">No hay sectores registrados</div>';
-                    document.getElementById('totalSectores').textContent = '0';
-                    document.getElementById('statTotal').textContent = '0';
-                    return;
+                if (map.getLayer('sectores-fill')) {
+                    habilitarInteraccionSectores();
                 }
                 
-                listaSectores.innerHTML = '';
-                document.getElementById('totalSectores').textContent = data.data.length;
-                document.getElementById('statTotal').textContent = data.data.length;
-                
-                data.data.forEach(sector => {
-                    if (sector.poligono) {
-                        const polygon = L.geoJSON(sector.poligono, {
-                            style: {
-                                color: '#27ae60',
-                                weight: 2,
-                                fillOpacity: 0.15
-                            }
-                        }).addTo(sectoresLayer);
-                        
-                        polygon.bindPopup(`
-                            <div style="min-width: 220px; padding: 5px;">
-                                <h4 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 16px;">
-                                    <i class="fas fa-map-marker-alt" style="color: #27ae60;"></i> ${sector.nombre}
-                                </h4>
-                                <p style="margin: 5px 0; font-size: 13px;">
-                                    <strong>Código:</strong> ${sector.codigo_sector}
-                                </p>
-                                ${sector.descripcion ? `
-                                    <p style="margin: 5px 0; font-size: 12px; color: #7f8c8d;">
-                                        ${sector.descripcion}
-                                    </p>
-                                ` : ''}
-                                <p style="margin: 8px 0 0 0; font-size: 11px; color: #95a5a6;">
-                                    <i class="far fa-calendar-alt"></i> ${new Date(sector.fecha_creacion).toLocaleDateString()}
-                                </p>
-                            </div>
-                        `);
-                        
-                        polygon.on('click', function() {
-                            map.fitBounds(polygon.getBounds());
-                        });
-                    }
-                    
-                    const itemHTML = `
-                        <div class="sector-item" onclick="centrarSector(${sector.centro.lat}, ${sector.centro.lon})">
-                            <strong><i class="fas fa-map-pin"></i> ${sector.nombre}</strong>
-                            <small>${sector.codigo_sector}</small>
-                            <br>
-                            <span class="badge badge-success">
-                                <i class="fas fa-check-circle"></i> Activo
-                            </span>
-                        </div>
-                    `;
-                    listaSectores.innerHTML += itemHTML;
-                });
+                updateStatus('Polígono creado - Completa el formulario');
+                mostrarMensaje('✅ Polígono creado. Completa los datos del formulario.', 'success');
+            } catch (error) {
+                console.error('Error al cambiar modo:', error);
             }
+        }, 150);
+    });
+    
+    map.on('draw.update', function(e) {
+        if (e.features && e.features.length > 0) {
+            const feature = e.features[0];
+            calcularAreaPoligono(feature);
+            updateStatus('Polígono modificado');
+            console.log('📝 Polígono actualizado');
+        }
+    });
+    
+    map.on('draw.delete', function() {
+        currentPolygonId = null;
+        actualizarEstadoPoligono(false);
+        updateStatus('Polígono eliminado');
+        mostrarMensaje('Polígono eliminado', 'warning');
+        console.log('🗑️ Polígono eliminado');
+    });
+    
+    map.on('draw.modechange', function(e) {
+        console.log('🔄 Modo cambió a:', e.mode);
+        
+        if (e.mode === 'draw_polygon') {
+            estaDibujando = true;
+            
+            if (map.getLayer('sectores-fill')) {
+                deshabilitarInteraccionSectores();
+            }
+            
+            document.getElementById('cancelDraw').style.display = 'flex';
+            document.getElementById('drawPolygon').classList.add('active');
+            updateStatus('Dibujando polígono - Haz clic en el mapa para empezar');
+            
+        } else if (e.mode === 'simple_select') {
+            document.getElementById('cancelDraw').style.display = 'none';
+            
+            if (!estaDibujando && map.getLayer('sectores-fill')) {
+                setTimeout(() => {
+                    habilitarInteraccionSectores();
+                }, 200);
+            }
+            
+        } else if (e.mode === 'direct_select') {
+            updateStatus('Editando polígono - Mueve los vértices');
+        }
+    });
+}
+
+function deshabilitarInteraccionSectores() {
+    try {
+        if (!mapaListo) return;
+        
+        if (map.getLayer('sectores-fill')) {
+            map.setLayoutProperty('sectores-fill', 'visibility', 'visible');
+            map.setPaintProperty('sectores-fill', 'fill-opacity', 0.05);
+            console.log('🔒 Interacción sectores deshabilitada');
+        }
+        if (map.getLayer('sectores-line')) {
+            map.setPaintProperty('sectores-line', 'line-opacity', 0.2);
+        }
+        if (map.getLayer('sectores-labels')) {
+            map.setLayoutProperty('sectores-labels', 'visibility', 'none');
+        }
+    } catch (error) {
+        console.error('Error al deshabilitar sectores:', error);
+    }
+}
+
+function habilitarInteraccionSectores() {
+    try {
+        if (!mapaListo) return;
+        
+        if (map.getLayer('sectores-fill')) {
+            map.setPaintProperty('sectores-fill', 'fill-opacity', 0.15);
+            console.log('🔓 Interacción sectores habilitada');
+        }
+        if (map.getLayer('sectores-line')) {
+            map.setPaintProperty('sectores-line', 'line-opacity', 1);
+        }
+        if (map.getLayer('sectores-labels')) {
+            map.setLayoutProperty('sectores-labels', 'visibility', 'visible');
+        }
+    } catch (error) {
+        console.error('Error al habilitar sectores:', error);
+    }
+}
+
+function activarDibujo() {
+    console.log('🖊️ Activando modo dibujo');
+    
+    if (currentPolygonId) {
+        try {
+            draw.delete(currentPolygonId);
+            currentPolygonId = null;
+            actualizarEstadoPoligono(false);
         } catch (error) {
-            console.error('Error al cargar sectores:', error);
-            document.getElementById('listaSectores').innerHTML = 
-                '<div class="loading"><i class="fas fa-exclamation-triangle"></i> Error al cargar</div>';
+            console.error('Error al eliminar polígono previo:', error);
         }
     }
     
-    function centrarSector(lat, lon) {
-        map.setView([lat, lon], 16);
+    document.querySelectorAll('.tool-item').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('drawPolygon').classList.add('active');
+    
+    try {
+        draw.changeMode('draw_polygon');
+        updateStatus('Modo dibujo activo - Haz clic en el mapa');
+    } catch (error) {
+        console.error('Error al activar dibujo:', error);
+        mostrarMensaje('❌ Error al activar modo dibujo', 'error');
+    }
+}
+
+function activarEdicion() {
+    if (!currentPolygonId) {
+        mostrarMensaje('⚠️ No hay polígono para editar. Dibuja uno primero.', 'warning');
+        return;
     }
     
-    function filtrarSectores() {
-        const busqueda = document.getElementById('searchSector').value.toLowerCase();
-        const items = document.querySelectorAll('.sector-item');
-        
-        items.forEach(item => {
-            const texto = item.textContent.toLowerCase();
-            item.style.display = texto.includes(busqueda) ? 'block' : 'none';
+    console.log('✏️ Activando modo edición');
+    
+    document.querySelectorAll('.tool-item').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('editShape').classList.add('active');
+    
+    try {
+        draw.changeMode('direct_select', {
+            featureId: currentPolygonId
         });
-    }
-    
-    // ========================================================================
-    // HISTÓRICO DE SECTORES
-    // ========================================================================
-    
-    function verHistoricoSectores() {
-        const modal = document.getElementById('modalHistorico');
-        modal.classList.add('show');
-        document.body.style.overflow = 'hidden'; // Prevenir scroll del body
         
-        cargarHistoricoSectores();
+        updateStatus('Modo edición activo - Arrastra los puntos blancos');
+        mostrarMensaje('💡 Arrastra los puntos para editar. Los puntos pequeños agregan vértices.', 'success');
+        
+    } catch (error) {
+        console.error('Error al activar edición:', error);
+        mostrarMensaje('❌ Error al activar edición', 'error');
+    }
+}
+
+function cancelarDibujo() {
+    console.log('❌ Cancelando dibujo');
+    estaDibujando = false;
+    
+    document.querySelectorAll('.tool-item').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('cancelDraw').style.display = 'none';
+    
+    try {
+        draw.changeMode('simple_select');
+        
+        if (map.getLayer('sectores-fill')) {
+            setTimeout(() => {
+                habilitarInteraccionSectores();
+            }, 200);
+        }
+        
+        updateStatus('Dibujo cancelado');
+    } catch (error) {
+        console.error('Error al cancelar:', error);
+    }
+}
+
+function eliminarForma() {
+    if (!currentPolygonId) {
+        mostrarMensaje('⚠️ No hay polígono para eliminar', 'warning');
+        return;
     }
     
-    function cerrarModalHistorico() {
-        const modal = document.getElementById('modalHistorico');
-        modal.classList.remove('show');
-        document.body.style.overflow = ''; // Restaurar scroll del body
-    }
-    
-    async function cargarHistoricoSectores() {
+    if (confirm('¿Eliminar el polígono actual?')) {
         try {
-            const response = await fetch(`${API_URL}/api/sectores/historico`);
-            const data = await response.json();
-            
-            if (data.success && data.data.length > 0) {
-                let html = '<div class="historico-grid">';
-                
-                data.data.forEach(sector => {
-                    const historico = sector.historico;
-                    const color = historico.color || '#e0e0e0';
-                    
-                    html += `
-                        <div class="historico-card" style="border-left: 4px solid ${color}">
-                            <h5>
-                                <i class="fas fa-map-marker-alt" style="color: ${color}"></i>
-                                ${sector.nombre}
-                            </h5>
-                            <div class="historico-stat">
-                                <span>Total Incidencias:</span>
-                                <span>${historico.total || 0}</span>
-                            </div>
-                            <div class="historico-stat">
-                                <span>Denuncias:</span>
-                                <span>${historico.denuncias || 0}</span>
-                            </div>
-                            <div class="historico-stat">
-                                <span>Emergencias:</span>
-                                <span>${historico.emergencias || 0}</span>
-                            </div>
-                            <span class="nivel-badge" style="background: ${color}; color: white;">
-                                Nivel: ${(historico.nivel || 'sin_datos').replace('_', ' ').toUpperCase()}
+            draw.delete(currentPolygonId);
+            currentPolygonId = null;
+            actualizarEstadoPoligono(false);
+            updateStatus('Polígono eliminado');
+            console.log('🗑️ Forma eliminada');
+        } catch (error) {
+            console.error('Error al eliminar:', error);
+        }
+    }
+}
+
+function limpiarMapa() {
+    console.log('🧹 Limpiando mapa');
+    
+    if (currentPolygonId) {
+        try {
+            draw.delete(currentPolygonId);
+        } catch (error) {
+            console.error('Error al eliminar polígono:', error);
+        }
+    }
+    
+    try {
+        draw.deleteAll();
+        currentPolygonId = null;
+        actualizarEstadoPoligono(false);
+        
+        document.querySelectorAll('.tool-item').forEach(btn => btn.classList.remove('active'));
+        draw.changeMode('simple_select');
+        
+        updateStatus('Mapa limpiado');
+    } catch (error) {
+        console.error('Error al limpiar mapa:', error);
+    }
+}
+
+function togglePanel(side) {
+    const panel = document.getElementById(side === 'left' ? 'leftPanel' : 'rightPanel');
+    const otherPanel = document.getElementById(side === 'left' ? 'rightPanel' : 'leftPanel');
+    
+    if (window.innerWidth <= 992) {
+        otherPanel.classList.remove('active');
+        panel.classList.toggle('active');
+    }
+}
+
+function collapsePanel(side) {
+    const panel = document.getElementById(side === 'left' ? 'leftPanel' : 'rightPanel');
+    const expandBtn = document.querySelector(side === 'left' ? '.left-expand' : '.right-expand');
+    
+    panel.classList.add('collapsed');
+    if (expandBtn) expandBtn.style.display = 'flex';
+}
+
+function expandPanel(side) {
+    const panel = document.getElementById(side === 'left' ? 'leftPanel' : 'rightPanel');
+    const expandBtn = document.querySelector(side === 'left' ? '.left-expand' : '.right-expand');
+    
+    panel.classList.remove('collapsed');
+    if (expandBtn) expandBtn.style.display = 'none';
+}
+
+function toggleAccordion(button) {
+    const content = button.nextElementSibling;
+    const isActive = button.classList.contains('active');
+    
+    if (isActive) {
+        button.classList.remove('active');
+        content.style.display = 'none';
+    } else {
+        button.classList.add('active');
+        content.style.display = 'block';
+    }
+}
+
+function cambiarEstiloMapa(estilo, btn) {
+    const sectoresSource = map.getSource('sectores');
+    const sectoresGeoJSON = sectoresSource ? sectoresSource._data : null;
+    
+    document.querySelectorAll('.map-style-card').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    map.setStyle('mapbox://styles/mapbox/' + estilo);
+    
+    map.once('style.load', function() {
+        if (sectoresGeoJSON && sectoresSourceAdded) {
+            agregarCapaSectores(sectoresGeoJSON);
+        }
+    });
+    
+    updateStatus('Estilo actualizado');
+}
+
+function agregarCapaSectores(data) {
+    try {
+        if (map.getLayer('sectores-labels')) map.removeLayer('sectores-labels');
+        if (map.getLayer('sectores-line')) map.removeLayer('sectores-line');
+        if (map.getLayer('sectores-fill')) map.removeLayer('sectores-fill');
+        if (map.getSource('sectores')) map.removeSource('sectores');
+        
+        map.addSource('sectores', {
+            type: 'geojson',
+            data: data
+        });
+        
+        map.addLayer({
+            id: 'sectores-fill',
+            type: 'fill',
+            source: 'sectores',
+            paint: {
+                'fill-color': [
+                    'case',
+                    ['>', ['get', 'total_incidencias'], 50], '#e74c3c',
+                    ['>', ['get', 'total_incidencias'], 20], '#f39c12',
+                    '#27ae60'
+                ],
+                'fill-opacity': 0.15
+            }
+        });
+        
+        map.addLayer({
+            id: 'sectores-line',
+            type: 'line',
+            source: 'sectores',
+            paint: {
+                'line-color': [
+                    'case',
+                    ['>', ['get', 'total_incidencias'], 50], '#e74c3c',
+                    ['>', ['get', 'total_incidencias'], 20], '#f39c12',
+                    '#27ae60'
+                ],
+                'line-width': 3,
+                'line-dasharray': [2, 1]
+            }
+        });
+        
+        map.addLayer({
+            id: 'sectores-labels',
+            type: 'symbol',
+            source: 'sectores',
+            layout: {
+                'text-field': ['concat', ['to-string', ['get', 'total_incidencias']], ' incidencias'],
+                'text-size': 12,
+                'text-offset': [0, 0],
+                'text-anchor': 'center'
+            },
+            paint: {
+                'text-color': '#2c3e50',
+                'text-halo-color': '#ffffff',
+                'text-halo-width': 2
+            }
+        });
+        
+        setupSectoresClickEvents();
+        console.log('✅ Capas de sectores agregadas');
+    } catch (error) {
+        console.error('Error al agregar capas:', error);
+    }
+}
+
+function setupSectoresClickEvents() {
+    map.on('click', 'sectores-fill', function(e) {
+        if (estaDibujando) return;
+        
+        const properties = e.features[0].properties;
+        
+        new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(`
+                <div style="min-width: 280px;">
+                    <h4 style="margin: 0 0 12px 0; color: #2c3e50; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-map-marker-alt" style="color: #27ae60;"></i>
+                        ${properties.nombre}
+                    </h4>
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                        <p style="margin: 0 0 6px 0; font-size: 13px; color: #6c757d;">
+                            <strong style="color: #2c3e50;">Código:</strong> ${properties.codigo_sector}
+                        </p>
+                        ${properties.descripcion ? `
+                            <p style="margin: 6px 0 0 0; font-size: 12px; color: #6c757d; line-height: 1.5;">
+                                ${properties.descripcion}
+                            </p>
+                        ` : ''}
+                    </div>
+                    <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                        <p style="margin: 0; font-size: 14px; font-weight: 700; color: #856404;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Total: ${properties.total_incidencias || 0} incidencias
+                        </p>
+                        <div style="display: flex; gap: 12px; margin-top: 6px; font-size: 12px;">
+                            <span style="color: #27ae60;">
+                                <i class="fas fa-file-alt"></i> ${properties.denuncias || 0} denuncias
+                            </span>
+                            <span style="color: #e74c3c;">
+                                <i class="fas fa-ambulance"></i> ${properties.emergencias || 0} emergencias
                             </span>
                         </div>
-                    `;
+                    </div>
+                    <p style="margin: 0 0 16px 0; font-size: 11px; color: #95a5a6;">
+                        <i class="far fa-calendar-alt"></i> Creado: ${new Date(properties.fecha_creacion).toLocaleDateString('es-ES', {day: 'numeric', month: 'long', year: 'numeric'})}
+                    </p>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="cargarSectorParaEditar(${properties.id_sector})" 
+                                style="flex: 1; padding: 10px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s;">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button onclick="eliminarSector(${properties.id_sector})" 
+                                style="flex: 1; padding: 10px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s;">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            `)
+            .addTo(map);
+    });
+    
+    map.on('mouseenter', 'sectores-fill', function() {
+        if (!estaDibujando) {
+            map.getCanvas().style.cursor = 'pointer';
+        }
+    });
+    
+    map.on('mouseleave', 'sectores-fill', function() {
+        map.getCanvas().style.cursor = '';
+    });
+}
+
+async function guardarSector() {
+    if (!currentPolygonId) {
+        mostrarMensaje('⚠️ Dibuja un polígono primero', 'error');
+        return;
+    }
+    
+    const codigo = document.getElementById('codigoSector').value.trim();
+    const nombre = document.getElementById('nombreSector').value.trim();
+    const descripcion = document.getElementById('descripcionSector').value.trim();
+    const idSector = document.getElementById('sectorIdEdit').value;
+    const esEdicion = document.getElementById('modoEdicion').value === 'true';
+    
+    if (!codigo || !nombre) {
+        mostrarMensaje('⚠️ Código y Nombre son obligatorios', 'error');
+        return;
+    }
+    
+    const feature = draw.get(currentPolygonId);
+    
+    const sectorData = {
+        codigo_sector: codigo,
+        nombre: nombre,
+        descripcion: descripcion,
+        poligono_geojson: feature,
+        usuario_creacion: 'admin'
+    };
+    
+    try {
+        const url = esEdicion 
+            ? `${API_URL}/api/sectores/actualizar/${idSector}`
+            : `${API_URL}/api/sectores/crear`;
+        
+        const method = esEdicion ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(sectorData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const mensaje = esEdicion 
+                ? '✅ Sector actualizado correctamente'
+                : '✅ Sector guardado exitosamente';
+            
+            mostrarMensaje(mensaje, 'success');
+            limpiarFormulario();
+            limpiarMapa();
+            
+            if (modoEdicion) {
+                cancelarEdicion();
+            }
+            
+            await cargarSectoresExistentes();
+            await cargarEstadisticasIncidencias();
+            updateStatus('Operación completada');
+        } else {
+            mostrarMensaje('❌ Error: ' + result.error, 'error');
+        }
+    } catch (error) {
+        mostrarMensaje('❌ Error: ' + error.message, 'error');
+        console.error('Error:', error);
+    }
+}
+
+async function cargarSectoresExistentes() {
+    if (!mapaListo) {
+        console.log('⏳ Esperando que el mapa esté listo...');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/api/sectores/listar`);
+        const data = await response.json();
+        
+        if (data.success) {
+            sectoresData = {};
+            const listaSectores = document.getElementById('listaSectores');
+            
+            if (data.data.length === 0) {
+                listaSectores.innerHTML = '<div class="loading-state"><i class="fas fa-inbox"></i><p>No hay sectores</p></div>';
+                document.getElementById('totalSectores').textContent = '0';
+                document.getElementById('statTotal').textContent = '0';
+                return;
+            }
+            
+            listaSectores.innerHTML = '';
+            document.getElementById('totalSectores').textContent = data.data.length;
+            document.getElementById('statTotal').textContent = data.data.length;
+            
+            const incResponse = await fetch(`${API_URL}/api/sectores/historico`);
+            const incData = await incResponse.json();
+            
+            const incidenciasPorSector = {};
+            if (incData.success) {
+                incData.data.forEach(s => {
+                    if (s.historico) {
+                        incidenciasPorSector[s.id_sector] = {
+                            total: s.historico.total || 0,
+                            denuncias: s.historico.denuncias || 0,
+                            emergencias: s.historico.emergencias || 0
+                        };
+                    }
                 });
-                
-                html += '</div>';
-                document.getElementById('contenidoHistorico').innerHTML = html;
+            }
+            
+            const sectoresGeoJSON = {
+                type: 'FeatureCollection',
+                features: data.data.map(sector => {
+                    const inc = incidenciasPorSector[sector.id_sector] || {total: 0, denuncias: 0, emergencias: 0};
+                    return {
+                        type: 'Feature',
+                        properties: {
+                            id_sector: sector.id_sector,
+                            codigo_sector: sector.codigo_sector,
+                            nombre: sector.nombre,
+                            descripcion: sector.descripcion,
+                            fecha_creacion: sector.fecha_creacion,
+                            total_incidencias: inc.total,
+                            denuncias: inc.denuncias,
+                            emergencias: inc.emergencias
+                        },
+                        geometry: sector.poligono.geometry
+                    };
+                })
+            };
+            
+            if (!sectoresSourceAdded) {
+                agregarCapaSectores(sectoresGeoJSON);
+                sectoresSourceAdded = true;
             } else {
-                document.getElementById('contenidoHistorico').innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="fas fa-chart-area" style="font-size: 64px; color: #e0e0e0;"></i>
-                        <p class="mt-3" style="color: #7f8c8d;">No hay datos históricos disponibles</p>
+                map.getSource('sectores').setData(sectoresGeoJSON);
+            }
+            
+            data.data.forEach(sector => {
+                sectoresData[sector.id_sector] = sector;
+                
+                const inc = incidenciasPorSector[sector.id_sector] || {total: 0};
+                
+                const itemHTML = `
+                    <div class="sector-item" onclick="centrarSector(${sector.centro.lat}, ${sector.centro.lon})">
+                        <strong>
+                            <i class="fas fa-map-pin"></i>
+                            ${sector.nombre}
+                        </strong>
+                        <small>${sector.codigo_sector} • ${inc.total} incidencias</small>
+                        <br>
+                        <span class="badge badge-success">
+                            <i class="fas fa-check-circle"></i>
+                            Activo
+                        </span>
+                        <div class="sector-actions">
+                            <button class="btn-icon" onclick="event.stopPropagation(); cargarSectorParaEditar(${sector.id_sector})" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon delete" onclick="event.stopPropagation(); eliminarSector(${sector.id_sector})" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
+                listaSectores.innerHTML += itemHTML;
+            });
+            
+            console.log(`✅ ${data.data.length} sectores cargados`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('listaSectores').innerHTML = 
+            '<div class="loading-state"><i class="fas fa-exclamation-triangle"></i><p>Error al cargar</p></div>';
+    }
+}
+
+function cargarSectorParaEditar(idSector) {
+    const sector = sectoresData[idSector];
+    if (!sector) {
+        mostrarMensaje('❌ Sector no encontrado', 'error');
+        return;
+    }
+    
+    console.log('📝 Cargando sector para editar:', sector.nombre);
+    
+    modoEdicion = true;
+    sectorEnEdicion = idSector;
+    
+    document.getElementById('formTitle').textContent = 'Editar Sector';
+    document.getElementById('formIcon').className = 'fas fa-edit';
+    document.getElementById('btnGuardarTexto').textContent = 'Actualizar';
+    document.getElementById('btnCancelar').style.display = 'block';
+    document.getElementById('sectorIdEdit').value = idSector;
+    document.getElementById('modoEdicion').value = 'true';
+    document.getElementById('rightPanelTitle').innerHTML = '<i class="fas fa-edit"></i> Editar Sector';
+    
+    document.getElementById('codigoSector').value = sector.codigo_sector;
+    document.getElementById('nombreSector').value = sector.nombre;
+    document.getElementById('descripcionSector').value = sector.descripcion || '';
+    
+    draw.deleteAll();
+    
+    if (sector.poligono) {
+        const ids = draw.add(sector.poligono);
+        currentPolygonId = ids[0];
+        
+        calcularAreaPoligono(sector.poligono);
+        actualizarEstadoPoligono(true);
+        
+        const bounds = new mapboxgl.LngLatBounds();
+        sector.poligono.geometry.coordinates[0].forEach(coord => {
+            bounds.extend(coord);
+        });
+        map.fitBounds(bounds, { padding: 50 });
+    }
+    
+    updateStatus('Editando: ' + sector.nombre);
+    
+    if (window.innerWidth <= 992) {
+        togglePanel('right');
+    }
+}
+
+function cancelarEdicion() {
+    modoEdicion = false;
+    sectorEnEdicion = null;
+    
+    document.getElementById('formTitle').textContent = 'Nuevo Sector';
+    document.getElementById('formIcon').className = 'fas fa-plus-circle';
+    document.getElementById('btnGuardarTexto').textContent = 'Guardar Sector';
+    document.getElementById('btnCancelar').style.display = 'none';
+    document.getElementById('sectorIdEdit').value = '';
+    document.getElementById('modoEdicion').value = 'false';
+    document.getElementById('rightPanelTitle').innerHTML = '<i class="fas fa-plus-circle"></i> Gestión de Sectores';
+    
+    limpiarFormulario();
+    limpiarMapa();
+    
+    updateStatus('Edición cancelada');
+}
+
+async function eliminarSector(idSector) {
+    const sector = sectoresData[idSector];
+    if (!sector) return;
+    
+    if (!confirm(`¿Eliminar permanentemente "${sector.nombre}"?\n\nSe eliminarán todas las estadísticas asociadas.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/api/sectores/eliminar/${idSector}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            mostrarMensaje('✅ Sector eliminado', 'success');
+            await cargarSectoresExistentes();
+            await cargarEstadisticasIncidencias();
+            
+            if (sectorEnEdicion === idSector) {
+                cancelarEdicion();
             }
-        } catch (error) {
-            console.error('Error:', error);
-            document.getElementById('contenidoHistorico').innerHTML = `
-                <div class="alert alert-error">
-                    <i class="fas fa-times-circle"></i>
-                    Error al cargar datos históricos
-                </div>
-            `;
-        }
-    }
-    
-    // ========================================================================
-    // UTILIDADES
-    // ========================================================================
-    
-    function calcularAreaPoligono(layer) {
-        try {
-            const latlngs = layer.getLatLngs()[0];
-            const coords = latlngs.map(ll => [ll.lng, ll.lat]);
-            coords.push(coords[0]);
-            
-            const polygon = turf.polygon([coords]);
-            const area = turf.area(polygon);
-            const areaKm2 = (area / 1000000).toFixed(4);
-            
-            document.getElementById('statArea').textContent = `${areaKm2} km²`;
-        } catch (error) {
-            console.error('Error calculando área:', error);
-            document.getElementById('statArea').textContent = '0 km²';
-        }
-    }
-    
-    function actualizarEstadoPoligono(dibujado) {
-        const btnGuardar = document.getElementById('btnGuardar');
-        const polygonStatus = document.getElementById('polygonStatus');
-        
-        if (dibujado) {
-            btnGuardar.disabled = false;
-            polygonStatus.classList.add('success');
-            polygonStatus.innerHTML = '<i class="fas fa-check-circle"></i> <span>Polígono listo para guardar</span>';
         } else {
-            btnGuardar.disabled = true;
-            polygonStatus.classList.remove('success');
-            polygonStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Dibuja un polígono en el mapa</span>';
-            document.getElementById('statArea').textContent = '0 km²';
+            mostrarMensaje('❌ Error: ' + result.error, 'error');
         }
+    } catch (error) {
+        mostrarMensaje('❌ Error: ' + error.message, 'error');
+    }
+}
+
+function centrarSector(lat, lon) {
+    map.flyTo({
+        center: [lon, lat],
+        zoom: 16,
+        duration: 1000
+    });
+}
+
+function filtrarSectores() {
+    const busqueda = document.getElementById('searchSector').value.toLowerCase();
+    const items = document.querySelectorAll('.sector-item');
+    
+    items.forEach(item => {
+        const texto = item.textContent.toLowerCase();
+        item.style.display = texto.includes(busqueda) ? 'block' : 'none';
+    });
+}
+
+async function cargarEstadisticasIncidencias() {
+    const container = document.getElementById('estadisticasIncidencias');
+    container.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Cargando...</p></div>';
+    
+    try {
+        const response = await fetch(`${API_URL}/api/sectores/historico`);
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+            incidenciasData = data.data;
+            
+            let totalIncidencias = 0;
+            let totalEmergencias = 0;
+            
+            data.data.forEach(s => {
+                if (s.historico) {
+                    totalIncidencias += s.historico.total || 0;
+                    totalEmergencias += s.historico.emergencias || 0;
+                }
+            });
+            
+            document.getElementById('statIncidencias').textContent = totalIncidencias;
+            document.getElementById('statEmergencias').textContent = totalEmergencias;
+            
+            renderIncidencias();
+        } else {
+            container.innerHTML = '<div class="loading-state"><i class="fas fa-inbox"></i><p>Sin incidencias</p></div>';
+            document.getElementById('statIncidencias').textContent = '0';
+            document.getElementById('statEmergencias').textContent = '0';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        container.innerHTML = '<div class="loading-state"><i class="fas fa-exclamation-triangle"></i><p>Error al cargar</p></div>';
+    }
+}
+
+function filtrarIncidencias(tipo) {
+    filtroActual = tipo;
+    
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-filter="${tipo}"]`).classList.add('active');
+    
+    renderIncidencias();
+}
+
+function renderIncidencias() {
+    const container = document.getElementById('estadisticasIncidencias');
+    container.innerHTML = '';
+    
+    const sectoresConInc = incidenciasData.filter(s => s.historico && s.historico.total > 0);
+    
+    if (sectoresConInc.length === 0) {
+        container.innerHTML = '<div class="loading-state"><i class="fas fa-inbox"></i><p>Sin incidencias</p></div>';
+        return;
     }
     
-    function updateMapStatus(mensaje) {
-        document.getElementById('mapStatus').textContent = mensaje;
-    }
-    
-    function mostrarMensaje(texto, tipo) {
-        const divMensaje = document.getElementById('mensaje');
-        if (!texto) {
-            divMensaje.innerHTML = '';
-            return;
-        }
+    sectoresConInc.forEach(sector => {
+        const hist = sector.historico;
         
-        const icono = tipo === 'success' ? 'check-circle' : tipo === 'error' ? 'times-circle' : 'exclamation-triangle';
+        if (filtroActual === 'denuncias' && hist.denuncias === 0) return;
+        if (filtroActual === 'emergencias' && hist.emergencias === 0) return;
         
-        divMensaje.innerHTML = `
-            <div class="alert alert-${tipo}">
-                <i class="fas fa-${icono}"></i>
-                <span>${texto}</span>
+        const itemHTML = `
+            <div class="incidencia-item" onclick="centrarSector(${sector.centro.lat}, ${sector.centro.lon})">
+                <div class="incidencia-header">
+                    <span class="incidencia-nombre">
+                        <i class="fas fa-map-marker-alt"></i>
+                        ${sector.nombre}
+                    </span>
+                    <span class="incidencia-total">${hist.total}</span>
+                </div>
+                <div class="incidencia-detalles">
+                    <span class="incidencia-tipo denuncias">
+                        <i class="fas fa-file-alt"></i>
+                        <strong>${hist.denuncias}</strong> denuncias
+                    </span>
+                    <span class="incidencia-tipo emergencias">
+                        <i class="fas fa-ambulance"></i>
+                        <strong>${hist.emergencias}</strong> emergencias
+                    </span>
+                </div>
             </div>
         `;
+        container.innerHTML += itemHTML;
+    });
+}
+
+function calcularAreaPoligono(feature) {
+    try {
+        const area = turf.area(feature);
+        const areaKm2 = (area / 1000000).toFixed(4);
+        document.getElementById('statArea').textContent = `${areaKm2} km²`;
+    } catch (e) {
+        console.error('Error al calcular área:', e);
+        document.getElementById('statArea').textContent = '0 km²';
+    }
+}
+
+function actualizarEstadoPoligono(dibujado) {
+    const btnGuardar = document.getElementById('btnGuardar');
+    const polygonStatus = document.getElementById('polygonStatus');
+    
+    if (dibujado) {
+        btnGuardar.disabled = false;
+        polygonStatus.classList.add('success');
+        polygonStatus.innerHTML = `
+            <i class="fas fa-check-circle"></i>
+            <div>
+                <strong>Polígono listo</strong>
+                <p>Completa el formulario y guarda</p>
+            </div>
+        `;
+    } else {
+        btnGuardar.disabled = true;
+        polygonStatus.classList.remove('success');
+        polygonStatus.innerHTML = `
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <strong>Polígono requerido</strong>
+                <p>Dibuja un área en el mapa</p>
+            </div>
+        `;
+        document.getElementById('statArea').textContent = '0 km²';
+    }
+}
+
+function updateStatus(mensaje) {
+    document.getElementById('mapStatus').textContent = mensaje;
+}
+
+function mostrarMensaje(texto, tipo) {
+    const divMensaje = document.getElementById('mensaje');
+    if (!texto) {
+        divMensaje.innerHTML = '';
+        return;
+    }
+    
+    const icono = tipo === 'success' ? 'check-circle' : tipo === 'error' ? 'times-circle' : 'exclamation-triangle';
+    
+    divMensaje.innerHTML = `
+        <div class="alert alert-${tipo}">
+            <i class="fas fa-${icono}"></i>
+            <span>${texto}</span>
+        </div>
+    `;
+    
+    if (tipo === 'success') {
+        setTimeout(() => divMensaje.innerHTML = '', 5000);
+    }
+}
+
+function limpiarFormulario() {
+    document.getElementById('formSector').reset();
+}
+
+function resetMapView() {
+    map.flyTo({
+        center: [-79.8145, -6.8650],
+        zoom: 13,
+        duration: 1000
+    });
+}
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Iniciando aplicación de Trazabilidad de Sectores');
+    
+    initMap();
+    updateStatus('Inicializando sistema...');
+    
+    document.getElementById('nombreSector').addEventListener('input', function() {
+        if (document.getElementById('modoEdicion').value === 'true') return;
         
-        if (tipo === 'success') {
-            setTimeout(() => {
-                divMensaje.innerHTML = '';
-            }, 5000);
-        }
-    }
-    
-    function limpiarFormulario() {
-        document.getElementById('formSector').reset();
-    }
-    
-    // ========================================================================
-    // AUTO-GENERACIÓN DE CÓDIGO
-    // ========================================================================
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('nombreSector').addEventListener('input', function() {
-            const nombre = this.value.trim();
-            const codigoInput = document.getElementById('codigoSector');
+        const nombre = this.value.trim();
+        const codigoInput = document.getElementById('codigoSector');
+        
+        if (nombre && !codigoInput.value) {
+            const palabras = nombre.split(' ');
+            let codigo = 'SECT-';
             
-            if (nombre && !codigoInput.value) {
-                const palabras = nombre.split(' ');
-                let codigo = 'SECT-';
-                
-                if (palabras.length >= 2) {
-                    codigo += palabras[0].substring(0, 2).toUpperCase() + palabras[1].substring(0, 2).toUpperCase();
-                } else {
-                    codigo += palabras[0].substring(0, 4).toUpperCase();
-                }
-                
-                codigoInput.value = codigo;
+            if (palabras.length >= 2) {
+                codigo += palabras[0].substring(0, 2).toUpperCase() + 
+                         palabras[1].substring(0, 2).toUpperCase();
+            } else {
+                codigo += palabras[0].substring(0, 4).toUpperCase();
             }
-        });
-    });
-    
-    // ========================================================================
-    // INICIALIZACIÓN
-    // ========================================================================
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Inicializando Módulo de Trazabilidad...');
-        initMap();
-        cargarSectoresExistentes();
-        updateMapStatus('Listo para dibujar');
-        console.log('✓ Módulo de Trazabilidad cargado correctamente');
-    });
-    
-    // Cerrar modal con tecla ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            cerrarModalHistorico();
+            
+            codigoInput.value = codigo;
         }
     });
+    
+    document.getElementById('map').addEventListener('click', function() {
+        if (window.innerWidth <= 992 && !estaDibujando) {
+            document.querySelectorAll('.panel-collapsible').forEach(p => p.classList.remove('active'));
+        }
+    });
+    
+    console.log('✅ Sistema inicializado');
+});
 </script>
 
 {% endblock %}

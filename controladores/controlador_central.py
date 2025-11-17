@@ -384,7 +384,7 @@ def insertar_descripcion(id_incidencia, descripcion, archivo_adjunto):
 
 
 
-# BASE_URL = "https://munireque.pythonanywhere.com/"
+BASE_URL = "https://munireque.pythonanywhere.com/"
 
 def obtener_fotos(id):
     conexion = obtener_conexion()
@@ -394,7 +394,7 @@ def obtener_fotos(id):
     fotos = cursor.fetchall()
     cursor.close()
     conexion.close()
-    return [fila['ubicacion_foto'] for fila in fotos]
+    return [BASE_URL + fila['ubicacion_foto'] for fila in fotos]
 
 def obtener_videos(id):
     conexion = obtener_conexion()
@@ -404,7 +404,7 @@ def obtener_videos(id):
     videos = cursor.fetchall()
     cursor.close()
     conexion.close()
-    return [fila['ubicacion_video'] for fila in videos]
+    return [BASE_URL + fila['ubicacion_video'] for fila in videos]
 
 def obtener_audio(id):
     conexion = obtener_conexion()
@@ -414,7 +414,7 @@ def obtener_audio(id):
     audios = cursor.fetchall()
     cursor.close()
     conexion.close()
-    return [fila['ubicacion_audio'] for fila in audios]
+    return [BASE_URL + fila['ubicacion_audio'] for fila in audios]
 
 
 def iniciar_sesion(usuario, contraseña):

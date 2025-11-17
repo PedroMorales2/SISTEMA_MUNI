@@ -763,7 +763,7 @@
                     <div class="media-grid">
                       ${d.fotos.map(foto => `
                         <div class="media-item">
-                          <img src="{{ BASE_URL }}/${foto}" alt="Foto denuncia" onclick="window.open('{{ BASE_URL }}/${foto}', '_blank')">
+                          <img src="${foto}" alt="Foto denuncia" onclick="window.open('{{ BASE_URL }}/${foto}', '_blank')">
                         </div>
                       `).join("")}
                     </div>
@@ -778,7 +778,7 @@
                     <div class="media-grid">
                       ${d.videos.map(video => `
                         <div class="media-item">
-                          <video controls src="{{ BASE_URL }}/${video}"></video>
+                          <video controls src="${video}"></video>
                         </div>
                       `).join("")}
                     </div>
@@ -793,7 +793,7 @@
                     ${d.audios.map((audio, index) => `
                       <div class="audio-player">
                         <strong>Audio ${index + 1}</strong>
-                        <audio controls src="{{ BASE_URL }}/${audio}"></audio>
+                        <audio controls src="${audio}"></audio>
                       </div>
                     `).join("")}
                   </div>

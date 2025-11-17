@@ -170,6 +170,116 @@ class ModeloPrediccionEspacial:
             return False
         
         
+    
+    def calcular_historico_sector_individual(self, id_sector):
+        """
+        Calcula el histórico SOLO de un sector específico y lo agrega al caché existente.
+        Útil cuando se crea un nuevo sector para evitar recalcular todo.
+        """
+        try:
+            print(f"\n🔄 Calculando histórico para sector ID: {id_sector}")
+            
+            # Buscar el sector en la lista cargada
+            sector = None
+            for s in self.sectores:
+                if s['id_sector'] == id_sector:
+                    sector = s
+                    break
+            
+            if not sector:
+                print(f"❌ Sector {id_sector} no encontrado")
+                return False
+            
+            # Verificar que tengamos dataset
+            if not os.path.exists(self.dataset_path):
+                print(f"⚠️ Dataset no encontrado: {self.dataset_path}")
+                self._inicializar_estadisticas_vacias(id_sector)
+                return True
+            
+            # Cargar dataset
+            print(f"📊 Cargando dataset desde {self.dataset_path}...")
+            df = pd.read_csv(self.dataset_path)
+            
+            # Filtrar datos dentro del sector
+            datos_sector = []
+            poligono = sector.get('poligono_shapely') or sector.get('poligono_obj')
+            
+            if poligono:
+                print("📊 Columnas del DataFrame:", df.columns.tolist())
+
+                for _, row in df.iterrows():
+                    punto = Point(row['lon'], row['lat'])
+                    if poligono.contains(punto):
+                        datos_sector.append(row)
+            
+            if not datos_sector:
+                print(f"   ⚠️ Sin datos históricos para sector {sector['codigo_sector']}")
+                self._inicializar_estadisticas_vacias(id_sector)
+                self.densidad_historica[id_sector] = 0.0
+                return True
+            
+            # Convertir a DataFrame
+            df_sector = pd.DataFrame(datos_sector)
+            total_sector = len(df_sector)
+            
+            # --- Denuncias ---
+            denuncias_df = df_sector[df_sector['id_tipo_incidencia'] == 1]
+            denuncias_por_tipo = {}
+            if not denuncias_df.empty and 'id_denuncia' in denuncias_df.columns:
+                conteo = denuncias_df.groupby('id_denuncia').size().to_dict()
+                for tipo_id, count in conteo.items():
+                    tipo_id_int = int(tipo_id)
+                    tipo_nombre = self.tipos_denuncias.get(tipo_id_int)
+                    if tipo_nombre:  # Solo agregar si existe en el mapa
+                        denuncias_por_tipo[tipo_nombre] = int(count)
+
+            # --- Emergencias ---
+            emergencias_df = df_sector[df_sector['id_tipo_incidencia'] == 2]
+            emergencias_por_tipo = {}
+            if not emergencias_df.empty and 'id_numero_emergencia' in emergencias_df.columns:
+                conteo = emergencias_df.groupby('id_numero_emergencia').size().to_dict()
+                for tipo_id, count in conteo.items():
+                    tipo_id_int = int(tipo_id)
+                    tipo_nombre = self.tipos_emergencias.get(tipo_id_int)
+                    if tipo_nombre:  # Solo agregar si existe en el mapa
+                        emergencias_por_tipo[tipo_nombre] = int(count)
+
+            
+            nivel_info = self._calcular_nivel_criticidad(total_sector)
+            
+            # Guardar estadísticas del sector
+            self.estadisticas_historicas[id_sector] = {
+                'total': total_sector,
+                'denuncias': len(denuncias_df),
+                'emergencias': len(emergencias_df),
+                'denuncias_por_tipo': denuncias_por_tipo,
+                'emergencias_por_tipo': emergencias_por_tipo,
+                'nivel': nivel_info['nivel'],
+                'color': nivel_info['color']
+            }
+            
+            # Calcular densidad (necesitamos el total global para esto)
+            total_incidencias_global = len(df)
+            self.densidad_historica[id_sector] = total_sector / total_incidencias_global if total_incidencias_global > 0 else 0.0
+            
+            # Agregar a lista de sectores con data si tiene datos
+            if id_sector not in self.sectores_con_data:
+                self.sectores_con_data.append(id_sector)
+            
+            print(f"✅ Histórico calculado para {sector['codigo_sector']}: {total_sector} incidencias")
+            
+            # Guardar caché actualizado
+            self.guardar_cache_historico()
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error calculando histórico individual: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+        
+        
     def cargar_sectores(self):
         """Carga sectores activos desde BD"""
         try:
@@ -298,35 +408,32 @@ class ModeloPrediccionEspacial:
                 if count_sector > 0:
                     df_sector = pd.DataFrame(incidencias_sector)
                     
-                    # Separar denuncias y emergencias
-                    df_denuncias = df_sector[df_sector['id_denuncia'].notna()]
-                    df_emergencias = df_sector[df_sector['id_numero_emergencia'].notna()]
+                    # Separar denuncias y emergencias POR id_tipo_incidencia
+                    df_denuncias = df_sector[df_sector['id_tipo_incidencia'] == 1]
+                    df_emergencias = df_sector[df_sector['id_tipo_incidencia'] == 2]
                     
                     total_denuncias = len(df_denuncias)
                     total_emergencias = len(df_emergencias)
                     
-                    # Por tipo con nombres
+                    # Por tipo con nombres - DENUNCIAS
                     denuncias_por_tipo = {}
-                    if len(df_denuncias) > 0:
-                        conteo = df_denuncias.groupby('id_tipo_incidencia').size().to_dict()
+                    if len(df_denuncias) > 0 and 'id_denuncia' in df_denuncias.columns:
+                        conteo = df_denuncias.groupby('id_denuncia').size().to_dict()
                         for tipo_id, cantidad in conteo.items():
                             tipo_id_int = int(tipo_id)
-                            nombre_tipo = self.tipos_denuncias.get(tipo_id_int, f"Tipo {tipo_id_int}")
-                            denuncias_por_tipo[nombre_tipo] = {
-                                'cantidad': int(cantidad),
-                                'id_tipo': tipo_id_int
-                            }
+                            nombre_tipo = self.tipos_denuncias.get(tipo_id_int)
+                            if nombre_tipo:  # Solo agregar si existe en el mapa
+                                denuncias_por_tipo[nombre_tipo] = int(cantidad)
                     
+                    # Por tipo con nombres - EMERGENCIAS
                     emergencias_por_tipo = {}
-                    if len(df_emergencias) > 0:
-                        conteo = df_emergencias.groupby('id_tipo_incidencia').size().to_dict()
+                    if len(df_emergencias) > 0 and 'id_numero_emergencia' in df_emergencias.columns:
+                        conteo = df_emergencias.groupby('id_numero_emergencia').size().to_dict()
                         for tipo_id, cantidad in conteo.items():
                             tipo_id_int = int(tipo_id)
-                            nombre_tipo = self.tipos_emergencias.get(tipo_id_int, f"Tipo {tipo_id_int}")
-                            emergencias_por_tipo[nombre_tipo] = {
-                                'cantidad': int(cantidad),
-                                'id_tipo': tipo_id_int
-                            }
+                            nombre_tipo = self.tipos_emergencias.get(tipo_id_int)
+                            if nombre_tipo:  # Solo agregar si existe en el mapa
+                                emergencias_por_tipo[nombre_tipo] = int(cantidad)
                     
                     nivel_historico = self._calcular_nivel_criticidad(count_sector)
                     

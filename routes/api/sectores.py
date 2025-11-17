@@ -100,7 +100,7 @@ def obtener_sector(id_sector):
 @sectores_bp.route('/crear', methods=['POST'])
 def crear_sector():
     """
-    POST - Crea un nuevo sector
+    POST - Crea un nuevo sector y calcula solo su histórico (OPTIMIZADO)
     
     Body JSON:
     {
@@ -132,25 +132,47 @@ def crear_sector():
                 "error": "El campo 'poligono_geojson' es requerido"
             }), HTTP_BAD_REQUEST
         
+        # ✅ PASO 1: Crear el sector en la BD
         id_nuevo = controlador_sectores.crear_sector(data)
         
-        if id_nuevo:
-            return jsonify({
-                "success": True,
-                "message": "Sector creado exitosamente",
-                "id_sector": id_nuevo
-            }), HTTP_CREATED
-        else:
+        if not id_nuevo:
             return jsonify({
                 "success": False,
                 "error": "No se pudo crear el sector"
             }), HTTP_INTERNAL_ERROR
         
+        # ✅ PASO 2: Calcular histórico SOLO del nuevo sector (OPTIMIZADO)
+        from models.modelo_PREDICCION_ESPACIAL import modelo_espacial
+        
+        print(f"\n🚀 Calculando histórico optimizado para sector nuevo (ID: {id_nuevo})...")
+        
+        # Recargar sectores para que incluya el nuevo
+        modelo_espacial.cargar_sectores()
+        
+        # Calcular histórico SOLO del sector nuevo
+        exito_historico = modelo_espacial.calcular_historico_sector_individual(id_nuevo)
+        
+        if exito_historico:
+            print(f"✅ Histórico calculado exitosamente para el nuevo sector")
+        else:
+            print(f"⚠️ No se pudo calcular el histórico del nuevo sector")
+        
+        return jsonify({
+            "success": True,
+            "message": "Sector creado exitosamente",
+            "id_sector": id_nuevo,
+            "historico_calculado": exito_historico
+        }), HTTP_CREATED
+        
     except Exception as e:
+        print(f"❌ Error en crear_sector: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             "success": False,
             "error": str(e)
         }), HTTP_INTERNAL_ERROR
+
 
 
 @sectores_bp.route('/actualizar/<int:id_sector>', methods=['PUT'])
@@ -169,6 +191,13 @@ def actualizar_sector(id_sector):
         resultado = controlador_sectores.actualizar_sector(id_sector, data)
         
         if resultado:
+            # ✅ Si se actualizó el polígono, recalcular histórico del sector
+            if 'poligono_geojson' in data:
+                from models.modelo_PREDICCION_ESPACIAL import modelo_espacial
+                print(f"\n🔄 Recalculando histórico por cambio en polígono...")
+                modelo_espacial.cargar_sectores()
+                modelo_espacial.calcular_historico_sector_individual(id_sector)
+            
             return jsonify({
                 "success": True,
                 "message": "Sector actualizado exitosamente"
@@ -188,7 +217,7 @@ def actualizar_sector(id_sector):
 
 @sectores_bp.route('/eliminar/<int:id_sector>', methods=['DELETE'])
 def eliminar_sector(id_sector):
-    """DELETE - Elimina un sector"""
+    """DELETE - Elimina un sector y actualiza el caché"""
     try:
         sector = controlador_sectores.obtener_sector_por_id(id_sector)
         if not sector:
@@ -200,6 +229,25 @@ def eliminar_sector(id_sector):
         resultado = controlador_sectores.eliminar_sector(id_sector)
         
         if resultado:
+            # ✅ Actualizar caché después de eliminar
+            from models.modelo_PREDICCION_ESPACIAL import modelo_espacial
+            
+            # Remover del caché en memoria
+            if id_sector in modelo_espacial.estadisticas_historicas:
+                del modelo_espacial.estadisticas_historicas[id_sector]
+            
+            if id_sector in modelo_espacial.densidad_historica:
+                del modelo_espacial.densidad_historica[id_sector]
+            
+            if id_sector in modelo_espacial.sectores_con_data:
+                modelo_espacial.sectores_con_data.remove(id_sector)
+            
+            # Recargar sectores y guardar caché actualizado
+            modelo_espacial.cargar_sectores()
+            modelo_espacial.guardar_cache_historico()
+            
+            print(f"✅ Sector eliminado y caché actualizado")
+            
             return jsonify({
                 "success": True,
                 "message": f"Sector '{sector[2]}' eliminado exitosamente"
@@ -215,6 +263,7 @@ def eliminar_sector(id_sector):
             "success": False,
             "error": str(e)
         }), HTTP_INTERNAL_ERROR
+        
         
 @sectores_bp.route('/historico', methods=['GET'])
 def obtener_historico_sectores():
@@ -262,6 +311,42 @@ def obtener_historico_sectores():
         
     except Exception as e:
         print(f"❌ Error en /api/sectores/historico: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@sectores_bp.route('/recalcular-cache', methods=['POST'])
+def recalcular_cache_completo():
+    """
+    Endpoint para forzar recálculo completo del caché (mantenimiento)
+    """
+    try:
+        from models.modelo_PREDICCION_ESPACIAL import modelo_espacial
+        
+        print("\n🔄 Iniciando recálculo completo del caché...")
+        
+        # Invalidar caché actual
+        modelo_espacial.invalidar_cache()
+        
+        # Recargar sectores
+        modelo_espacial.cargar_sectores()
+        
+        # Calcular histórico completo
+        modelo_espacial.calcular_densidad_historica()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Caché recalculado exitosamente',
+            'total_sectores': len(modelo_espacial.sectores),
+            'sectores_con_data': len(modelo_espacial.sectores_con_data)
+        })
+        
+    except Exception as e:
+        print(f"❌ Error recalculando caché: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({
