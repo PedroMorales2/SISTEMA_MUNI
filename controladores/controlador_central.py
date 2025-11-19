@@ -36,7 +36,42 @@ def obtener_denuncias_pendientes_central(id_correo):
     conexion.close()
     return denuncias
 
+def obtener_denuncias_pendientes_central_dos(id_correo):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = sql = """
+    SELECT inci.id_incidencia, de.nombre AS denuncia,
+           CONCAT(pes.nombre, ' ', pes.apellidos) AS persona,
+           tip.nombre AS tipo_incidencia,
+           inci.ubicacion,
+           inci.descripcion,
+           inci.nivel_incidencia,
+           inci.estado,
+           inci.fecha,
+           ADDTIME(inci.hora, '05:00:00') AS hora
+    FROM incidencia inci
+    INNER JOIN tipo_incidencia tip ON tip.id_tipo_incidencia = inci.id_tipo_incidencia
+    INNER JOIN usuario us ON us.id_usuario = inci.id_usuario
+    INNER JOIN persona pes ON us.id_persona = pes.id_persona
+    INNER JOIN denuncia de ON de.id_denuncia = inci.id_denuncia
+    INNER JOIN denuncia_correo den ON den.id_denuncia = de.id_denuncia
+    WHERE tip.id_tipo_incidencia = 3 
+      AND inci.estado = '1' 
+      AND den.id_correo = %s;
+"""
 
+    cursor.execute(sql, (id_correo,))
+    denuncias = cursor.fetchall()
+
+    # Convertir fecha/hora a string si es necesario
+    for denuncia in denuncias:
+        for key in ['fecha', 'hora']:
+            if key in denuncia and isinstance(denuncia[key], (datetime.date, datetime.time, datetime.timedelta)):
+                denuncia[key] = str(denuncia[key])
+
+    cursor.close()
+    conexion.close()
+    return denuncias
 
 
 def obtener_denuncias_aceptadas_central(id):
@@ -101,6 +136,48 @@ def obtener_denuncias_rechazadas_central(id):
     conexion.close()
     return denuncias
 
+
+def obtener_emergencias_pendientes_central_dos(id):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT DISTINCT
+            inci.id_incidencia,
+            em.nombre_emergencia,
+            CONCAT(pes.nombre, ' ', pes.apellidos) AS persona,
+            tip.nombre AS tipo_incidencia,
+            inci.ubicacion,
+            inci.descripcion,
+            inci.nivel_incidencia,
+            inci.estado,
+            inci.fecha,
+            ADDTIME(inci.hora, '05:00:00') AS hora
+        FROM incidencia AS inci
+        INNER JOIN tipo_incidencia AS tip 
+            ON tip.id_tipo_incidencia = inci.id_tipo_incidencia
+        INNER JOIN usuario AS us 
+            ON us.id_usuario = inci.id_usuario
+        INNER JOIN persona AS pes 
+            ON us.id_persona = pes.id_persona
+        INNER JOIN emergencia AS em 
+            ON em.id_numero_emergencia = inci.id_numero_emergencia
+        INNER JOIN emergencia_correo AS emer 
+            ON emer.id_numero_emergencia = em.id_numero_emergencia
+        INNER JOIN correo_institucional AS cor 
+            ON cor.id_correo = emer.id_correo
+        WHERE tip.id_tipo_incidencia = 4
+        AND inci.estado = '1'
+        AND cor.id_correo = %s;
+    """
+    cursor.execute(sql,(id,))
+    denuncias = cursor.fetchall()  # ✅ esto será una lista de tuplas
+    for denuncia in denuncias:
+        for key in ['fecha', 'hora']:
+            if key in denuncia and isinstance(denuncia[key], (datetime.date, datetime.time, datetime.timedelta)):
+                denuncia[key] = str(denuncia[key])
+    cursor.close()
+    conexion.close()
+    return denuncias
 
 def obtener_emergencias_pendientes_central(id):
     conexion = obtener_conexion()
@@ -1126,3 +1203,39 @@ def obtener_id_persona(id_incidencia):
     conexion.close()
     return resultado['id_usuario'] if resultado else None
 
+
+
+def obtener_incidencias_dbscan():
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    sql = """
+        SELECT 
+            i.id_incidencia,
+            i.fecha,
+            i.hora,
+            i.id_denuncia,
+            de.nombre AS nombre_denuncia,
+            i.id_numero_emergencia,
+            e.nombre_emergencia AS nombre_emergencia,
+            i.descripcion,
+            i.ubicacion,
+            -- Extraer latitud
+            CAST(SUBSTRING_INDEX(i.ubicacion, ',', 1) AS DECIMAL(10,6)) AS lat,
+            -- Extraer longitud
+            CAST(SUBSTRING_INDEX(i.ubicacion, ',', -1) AS DECIMAL(10,6)) AS lon
+        FROM incidencia i
+        LEFT JOIN emergencia e ON i.id_numero_emergencia = e.id_numero_emergencia
+        LEFT JOIN denuncia de ON de.id_denuncia = i.id_denuncia
+        ORDER BY i.fecha DESC, i.hora DESC;
+
+    """
+    cursor.execute(sql)
+    filas = cursor.fetchall()
+    
+    for fila in filas:
+        for key in ['fecha', 'hora']:
+            if key in fila and isinstance(fila[key], (datetime.date, datetime.time, datetime.timedelta)):
+                fila[key] = str(fila[key])
+    cursor.close()
+    conexion.close()
+    return filas

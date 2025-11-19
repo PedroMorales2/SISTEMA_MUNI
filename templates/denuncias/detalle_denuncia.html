@@ -763,7 +763,7 @@
                     <div class="media-grid">
                       ${d.fotos.map(foto => `
                         <div class="media-item">
-                          <img src="${foto}" alt="Foto denuncia" onclick="window.open('{{ BASE_URL }}/${foto}', '_blank')">
+                          <img src="${foto}" alt="Foto denuncia" onclick="window.open('${foto}', '_blank')">
                         </div>
                       `).join("")}
                     </div>
@@ -941,21 +941,29 @@
   formAccion.addEventListener('submit', (e) => {
     e.preventDefault();
 
-    const descripcion = descripcionInput.value.trim();
+    const motivoSeleccionado = motivoCombo.value.trim();
+    const descripcionUsuario = descripcionInput.value.trim();
+
     const archivo = archivoInput.files[0];
 
-    if (!descripcion) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Campo requerido',
-        text: 'La descripción del motivo es obligatoria',
-        confirmButtonColor: '#28a745'
-      });
-      return;
+    if (!descripcionUsuario && !motivoSeleccionado) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Campo requerido',
+            text: 'Debe seleccionar un motivo o escribir una descripción',
+            confirmButtonColor: '#28a745'
+        });
+        return;
+    }
+
+    // Concatenar motivo y descripción
+    let descripcionFinal = descripcionUsuario;
+    if (motivoSeleccionado) {
+        descripcionFinal = `${motivoSeleccionado}: ${descripcionUsuario}`;
     }
 
     const formData = new FormData();
-    formData.append('descripcion', descripcion);
+    formData.append('descripcion', descripcionFinal);
     formData.append('accion', accionActual);
     if (archivo) {
       formData.append('archivo', archivo);
