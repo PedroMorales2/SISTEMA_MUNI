@@ -536,7 +536,7 @@ def cambiar_password():
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), HTTP_INTERNAL_ERROR
     
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 @central_bp.route('/stats/totales_pendientes', methods=['GET'])
 def obtener_totales_pendientes():
@@ -569,7 +569,7 @@ def obtener_alertas_pendientes():
 
         logging.warning(">>> INICIO obtener_alertas_pendientes")
 
-        id_usuario = session['id_usuario']
+        id_usuario = session.get('id_usuario', 1)
         logging.warning(f"ID usuario: {id_usuario}")
 
         alertas = []
@@ -577,7 +577,7 @@ def obtener_alertas_pendientes():
         # ==========================
         # DENUNCIAS
         # ==========================
-        denuncias = controlador_central.obtener_denuncias_pendientes_central(id_usuario)
+        denuncias = controlador_central.obtener_denuncias_pendientes_central_dos(id_usuario)
         logging.warning(f"Denuncias encontradas: {len(denuncias)}")
 
         for d in denuncias:
@@ -604,7 +604,7 @@ def obtener_alertas_pendientes():
         # ==========================
         # EMERGENCIAS
         # ==========================
-        emergencias = controlador_central.obtener_emergencias_pendientes_central(id_usuario)
+        emergencias = controlador_central.obtener_emergencias_pendientes_central_dos(id_usuario)
         logging.warning(f"Emergencias encontradas: {len(emergencias)}")
 
         for e in emergencias:
@@ -644,7 +644,7 @@ def obtener_alertas_pendientes():
                 logging.error(f"ERROR PARSEANDO FECHA '{valor}': {err}")
                 return datetime.min
 
-        alertas.sort(key=parse_fecha, reverse=True)
+        alertas.sort(key=lambda x: x['id'], reverse=True)
 
         # ==========================
         # LIMPIEZA
@@ -685,54 +685,63 @@ def convertir_fecha_datetime(fecha_str):
     print(f"⚠️ convertir_fecha_datetime: no se pudo parsear '{fecha_str}'")
     return None
 
+# TZ_PERU = timezone(timedelta(hours=-5))
+
+TZ_PERU = timezone(timedelta(hours=-5))
 
 def calcular_tiempo_relativo(fecha_str):
-    """Calcula el tiempo relativo desde una fecha"""
+    """Calcula tiempo relativo corrigiendo diferencia UTC/Perú (UTC-5)."""
     try:
         if not fecha_str:
             return "Fecha desconocida"
-        
-        # Lista de formatos posibles
+
         formatos = [
             "%Y-%m-%d %H:%M:%S",
             "%Y-%m-%d %H:%M:%S.%f",
             "%Y-%m-%d %H:%M",
             "%Y-%m-%d",
         ]
-        
+
         fecha = None
-        
-        # Intentar parsear con cada formato
+
+        # Parsear fecha string → datetime
         for fmt in formatos:
             try:
                 fecha = datetime.strptime(str(fecha_str).strip(), fmt)
                 break
-            except (ValueError, AttributeError):
+            except:
                 continue
-        
-        if not fecha:
+
+        if fecha is None:
             return "Fecha desconocida"
-        
-        ahora = datetime.now()
+
+        # Asumir que la fecha almacenada es hora Perú pero sin TZ
+        fecha = fecha.replace(tzinfo=TZ_PERU)
+
+        # CORRECCIÓN: obtener hora UTC real de PythonAnywhere
+        ahora_utc = datetime.now(timezone.utc)
+
+        # Convertir UTC → Perú
+        ahora = ahora_utc.astimezone(TZ_PERU)
+
         diferencia = ahora - fecha
         segundos = diferencia.total_seconds()
-        
+
         if segundos < 0:
             return "Hace un momento"
         elif segundos < 60:
             return "Hace un momento"
         elif segundos < 3600:
-            minutos = int(segundos / 60)
-            return f"Hace {minutos} min"
+            return f"Hace {int(segundos/60)} min"
         elif segundos < 86400:
-            horas = int(segundos / 3600)
-            return f"Hace {horas}h"
+            return f"Hace {int(segundos/3600)}h"
         elif segundos < 2592000:
-            dias = int(segundos / 86400)
-            return f"Hace {dias}d"
+            return f"Hace {int(segundos/86400)}d"
         else:
             meses = int(segundos / 2592000)
             return f"Hace {meses} mes" + ("es" if meses > 1 else "")
+
     except Exception as e:
-        print(f"Error en calcular_tiempo_relativo: {e}")
+        print("ERROR TIEMPO:", e)
         return "Fecha desconocida"
+

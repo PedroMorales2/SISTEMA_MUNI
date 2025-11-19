@@ -9,7 +9,7 @@ admin_views_bp = Blueprint('admin_views', __name__)
 
 API_BASE_URL = 'http://127.0.0.1:5000'
 
-
+#API_BASE_URL = 'https://munireque.pythonanywhere.com'
 def require_login(func):
     """Decorador para requerir login"""
     def wrapper(*args, **kwargs):

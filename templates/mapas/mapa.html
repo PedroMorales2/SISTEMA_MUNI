@@ -1221,7 +1221,7 @@ class IncidentMonitoringSystem {
                 satellite: 'mapbox://styles/mapbox/satellite-streets-v12'
             },
             center: [-79.8175, -6.8644],
-            zoom: 14
+            zoom: 15
         };
         
         this.currentStyle = 'street';
@@ -1596,7 +1596,7 @@ class IncidentMonitoringSystem {
             datos.forEach(inc => {
                 bounds.extend([parseFloat(inc.lon), parseFloat(inc.lat)]);
             });
-            this.map.fitBounds(bounds, { padding: 50, maxZoom: 16 });
+           // this.map.fitBounds(bounds, { padding: 50, maxZoom: 16 });
         }
     }
 
@@ -2439,7 +2439,7 @@ class IncidentMonitoringSystem {
             bounds.extend([parseFloat(inc.lon), parseFloat(inc.lat)]);
         });
 
-        this.map.fitBounds(bounds, { padding: 100, maxZoom: 17, duration: 1000 });
+        //this.map.fitBounds(bounds, { padding: 100, maxZoom: 17, duration: 1000 });
     }
 
     exportJSON() {

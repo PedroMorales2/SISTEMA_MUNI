@@ -1303,7 +1303,9 @@
     formAccion.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      const descripcion = descripcionInput?.value.trim();
+      const motivoSeleccionado = motivoCombo.value.trim();
+     const descripcionUsuario = descripcionInput.value.trim();
+
       const archivo = archivoInput?.files[0];
 
       if (!descripcion) {
@@ -1316,8 +1318,24 @@
         return;
       }
 
+      if (!descripcionUsuario && !motivoSeleccionado) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Campo requerido',
+            text: 'Debe seleccionar un motivo o escribir una descripción',
+            confirmButtonColor: '#28a745'
+        });
+        return;
+    }
+
+    // Concatenar motivo y descripción
+    let descripcionFinal = descripcionUsuario;
+    if (motivoSeleccionado) {
+        descripcionFinal = `${motivoSeleccionado}: ${descripcionUsuario}`;
+    }
+
       const formData = new FormData();
-      formData.append('descripcion', descripcion);
+      formData.append('descripcion', descripcionFinal);
       formData.append('accion', accionActual);
       if (archivo) {
         formData.append('archivo', archivo);
