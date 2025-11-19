@@ -8,7 +8,7 @@ import requests
 auth_views_bp = Blueprint('auth_views', __name__)
 
 API_BASE_URL = 'http://127.0.0.1:5000'
-
+#API_BASE_URL = 'https://munireque.pythonanywhere.com'
 
 @auth_views_bp.route('/')
 def index():

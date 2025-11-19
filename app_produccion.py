@@ -5,6 +5,13 @@ Versión optimizada para PythonAnywhere - SOLO CARGA MODELOS
 import os
 import sys
 
+# ================================
+# CONFIGURAR ZONA HORARIA PERÚ
+# ================================
+os.environ['TZ'] = 'America/Lima'
+import time
+time.tzset()
+
 # Configuración crítica ANTES de importar TensorFlow
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
