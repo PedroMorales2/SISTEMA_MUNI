@@ -6,7 +6,6 @@
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   
   :root {
-    /* Colores principales */
     --primary: #6366f1;
     --primary-dark: #4f46e5;
     --primary-light: #818cf8;
@@ -15,8 +14,6 @@
     --warning: #f59e0b;
     --danger: #ef4444;
     --info: #3b82f6;
-    
-    /* Modo claro */
     --bg-main: #f8fafc;
     --bg-card: #ffffff;
     --bg-hover: #f1f5f9;
@@ -28,8 +25,6 @@
     --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.15);
     --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-    
-    /* Gradientes */
     --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --gradient-success: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
     --gradient-danger: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -51,7 +46,6 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Loading State */
   .loading {
     display: inline-block;
     width: 20px;
@@ -66,7 +60,6 @@
     to { transform: rotate(360deg); }
   }
 
-  /* Container principal */
   .dashboard-wrapper {
     min-height: 100vh;
     background: linear-gradient(180deg, #f8fafc 0%, #e0e7ff 100%);
@@ -74,7 +67,6 @@
     overflow-x: hidden;
   }
 
-  /* Header */
   .dashboard-header {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
@@ -140,7 +132,6 @@
     25%, 75% { opacity: 0; }
   }
 
-  /* Dashboard container */
   .dashboard-container {
     max-width: 1400px;
     margin: 0 auto;
@@ -150,11 +141,10 @@
     gap: 1.5rem;
   }
 
-  /* Stats Grid */
   .stats-grid {
     grid-column: span 12;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.25rem;
     margin-bottom: 1rem;
   }
@@ -219,6 +209,16 @@
     color: white;
   }
 
+  .stat-icon.pendientes-den {
+    background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
+    color: white;
+  }
+
+  .stat-icon.pendientes-emer {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    color: white;
+  }
+
   .stat-label {
     font-size: 0.875rem;
     color: var(--text-secondary);
@@ -272,7 +272,16 @@
     background: var(--bg-hover);
   }
 
-  /* Panels */
+  .stat-trend.warning {
+    color: var(--warning);
+    background: rgba(245, 158, 11, 0.1);
+  }
+
+  .stat-trend.danger {
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
+  }
+
   .main-panel {
     grid-column: span 8;
   }
@@ -281,7 +290,6 @@
     grid-column: span 4;
   }
 
-  /* Chart Cards */
   .chart-card {
     background: var(--bg-card);
     border-radius: 16px;
@@ -337,7 +345,6 @@
     border-color: var(--primary);
   }
 
-  /* Alert Cards */
   .alert-card {
     background: var(--bg-card);
     border-radius: 16px;
@@ -422,7 +429,6 @@
     color: var(--text-muted);
   }
 
-  /* Animations */
   @keyframes slideInUp {
     from {
       opacity: 0;
@@ -447,10 +453,11 @@
 
   .stat-card:nth-child(1) { animation-delay: 0.1s; }
   .stat-card:nth-child(2) { animation-delay: 0.2s; }
-  .chart-card:nth-child(1) { animation-delay: 0.3s; }
-  .chart-card:nth-child(2) { animation-delay: 0.4s; }
+  .stat-card:nth-child(3) { animation-delay: 0.25s; }
+  .stat-card:nth-child(4) { animation-delay: 0.3s; }
+  .chart-card:nth-child(1) { animation-delay: 0.4s; }
+  .chart-card:nth-child(2) { animation-delay: 0.5s; }
 
-  /* Skeleton Loading */
   .skeleton {
     background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border) 50%, var(--bg-hover) 75%);
     background-size: 200% 100%;
@@ -464,7 +471,6 @@
     100% { background-position: -200% 0; }
   }
 
-  /* Responsive */
   @media (max-width: 1024px) {
     .dashboard-container {
       grid-template-columns: 1fr;
@@ -504,7 +510,6 @@
     }
   }
 
-  /* Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -524,7 +529,6 @@
     background: var(--primary-dark);
   }
 
-  /* Refresh animation */
   @keyframes rotate {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -533,10 +537,24 @@
   .refreshing {
     animation: rotate 1s linear infinite;
   }
+
+  @keyframes alertPulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
+  }
+
+  .new-alert-notification {
+    animation: alertPulse 1.5s ease-in-out;
+  }
 </style>
 
 <div class="dashboard-wrapper">
-  <!-- Header -->
   <header class="dashboard-header">
     <div class="header-content">
       <div class="header-title">
@@ -555,17 +573,13 @@
     </div>
   </header>
 
-  <!-- Dashboard Container -->
   <div class="dashboard-container">
-    <!-- Stats Cards -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-card-header">
           <div>
             <div class="stat-label">Denuncias Hoy</div>
-            <div class="stat-value" id="total-denuncias">
-              <span class="loading"></span>
-            </div>
+            <div class="stat-value" id="total-denuncias">0</div>
             <span class="stat-trend neutral" id="trend-denuncias">
               Calculando...
             </span>
@@ -573,7 +587,7 @@
           <div class="stat-icon denuncias">📋</div>
         </div>
         <div class="stat-description" id="ultima-denuncia">
-          <span class="skeleton" style="width: 80%;"></span>
+          Sin denuncias recientes
         </div>
       </div>
 
@@ -581,9 +595,7 @@
         <div class="stat-card-header">
           <div>
             <div class="stat-label">Emergencias Hoy</div>
-            <div class="stat-value" id="total-emergencias">
-              <span class="loading"></span>
-            </div>
+            <div class="stat-value" id="total-emergencias">0</div>
             <span class="stat-trend neutral" id="trend-emergencias">
               Calculando...
             </span>
@@ -591,14 +603,44 @@
           <div class="stat-icon emergencias">🚨</div>
         </div>
         <div class="stat-description" id="ultima-emergencia">
-          <span class="skeleton" style="width: 80%;"></span>
+          Sin emergencias recientes
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <div>
+            <div class="stat-label">Denuncias Pendientes</div>
+            <div class="stat-value" id="total-denuncias-pendientes">0</div>
+            <span class="stat-trend warning" id="trend-denuncias-pendientes">
+              Sin revisar
+            </span>
+          </div>
+          <div class="stat-icon pendientes-den">⏳</div>
+        </div>
+        <div class="stat-description">
+          Esperando revisión
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <div>
+            <div class="stat-label">Emergencias Pendientes</div>
+            <div class="stat-value" id="total-emergencias-pendientes">0</div>
+            <span class="stat-trend danger" id="trend-emergencias-pendientes">
+              Requiere atención
+            </span>
+          </div>
+          <div class="stat-icon pendientes-emer">⚠️</div>
+        </div>
+        <div class="stat-description">
+          Esperando revisión urgente
         </div>
       </div>
     </div>
 
-    <!-- Main Panel -->
     <div class="main-panel">
-      <!-- Radar Chart -->
       <div class="chart-card">
         <div class="chart-header">
           <h3 class="chart-title">
@@ -613,7 +655,6 @@
         </div>
       </div>
 
-      <!-- Line Chart -->
       <div class="chart-card">
         <div class="chart-header">
           <h3 class="chart-title">
@@ -630,7 +671,6 @@
         </div>
       </div>
 
-      <!-- Top Denuncias -->
       <div class="chart-card">
         <div class="chart-header">
           <h3 class="chart-title">
@@ -643,15 +683,13 @@
       </div>
     </div>
 
-    <!-- Side Panel -->
     <div class="side-panel">
-      <!-- Recent Alerts -->
       <div class="alert-card">
         <div class="alert-header">
           <div class="alert-icon warning">⚡</div>
           <div>
-            <h3 style="font-weight: 600; margin: 0;">Alertas Recientes</h3>
-            <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0;">Últimas 24 horas</p>
+            <h3 style="font-weight: 600; margin: 0;">Alertas Pendientes</h3>
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0;">Requieren atención</p>
           </div>
         </div>
         <div class="alert-list" id="alertas-list">
@@ -659,13 +697,10 @@
         </div>
       </div>
 
-      <!-- Distribution Chart -->
       <div class="chart-card">
         <div class="chart-header">
           <h3 class="chart-title">
             🍩 Distribución Mensual de Incidencias
-            <!-- agregar mas filtros -->
-            <!-- fotos y videos -->
           </h3>
         </div>
         <div style="height: 300px; position: relative;">
@@ -673,7 +708,6 @@
         </div>
       </div>
 
-      <!-- Real-time Activity -->
       <div class="alert-card">
         <div class="alert-header">
           <div class="alert-icon danger">📍</div>
@@ -690,20 +724,53 @@
   </div>
 </div>
 
+<!-- AUDIO PARA ALERTAS - Asegúrate que el archivo existe en: static/audio/alerta.mp3 -->
+<audio id="alert-sound" preload="auto">
+  <source src="/static/audio/alerta.mp3" type="audio/mp3">
+</audio>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+
 <script>
-  // Configuración global de Chart.js
   Chart.defaults.font.family = "'Inter', sans-serif";
   Chart.defaults.color = '#64748b';
   
-  // Variables globales para gráficos
   let graficoRadar = null;
   let graficoLineal = null;
   let graficoDoughnut = null;
   let graficoTop = null;
   let currentTimeRange = 'week';
-  
-  // Actualizar reloj
+  let ultimoDenunciasTotal = 0;
+  let ultimoEmergenciasTotal = 0;
+  let audioEnabled = true;
+
+  // URL base para las APIs
+  const BASE_URL = '{{ BASE_URL }}' || '/api/central';
+
+  console.log('BASE_URL:', BASE_URL);
+
+  function playAlertSound() {
+    if (audioEnabled) {
+      try {
+        const audio = document.getElementById('alert-sound');
+        if (audio) {
+          console.log('Reproduciendo audio de alerta...');
+          audio.currentTime = 0;
+          audio.play().then(() => {
+            console.log('Audio reproducido exitosamente');
+          }).catch(err => {
+            console.log('Error al reproducir audio:', err);
+          });
+        } else {
+          console.log('Elemento de audio no encontrado');
+        }
+      } catch (e) {
+        console.log('Error en playAlertSound:', e);
+      }
+    }
+  }
+
   function updateTime() {
     const now = new Date();
     const options = { 
@@ -718,7 +785,6 @@
   setInterval(updateTime, 1000);
   updateTime();
 
-  // Función para animar números
   function animateValue(id, start, end, duration) {
     const obj = document.getElementById(id);
     if (!obj) return;
@@ -748,23 +814,62 @@
     run();
   }
 
-  // Actualizar tarjetas de estadísticas
+  function mostrarNotificacion(mensaje, tipo) {
+    const alertCard = document.querySelector('.alert-card');
+    if (alertCard) {
+      alertCard.classList.add('new-alert-notification');
+      setTimeout(() => {
+        alertCard.classList.remove('new-alert-notification');
+      }, 1500);
+    }
+  }
+
   function actualizarTarjetas() {
-    // Obtener totales del día
-    fetch('{{ BASE_URL }}/api/central/stats/totales_dia')
+    console.log('Actualizando tarjetas...');
+    
+    fetch(BASE_URL + '/api/central/stats/totales_dia')
       .then(res => res.json())
       .then(data => {
-        animateValue("total-denuncias", 0, data.denuncias || 0, 1000);
-        animateValue("total-emergencias", 0, data.emergencias || 0, 1000);
+        console.log('Datos totales día:', data);
+        const nuevasDenuncias = data.denuncias || 0;
+        const nuevasEmergencias = data.emergencias || 0;
+        
+        if (ultimoDenunciasTotal > 0 && nuevasDenuncias > ultimoDenunciasTotal) {
+          playAlertSoundRobust();
+          mostrarNotificacion('Nueva Denuncia Registrada', 'warning');
+        }
+        
+        if (ultimoEmergenciasTotal > 0 && nuevasEmergencias > ultimoEmergenciasTotal) {
+          playAlertSoundRobust();
+          mostrarNotificacion('Nueva Emergencia Registrada', 'danger');
+        }
+        
+        ultimoDenunciasTotal = nuevasDenuncias;
+        ultimoEmergenciasTotal = nuevasEmergencias;
+        
+        animateValue("total-denuncias", 0, nuevasDenuncias, 500);
+        animateValue("total-emergencias", 0, nuevasEmergencias, 500);
       })
       .catch(err => {
-        console.error('Error:', err);
+        console.error('Error totales día:', err);
         document.getElementById("total-denuncias").textContent = '0';
         document.getElementById("total-emergencias").textContent = '0';
       });
 
-    // Obtener tendencias
-    fetch('{{ BASE_URL }}/api/central/stats/tendencias')
+    fetch(BASE_URL + '/api/central/stats/totales_pendientes')
+      .then(res => res.json())
+      .then(data => {
+        console.log('Datos pendientes:', data);
+        animateValue("total-denuncias-pendientes", 0, data.denuncias_pendientes || 0, 1000);
+        animateValue("total-emergencias-pendientes", 0, data.emergencias_pendientes || 0, 1000);
+      })
+      .catch(err => {
+        console.error('Error pendientes:', err);
+        document.getElementById("total-denuncias-pendientes").textContent = '0';
+        document.getElementById("total-emergencias-pendientes").textContent = '0';
+      });
+
+    fetch(BASE_URL + '/api/central/stats/tendencias')
       .then(res => res.json())
       .then(data => {
         const trendDenuncias = document.getElementById("trend-denuncias");
@@ -788,8 +893,7 @@
         console.error('Error tendencias:', err);
       });
 
-    // Actualizar última denuncia
-    fetch('{{ BASE_URL }}/api/central/stats/ultima_denuncia')
+    fetch(BASE_URL + '/api/central/stats/ultima_denuncia')
       .then(res => res.ok ? res.json() : Promise.reject('No hay denuncias'))
       .then(text => {
         const elem = document.getElementById("ultima-denuncia");
@@ -799,8 +903,7 @@
         document.getElementById("ultima-denuncia").innerHTML = "Sin denuncias recientes";
       });
 
-    // Actualizar última emergencia
-    fetch('{{ BASE_URL }}/api/central/stats/ultima_emergencia')
+    fetch(BASE_URL + '/api/central/stats/ultima_emergencia')
       .then(res => res.ok ? res.json() : Promise.reject('No hay emergencias'))
       .then(text => {
         const elem = document.getElementById("ultima-emergencia");
@@ -811,22 +914,23 @@
       });
   }
 
-  // Actualizar alertas recientes
   function actualizarAlertas() {
-    fetch('{{ BASE_URL }}/api/central/stats/alertas_recientes')
+    console.log('Actualizando alertas...');
+    fetch(BASE_URL + '/api/central/stats/alertas_pendientes')
       .then(res => res.json())
       .then(alertas => {
+        console.log('Alertas recibidas:', alertas);
         const container = document.getElementById('alertas-list');
         
         if (alertas && alertas.length > 0) {
           container.innerHTML = alertas.map(alerta => `
-            <div class="alert-item ${alerta.tipo}">
+            <div class="alert-item ${alerta.tipo}" onclick="redirigirAlerta('${alerta.tipo_incidencia}', '${alerta.id}')">
               <span>${alerta.descripcion}</span>
               <span class="alert-time">${alerta.tiempo}</span>
             </div>
           `).join('');
         } else {
-          container.innerHTML = '<div class="empty-state">No hay alertas recientes</div>';
+          container.innerHTML = '<div class="empty-state">No hay alertas pendientes</div>';
         }
       })
       .catch(err => {
@@ -836,9 +940,17 @@
       });
   }
 
-  // Actualizar actividad en tiempo real
+  function redirigirAlerta(tipoIncidencia, idIncidencia) {
+    console.log(`Redirigiendo a ${tipoIncidencia} ${idIncidencia}`);
+    if (tipoIncidencia === 'denuncia') {
+      window.location.href = `{{ BASE_URL }}/denuncias/detalle/${idIncidencia}/editar`;
+    } else if (tipoIncidencia === 'emergencia') {
+      window.location.href = `{{ BASE_URL }}/emergencias/detalle/${idIncidencia}/editar`;
+    }
+  }
+
   function actualizarActividad() {
-    fetch('{{ BASE_URL }}/api/central/stats/actividad_real')
+    fetch(BASE_URL + '/api/central/stats/actividad_real')
       .then(res => res.json())
       .then(actividades => {
         const container = document.getElementById('actividad-list');
@@ -859,9 +971,8 @@
       });
   }
 
-  // Gráfico de Radar
   function crearGraficoRadar() {
-    fetch('{{ BASE_URL }}/api/central/stats/severidad')
+    fetch(BASE_URL + '/api/central/stats/severidad')
       .then(res => res.json())
       .then(datosRadar => {
         const ctx = document.getElementById('graficoRadar').getContext('2d');
@@ -938,11 +1049,9 @@
       .catch(error => console.error('Error radar:', error));
   }
 
-  // Cambiar rango de tiempo
   function changeTimeRange(range) {
     currentTimeRange = range;
     
-    // Actualizar botones activos
     document.querySelectorAll('.chart-actions button').forEach(btn => {
       btn.classList.remove('active');
     });
@@ -959,9 +1068,8 @@
     }
   }
 
-  // Gráfico por hora (día actual)
   function actualizarGraficoPorHora() {
-    fetch('{{ BASE_URL }}/api/central/stats/por_hora')
+    fetch(BASE_URL + '/api/central/stats/por_hora')
       .then(res => res.json())
       .then(data => {
         actualizarGraficoLinealConDatos(data, 'Distribución por Hora - Hoy');
@@ -969,9 +1077,8 @@
       .catch(err => console.error('Error:', err));
   }
 
-  // Gráfico semanal
   function actualizarGraficoSemanal() {
-    fetch('{{ BASE_URL }}/api/central/stats/resumen_semanal')
+    fetch(BASE_URL + '/api/central/stats/resumen_semanal')
       .then(res => res.json())
       .then(data => {
         actualizarGraficoLinealConDatos({
@@ -983,9 +1090,8 @@
       .catch(err => console.error('Error:', err));
   }
 
-  // Gráfico lineal mensual
   function actualizarGraficoLineal() {
-    fetch('{{ BASE_URL }}/api/central/stats/reportes_fecha')
+    fetch(BASE_URL + '/api/central/stats/reportes_fecha')
       .then(res => res.json())
       .then(data => {
         actualizarGraficoLinealConDatos(data, 'Últimos 30 días');
@@ -993,7 +1099,6 @@
       .catch(err => console.error('Error:', err));
   }
 
-  // Función genérica para actualizar gráfico lineal
   function actualizarGraficoLinealConDatos(data, titulo) {
     const ctx = document.getElementById('graficoLinealReportes').getContext('2d');
     
@@ -1118,9 +1223,8 @@
     });
   }
 
-  // Gráfico Doughnut
   function crearGraficoDoughnut() {
-    fetch('{{ BASE_URL }}/api/central/stats/doughnut')
+    fetch(BASE_URL + '/api/central/stats/doughnut')
       .then(res => res.json())
       .then(datos => {
         const ctx = document.getElementById('graficoTipoReporte').getContext('2d');
@@ -1183,9 +1287,8 @@
       .catch(error => console.error('Error doughnut:', error));
   }
 
-  // Gráfico Top Denuncias
   function crearGraficoTop() {
-    fetch('{{ BASE_URL }}/api/central/stats/top_denuncias')
+    fetch(BASE_URL + '/api/central/stats/top_denuncias')
       .then(res => res.json())
       .then(datos => {
         const ctx = document.getElementById('graficoTopDenuncias').getContext('2d');
@@ -1254,7 +1357,6 @@
       .catch(error => console.error('Error top denuncias:', error));
   }
 
-  // Función para refrescar todos los datos
   function refreshAllData() {
     const btn = document.getElementById('refreshBtn');
     btn.classList.add('refreshing');
@@ -1272,29 +1374,222 @@
     }, 1000);
   }
 
-  // Función para exportar gráficos
   function exportChart(type) {
     alert('Función de exportación en desarrollo');
   }
 
-  // Inicializar dashboard
   document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard iniciado');
     actualizarTarjetas();
     actualizarAlertas();
     actualizarActividad();
     crearGraficoRadar();
-    actualizarGraficoSemanal(); // Por defecto mostrar semana
+    actualizarGraficoSemanal();
     crearGraficoDoughnut();
     crearGraficoTop();
     
     // Actualizaciones periódicas
-    setInterval(actualizarTarjetas, 30000); // Cada 30 segundos
-    setInterval(actualizarAlertas, 60000); // Cada minuto
-    setInterval(actualizarActividad, 45000); // Cada 45 segundos
+    setInterval(actualizarTarjetas, 30000);
+    setInterval(actualizarAlertas, 60000);
+    setInterval(actualizarActividad, 45000);
     setInterval(() => {
       changeTimeRange(currentTimeRange);
-    }, 300000); // Actualizar gráfico principal cada 5 minutos
+    }, 300000);
   });
+
+  // ============ SOLUCIÓN 1: Audio Simple (SIN archivo externo) ============
+// Esta solución crea el sonido directamente en JavaScript
+// No necesita archivo externo, funciona siempre
+const alarmaSeria = new Howl({
+            src: ["static/audio/alerta.mp3"], // cambia por tu ruta
+            volume: 1.0,
+            html5: true
+        });
+
+function playAlertSoundBuiltIn() {
+    try {
+        
+        alarmaSeria.play();
+        console.log("🔥 Sirena seria reproducida con Howler.js");
+    } catch (e) {
+        console.error("❌ Error reproduciendo sirena con Howler.js:", e);
+    }
+}
+
+
+// Llamar así:
+// playAlertSoundBuiltIn();
+
+
+// ============ SOLUCIÓN 2: Audio con Archivo Externo (Mejorado) ============
+// Reemplaza la función playAlertSound original con esta
+
+function playAlertSound() {
+    console.group("🔊 DEBUG: playAlertSound()");
+
+    const audio = document.getElementById("alert-sound");
+
+    // 1. Verificar si el elemento existe
+    if (!audio) {
+        console.error("❌ ERROR: No existe <audio id='alertSound'> en el HTML");
+        console.groupEnd();
+        return;
+    }
+
+    console.log("✔ Elemento encontrado:", audio);
+
+    // 2. Verificar si tiene atributo SRC
+    if (!audio.src) {
+        console.error("❌ ERROR: El elemento audio no tiene atributo SRC.");
+        console.warn("👉 Revisa si tienes algo como: <audio id='alertSound' src='/static/sonidos/alert.mp3'></audio>");
+        console.groupEnd();
+        return;
+    }
+
+    console.log("✔ SRC detectado:", audio.src);
+
+    // 3. Verificar si el archivo realmente existe (fetch)
+    console.log("🔍 Verificando si el archivo de audio existe...");
+
+    const startCheck = performance.now();
+    fetch(audio.src, { method: "HEAD" })
+        .then(response => {
+            const loadTime = (performance.now() - startCheck).toFixed(2);
+            console.log(`⏱ Tiempo de verificación: ${loadTime} ms`);
+
+            if (!response.ok) {
+                console.error(`❌ ERROR: El archivo de audio NO existe o no se puede acceder (${response.status})`);
+                console.groupEnd();
+                return Promise.reject("Archivo inexistente");
+            }
+
+            console.log("✔ Archivo accesible. Estado:", response.status);
+
+            // 4. Intentar reproducir
+            console.log("▶ Intentando reproducir audio...");
+
+            const startPlay = performance.now();
+            return audio.play()
+                .then(() => {
+                    const playTime = (performance.now() - startPlay).toFixed(2);
+                    console.log(`🔊 Audio reproducido correctamente en ${playTime} ms`);
+                });
+        })
+        .catch(err => {
+            console.error("❌ ERROR al reproducir audio:", err);
+        })
+        .finally(() => {
+            console.groupEnd();
+        });
+
+    // 5. Evento onerror del propio elemento
+    audio.onerror = function (e) {
+        console.error("❌ EVENTO error en el audio:", e);
+        console.warn("Posibles causas:");
+        console.warn(" - Ruta incorrecta");
+        console.warn(" - Formato no compatible");
+        console.warn(" - Error en permisos");
+    };
+
+    // 6. Logs extra cuando cargue metadata
+    audio.onloadedmetadata = () => {
+        console.log("ℹ Audio metadata cargada:");
+        console.log("   Duration:", audio.duration);
+        console.log("   Type:", audio.type);
+    };
+
+    // 7. Logs para debugging por autoplay
+    audio.onplay = () => console.log("🎵 Evento: onplay disparado");
+    audio.onpause = () => console.log("⏸ Evento: onpause disparado");
+}
+
+
+
+// ============ SOLUCIÓN 3: Versión Robusta con Fallbacks ============
+// Esta es la más confiable, úsala si las otras no funcionan
+
+function playAlertSoundRobust() {
+    console.log('🎵 Iniciando reproducción de alerta...');
+    
+    if (!audioEnabled) {
+        console.log('⏸️ Audio deshabilitado');
+        return;
+    }
+    
+    // Intento 1: Archivo de audio
+    try {
+        const audio = document.getElementById('alert-sound');
+        if (audio && audio.src) {
+            console.log('Intento 1: Audio file');
+            audio.currentTime = 0;
+            audio.volume = 1.0; // Asegurar volumen máximo
+            
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log('✅ Éxito: Audio file reproducido');
+                    return; // Si funciona, sal
+                }).catch(() => {
+                    console.log('⚠️ Audio file falló, intentando método 2...');
+                    playAlertSoundBuiltIn();
+                });
+                return;
+            }
+        }
+    } catch (e) {
+        console.log('⚠️ Intento 1 falló:', e.message);
+    }
+    
+    // Intento 2: Generar audio con Web Audio API
+    try {
+        console.log('Intento 2: Web Audio API');
+        playAlertSoundBuiltIn();
+    } catch (e) {
+        console.log('⚠️ Intento 2 falló:', e.message);
+    }
+}
+
+
+// ============ VERIFICACIÓN Y DEBUG ============
+// Ejecuta esto en la consola del navegador para diagnosticar
+
+function debugAudio() {
+    console.log('========== DEBUG AUDIO ==========');
+    
+    const audio = document.getElementById('alert-sound');
+    console.log('1. Elemento audio existe:', !!audio);
+    
+    if (audio) {
+        console.log('2. URL del audio:', audio.src);
+        console.log('3. Volumen:', audio.volume);
+        console.log('4. Muted:', audio.muted);
+        console.log('5. Tipo MIME:', audio.type);
+        console.log('6. Estado canplay:', audio.canPlayType('audio/mpeg'));
+        
+        // Intenta reproducir
+        console.log('\n7. Intentando reproducir...');
+        audio.play()
+            .then(() => console.log('✅ Play() funcionó'))
+            .catch(err => console.error('❌ Play() falló:', err));
+    } else {
+        console.error('❌ No se encontró elemento audio');
+    }
+    
+    console.log('==============================');
+}
+
+// Llamar: debugAudio()
+
+
+// ============ REEMPLAZA EN EL HTML ============
+// En tu HTML, reemplaza la función playAlertSound original con playAlertSoundRobust
+// Luego en actualizarTarjetas(), cambia:
+// playAlertSound();  ← VIEJO
+// Por:
+// playAlertSoundRobust();  ← NUEVO
+
+// O usa la versión builtin que no necesita archivo:
+// playAlertSoundBuiltIn();
 </script>
 
 {% endblock %}

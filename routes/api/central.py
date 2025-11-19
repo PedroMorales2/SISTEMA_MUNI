@@ -2,7 +2,7 @@
 routes/api/central.py
 API para panel administrativo central
 """
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, session
 from werkzeug.utils import secure_filename
 import os
 import traceback
@@ -535,3 +535,204 @@ def cambiar_password():
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), HTTP_INTERNAL_ERROR
+    
+from datetime import datetime
+
+@central_bp.route('/stats/totales_pendientes', methods=['GET'])
+def obtener_totales_pendientes():
+    """Obtiene totales de incidencias pendientes"""
+    try:
+        id_usuario = session.get('id_usuario', 1)
+        
+        # Contar denuncias pendientes
+        denuncias_pendientes = controlador_central.obtener_denuncias_pendientes_central(id_usuario)
+        total_denuncias = len(denuncias_pendientes) if denuncias_pendientes else 0
+        
+        # Contar emergencias pendientes
+        emergencias_pendientes = controlador_central.obtener_emergencias_pendientes_central(id_usuario)
+        total_emergencias = len(emergencias_pendientes) if emergencias_pendientes else 0
+        
+        return jsonify({
+            "denuncias_pendientes": total_denuncias,
+            "emergencias_pendientes": total_emergencias
+        }), HTTP_OK
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"denuncias_pendientes": 0, "emergencias_pendientes": 0}), HTTP_OK
+
+
+@central_bp.route('/stats/alertas_pendientes', methods=['GET'])
+def obtener_alertas_pendientes():
+    try:
+        import logging
+        from datetime import datetime
+
+        logging.warning(">>> INICIO obtener_alertas_pendientes")
+
+        id_usuario = session['id_usuario']
+        logging.warning(f"ID usuario: {id_usuario}")
+
+        alertas = []
+
+        # ==========================
+        # DENUNCIAS
+        # ==========================
+        denuncias = controlador_central.obtener_denuncias_pendientes_central(id_usuario)
+        logging.warning(f"Denuncias encontradas: {len(denuncias)}")
+
+        for d in denuncias:
+            fecha = d.get("fecha")
+            hora = d.get("hora")
+
+            logging.warning(f"DENUNCIA ID {d.get('id_incidencia')} - fecha={fecha} hora={hora}")
+
+            fecha_completa = None
+            if fecha and hora:
+                fecha_completa = f"{fecha} {hora}"
+            elif fecha:
+                fecha_completa = f"{fecha} 00:00:00"
+
+            alertas.append({
+                "id": d.get('id_incidencia'),
+                "tipo": "warning",
+                "tipo_incidencia": "denuncia",
+                "descripcion": f"Denuncia: {d.get('denuncia', 'Sin especificar')}",
+                "tiempo": calcular_tiempo_relativo(fecha_completa),
+                "fecha_creacion": fecha_completa
+            })
+
+        # ==========================
+        # EMERGENCIAS
+        # ==========================
+        emergencias = controlador_central.obtener_emergencias_pendientes_central(id_usuario)
+        logging.warning(f"Emergencias encontradas: {len(emergencias)}")
+
+        for e in emergencias:
+            fecha = e.get("fecha")
+            hora = e.get("hora")
+
+            logging.warning(f"EMERGENCIA ID {e.get('id_incidencia')} - fecha={fecha} hora={hora}")
+
+            fecha_completa = None
+            if fecha and hora:
+                fecha_completa = f"{fecha} {hora}"
+            elif fecha:
+                fecha_completa = f"{fecha} 00:00:00"
+
+            alertas.append({
+                "id": e.get('id_incidencia'),
+                "tipo": "danger",
+                "tipo_incidencia": "emergencia",
+                "descripcion": f"Emergencia: {e.get('nombre_emergencia', 'Sin especificar')}",
+                "tiempo": calcular_tiempo_relativo(fecha_completa),
+                "fecha_creacion": fecha_completa
+            })
+
+        # ==========================
+        # ORDENAMIENTO
+        # ==========================
+        logging.warning(">>> ORDENANDO ALERTAS POR FECHA")
+
+        def parse_fecha(x):
+            valor = x.get("fecha_creacion")
+            if not valor:
+                logging.error(f"ALERTA SIN FECHA: {x}")
+                return datetime.min
+            try:
+                return datetime.strptime(valor, "%Y-%m-%d %H:%M:%S")
+            except Exception as err:
+                logging.error(f"ERROR PARSEANDO FECHA '{valor}': {err}")
+                return datetime.min
+
+        alertas.sort(key=parse_fecha, reverse=True)
+
+        # ==========================
+        # LIMPIEZA
+        # ==========================
+        for a in alertas:
+            logging.warning(f"ALERTA ORDENADA -> {a}")
+            a.pop("fecha_creacion", None)
+
+        logging.warning(">>> FIN obtener_alertas_pendientes")
+
+        return jsonify(alertas[:10]), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        logging.error(f"ERROR obtener_alertas_pendientes: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+def convertir_fecha_datetime(fecha_str):
+    if not fecha_str:
+        print("⚠️ convertir_fecha_datetime: fecha_str es None")
+        return None
+    
+    formatos = [
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M:%S.%f",
+        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d",
+    ]
+    
+    for fmt in formatos:
+        try:
+            f = datetime.strptime(str(fecha_str).strip(), fmt)
+            return f
+        except ValueError:
+            continue
+    
+    print(f"⚠️ convertir_fecha_datetime: no se pudo parsear '{fecha_str}'")
+    return None
+
+
+def calcular_tiempo_relativo(fecha_str):
+    """Calcula el tiempo relativo desde una fecha"""
+    try:
+        if not fecha_str:
+            return "Fecha desconocida"
+        
+        # Lista de formatos posibles
+        formatos = [
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M:%S.%f",
+            "%Y-%m-%d %H:%M",
+            "%Y-%m-%d",
+        ]
+        
+        fecha = None
+        
+        # Intentar parsear con cada formato
+        for fmt in formatos:
+            try:
+                fecha = datetime.strptime(str(fecha_str).strip(), fmt)
+                break
+            except (ValueError, AttributeError):
+                continue
+        
+        if not fecha:
+            return "Fecha desconocida"
+        
+        ahora = datetime.now()
+        diferencia = ahora - fecha
+        segundos = diferencia.total_seconds()
+        
+        if segundos < 0:
+            return "Hace un momento"
+        elif segundos < 60:
+            return "Hace un momento"
+        elif segundos < 3600:
+            minutos = int(segundos / 60)
+            return f"Hace {minutos} min"
+        elif segundos < 86400:
+            horas = int(segundos / 3600)
+            return f"Hace {horas}h"
+        elif segundos < 2592000:
+            dias = int(segundos / 86400)
+            return f"Hace {dias}d"
+        else:
+            meses = int(segundos / 2592000)
+            return f"Hace {meses} mes" + ("es" if meses > 1 else "")
+    except Exception as e:
+        print(f"Error en calcular_tiempo_relativo: {e}")
+        return "Fecha desconocida"
