@@ -9,6 +9,8 @@ import math
 import numpy as np
 
 from models import models_DBSCAN
+from controladores.controlador_central import obtener_incidencias_dbscan  # <-- importamos tu función de la BD
+
 
 dbscan_bp = Blueprint('dbscan', __name__)
 
@@ -39,6 +41,17 @@ def procesar_modelo_dbscan():
     try:
         # Leer CSV
         df_input = pd.read_csv("data_modelo/dataset_incidencias_reque.csv")
+        
+        # Obtener incidencias desde la BD
+        incidencias_bd = obtener_incidencias_dbscan()  # lista de diccionarios
+        if incidencias_bd:
+            df_bd = pd.DataFrame(incidencias_bd)
+            # Asegurarte que lat/lon son float
+            df_bd['lat'] = df_bd['lat'].astype(float)
+            df_bd['lon'] = df_bd['lon'].astype(float)
+            # Concatenar CSV + BD
+            df_input = pd.concat([df_input, df_bd], ignore_index=True)
+
         
         # Parámetros
         eps_metros = request.args.get('eps', 50, type=int)
@@ -78,11 +91,11 @@ def procesar_modelo_dbscan():
         }
         
         emergencias_dict = {
-            2: "Policía (911)",
-            3: "Serenazgo (955)",
-            4: "Ambulancia (666)",
-            5: "Bomberos Monsefú (444)",
-            6: "Bomberos Chiclayo (922)"
+            1: "Policía (911)",
+            2: "Serenazgo (955)",
+            3: "Ambulancia (666)",
+            4: "Bomberos Monsefú (444)",
+            5: "Bomberos Chiclayo (922)"
         }
         
         # Agregar columna tipo_categoria
@@ -140,3 +153,11 @@ def procesar_modelo_dbscan():
             "status": "error",
             "message": str(e)
         }), 500
+        
+@dbscan_bp.route('/prueba', methods=['GET'])
+def prueba_dbscan():
+    obtener_incidencias = obtener_incidencias_dbscan()
+    return jsonify({
+        "status": "success",
+        "data": obtener_incidencias
+    }), 200

@@ -252,7 +252,7 @@ function crearPopupSector(sector, filtro) {
       <!-- Histórico -->
       <div style="background: #f5f5f5; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
         <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-transform: uppercase; font-weight: bold;">
-          📊 HISTÓRICO REAL
+          📊 CANTIDAD HISTORICA
         </div>
         
         ${filtro === 'todos' || filtro === 'denuncias' ? `
@@ -268,8 +268,7 @@ function crearPopupSector(sector, filtro) {
               .slice(0, 5)
               .map(([tipo, data]) => `
                 <div style="display: flex; justify-content: space-between; padding: 2px 0;">
-                  <span>• ${tipo}</span>
-                  <span style="font-weight: bold;">${data.cantidad}</span>
+                  
                 </div>
               `).join('')}
             ${Object.keys(hist.denuncias_por_tipo).length > 5 ? `<div style="color: #999; font-style: italic;">+ ${Object.keys(hist.denuncias_por_tipo).length - 5} más...</div>` : ''}
@@ -291,8 +290,7 @@ function crearPopupSector(sector, filtro) {
               .slice(0, 5)
               .map(([tipo, data]) => `
                 <div style="display: flex; justify-content: space-between; padding: 2px 0;">
-                  <span>• ${tipo}</span>
-                  <span style="font-weight: bold;">${data.cantidad}</span>
+                  
                 </div>
               `).join('')}
             ${Object.keys(hist.emergencias_por_tipo).length > 5 ? `<div style="color: #999; font-style: italic;">+ ${Object.keys(hist.emergencias_por_tipo).length - 5} más...</div>` : ''}
