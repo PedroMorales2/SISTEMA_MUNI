@@ -11,6 +11,7 @@ def obtenerconexion():
     try:
         # Variables de entorno o valores por defecto
         host = os.environ.get('DB_HOST', '127.0.0.1')
+        #host = os.environ.get('DB_HOST', 'munireque.mysql.pythonanywhere-services.com')
         user = os.environ.get('DB_USER', 'munireque')
         password = os.environ.get('DB_PASSWORD', 'morales78mor')
         database = os.environ.get('DB_NAME', 'munireque$bd_muni_reque')
